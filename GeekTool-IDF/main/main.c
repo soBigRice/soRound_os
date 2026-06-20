@@ -41,6 +41,11 @@ void app_main(void) {
     touch_init(s_i2c_bus, disp);
 
     if (lvgl_port_lock(0)) {
+        // 全局 Nothing 单色暗色主题(红强调);默认字体用带符号的 montserrat,
+        // 让键盘/按钮等默认控件也统一风格(各 app 的正文再单独覆盖成点阵字)
+        lv_theme_t *th = lv_theme_default_init(disp, lv_color_hex(COL_RED),
+                                               lv_color_hex(COL_TXT), true, UI_FONT_SYM);
+        lv_display_set_theme(disp, th);
         launcher_start();
         lvgl_port_unlock();
     }

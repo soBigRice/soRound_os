@@ -155,13 +155,13 @@ void watchface_init(void) {
     mkdot(wf_screen, WF_CX, 40, 3, NRED, LV_OPA_COVER);   // 顶端"已锁定"红点
 
     wf_date = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_date, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(wf_date, UI_FONT_M, 0);
     lv_obj_set_style_text_color(wf_date, lv_color_hex(COL_TXT2), 0);
     lv_label_set_text(wf_date, "");
     lv_obj_align(wf_date, LV_ALIGN_TOP_MID, 0, 262);
 
     wf_wifi = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_wifi, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(wf_wifi, UI_FONT_M, 0);
     lv_obj_set_style_text_color(wf_wifi, lv_color_hex(COL_TXT2), 0);
     lv_label_set_text(wf_wifi, "");
     lv_obj_align(wf_wifi, LV_ALIGN_TOP_MID, 0, 286);

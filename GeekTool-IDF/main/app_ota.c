@@ -52,7 +52,7 @@ static void ota_enter(lv_obj_t *parent) {
 
     lv_obj_t *title = lv_label_create(parent);
     lv_label_set_text(title, "OTA Update");
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(title, UI_FONT_L, 0);
     lv_obj_set_style_text_color(title, lv_color_hex(COL_OTA), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 120);
 
@@ -66,13 +66,13 @@ static void ota_enter(lv_obj_t *parent) {
 
     lv_obj_t *btn = lv_button_create(parent);
     lv_obj_set_size(btn, 180, 56);
-    lv_obj_set_style_bg_color(btn, lv_color_hex(COL_OTA), 0);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(COL_RED), 0);   // 红色 CTA(唯一强调色)
     lv_obj_set_style_radius(btn, 28, 0);
     lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -118);
     lv_obj_add_event_cb(btn, start_btn, LV_EVENT_CLICKED, NULL);
     lv_obj_t *bl = lv_label_create(btn);
     lv_label_set_text(bl, "Update");
-    lv_obj_set_style_text_color(bl, lv_color_black(), 0);
+    lv_obj_set_style_text_color(bl, lv_color_hex(COL_TXT), 0);
     lv_obj_center(bl);
 }
 

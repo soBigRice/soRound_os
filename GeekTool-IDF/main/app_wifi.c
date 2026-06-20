@@ -152,7 +152,7 @@ static void show_password_dialog(const char *ssid) {
     lv_textarea_set_password_mode(pwd_ta, false);
     lv_textarea_set_placeholder_text(pwd_ta, "password");
     lv_obj_set_width(pwd_ta, 360);
-    lv_obj_set_style_text_font(pwd_ta, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(pwd_ta, UI_FONT_L, 0);
     lv_obj_set_style_text_color(pwd_ta, lv_color_white(), 0);
     lv_obj_set_style_bg_color(pwd_ta, lv_color_hex(0x1c1c22), 0);
     lv_obj_set_style_border_color(pwd_ta, lv_color_hex(COL_WIFI), 0);

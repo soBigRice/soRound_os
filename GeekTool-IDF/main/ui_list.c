@@ -69,7 +69,7 @@ lv_obj_t *ui_list_row(lv_obj_t *list, const char *left, const char *right, uint3
     lv_obj_set_width(l, right ? ROW_W - 150 : ROW_W - 48);
     lv_label_set_text(l, left);
     lv_obj_set_style_text_color(l, lv_color_white(), 0);
-    lv_obj_set_style_text_font(l, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(l, UI_FONT_L, 0);
     lv_obj_align(l, LV_ALIGN_LEFT_MID, 24, 0);
     lv_obj_remove_flag(l, LV_OBJ_FLAG_CLICKABLE);
 
@@ -77,7 +77,7 @@ lv_obj_t *ui_list_row(lv_obj_t *list, const char *left, const char *right, uint3
         lv_obj_t *r = lv_label_create(row);
         lv_label_set_text(r, right);
         lv_obj_set_style_text_color(r, lv_color_hex(right_color), 0);
-        lv_obj_set_style_text_font(r, &lv_font_montserrat_14, 0);
+        lv_obj_set_style_text_font(r, UI_FONT_M, 0);
         lv_obj_align(r, LV_ALIGN_RIGHT_MID, -22, 0);
         lv_obj_remove_flag(r, LV_OBJ_FLAG_CLICKABLE);
     }

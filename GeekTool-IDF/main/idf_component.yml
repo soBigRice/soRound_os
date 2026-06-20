@@ -13,3 +13,5 @@ dependencies:
   # 放宽到 ^,让组件管理器在 IDF 6 上挑到兼容版本
   esp_lvgl_port: "^2.7.2"
   lvgl/lvgl: "^9.2.0"
+  # cJSON (IDF v6 不再内置,需从组件库拉取)
+  espressif/cjson: "^1.7.18"

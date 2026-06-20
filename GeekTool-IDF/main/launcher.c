@@ -3,27 +3,84 @@
 #include "app.h"
 #include "power.h"
 #include "lock.h"
+#include "glyph.h"
+#include <math.h>
 
 #define ICON 196
 #define SWAP_MS    220    // 切换动画总时长(ms);半程滑出、半程滑入
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_ota };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_ota, &app_weather };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
-static lv_obj_t *g_icon, *g_letter, *g_name, *g_title, *g_back, *g_batt, *g_bolt;
+static lv_obj_t *g_icon, *g_iconart, *g_name, *g_title, *g_back, *g_batt, *g_bolt;
 static const app_t *cur_app;
 static int cur, pending_app;
 static pwr_state_t s_last_pwr = PWR_UNKNOWN;
 
-/* ---- 瞬时替换居中 app 的内容(只改中心一小块) ---- */
+/* ---- App 点描图标:沿轮廓撒小圆点(glyph_* 通用画法),容器 IB×IB,中心 IC_C ---- */
+#define IB     132
+#define IC_C   66
+#define IC_DR  3          // 点半径
+#define IC_ST  9          // 点间距
+#define IPI    3.14159f
+
+static void ic_wifi(lv_obj_t *p) {                 // 信号弧 + 红点源
+    int ay = IC_C + 20;
+    glyph_arc(p, IC_C, ay, 16, IPI * 1.25f, IPI * 1.75f, IC_ST, IC_DR, COL_TXT);
+    glyph_arc(p, IC_C, ay, 28, IPI * 1.22f, IPI * 1.78f, IC_ST, IC_DR, COL_TXT);
+    glyph_arc(p, IC_C, ay, 40, IPI * 1.20f, IPI * 1.80f, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C, ay, 4, COL_RED);
+}
+static void ic_scan(lv_obj_t *p) {                 // 放大镜:圆 + 手柄
+    glyph_circle(p, IC_C - 9, IC_C - 9, 28, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, IC_C + 11, IC_C + 11, IC_C + 34, IC_C + 34, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C - 9, IC_C - 9, 4, COL_RED);
+}
+static void ic_chip(lv_obj_t *p) {                 // 芯片:方框 + 引脚 + 红核
+    int s = 30;
+    glyph_line(p, IC_C - s, IC_C - s, IC_C + s, IC_C - s, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, IC_C - s, IC_C + s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, IC_C - s, IC_C - s, IC_C - s, IC_C + s, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, IC_C + s, IC_C - s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
+    for (int i = -1; i <= 1; i++) {
+        glyph_dot(p, IC_C + i * 16, IC_C - s - 7, IC_DR, COL_TXT);
+        glyph_dot(p, IC_C + i * 16, IC_C + s + 7, IC_DR, COL_TXT);
+        glyph_dot(p, IC_C - s - 7, IC_C + i * 16, IC_DR, COL_TXT);
+        glyph_dot(p, IC_C + s + 7, IC_C + i * 16, IC_DR, COL_TXT);
+    }
+    glyph_dot(p, IC_C, IC_C, 5, COL_RED);
+}
+static void ic_ota(lv_obj_t *p) {                  // 下载箭头(红头)+ 底线
+    glyph_line(p, IC_C, IC_C - 30, IC_C, IC_C + 10, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, IC_C - 15, IC_C - 6, IC_C, IC_C + 12, IC_ST, IC_DR, COL_RED);
+    glyph_line(p, IC_C + 15, IC_C - 6, IC_C, IC_C + 12, IC_ST, IC_DR, COL_RED);
+    glyph_line(p, IC_C - 28, IC_C + 34, IC_C + 28, IC_C + 34, IC_ST, IC_DR, COL_TXT);
+}
+static void ic_sun(lv_obj_t *p) {                  // 太阳:圆 + 8 向光点 + 红芯
+    glyph_circle(p, IC_C, IC_C, 18, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C, IC_C, 5, COL_RED);
+    for (int k = 0; k < 8; k++) {
+        float a = k * IPI / 4;
+        glyph_dot(p, IC_C + (int)(cosf(a) * 30), IC_C + (int)(sinf(a) * 30), IC_DR, COL_TXT);
+        glyph_dot(p, IC_C + (int)(cosf(a) * 38), IC_C + (int)(sinf(a) * 38), IC_DR, COL_TXT);
+    }
+}
+
+typedef void (*icon_fn_t)(lv_obj_t *);
+static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_ota, ic_sun };  // 顺序对齐 APPS[]
+
+static void draw_icon(int i) {
+    lv_obj_clean(g_iconart);
+    ICON_FN[i](g_iconart);
+}
+
+/* ---- 切换当前居中 app:换点阵图标 + 名字 ---- */
 static void apply_app(int i) {
     cur = i;
-    lv_obj_set_style_bg_color(g_icon, lv_color_hex(APPS[i]->color), 0);
-    char letter[2] = { APPS[i]->name[0], 0 };
-    lv_label_set_text(g_letter, letter);
+    draw_icon(i);
     lv_label_set_text(g_name, APPS[i]->name);
 }
 
@@ -89,11 +146,15 @@ static void icon_cb(lv_event_t *e) {
     lv_obj_set_style_bg_color(app_screen, lv_color_black(), 0);
     lv_obj_remove_flag(app_screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(app_screen, app_gesture_cb, LV_EVENT_GESTURE, NULL);
-    if (cur_app->enter) cur_app->enter(app_screen);
-    lv_label_set_text(g_title, cur_app->name);
+    lv_label_set_text(g_title, cur_app->name);          // 默认标题 = app 名
     lv_obj_remove_flag(g_title, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(g_back, LV_OBJ_FLAG_HIDDEN);
+    if (cur_app->enter) cur_app->enter(app_screen);     // app 可在 enter 里改标题(天气→城市)
     lv_screen_load(app_screen);
+}
+
+void launcher_set_title(const char *t) {
+    if (g_title) lv_label_set_text(g_title, t);
 }
 
 void go_home(void) {
@@ -127,7 +188,7 @@ static void build_overlay(void) {
     // 充电状态图标(⚡):顶端居中,默认隐藏。充电时呼吸、充满时常亮(只动这一小块)
     g_bolt = lv_label_create(top);
     lv_label_set_text(g_bolt, LV_SYMBOL_CHARGE);
-    lv_obj_set_style_text_font(g_bolt, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(g_bolt, UI_FONT_SYM, 0);
     lv_obj_set_style_text_color(g_bolt, lv_color_hex(COL_RING), 0);
     lv_obj_align(g_bolt, LV_ALIGN_TOP_MID, 0, 14);
     lv_obj_add_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
@@ -209,21 +270,25 @@ void launcher_start(void) {
     g_icon = lv_obj_create(launcher_screen);
     lv_obj_set_size(g_icon, ICON, ICON);
     lv_obj_set_style_radius(g_icon, ICON / 2, 0);
-    lv_obj_set_style_border_width(g_icon, 0, 0);
+    lv_obj_set_style_border_width(g_icon, 2, 0);
+    lv_obj_set_style_border_color(g_icon, lv_color_hex(COL_TXT), 0);
+    lv_obj_set_style_bg_opa(g_icon, LV_OPA_TRANSP, 0);   // 描边圆环,不填充(Nothing 风)
     lv_obj_align(g_icon, LV_ALIGN_CENTER, 0, -16);
     lv_obj_remove_flag(g_icon, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_EVENT_BUBBLE);   // 在图标上滑动也能切换
     lv_obj_add_event_cb(g_icon, icon_cb, LV_EVENT_CLICKED, NULL);
 
-    g_letter = lv_label_create(g_icon);
-    lv_obj_set_style_text_color(g_letter, lv_color_black(), 0);
-    lv_obj_set_style_text_font(g_letter, &lv_font_montserrat_20, 0);
-    lv_obj_center(g_letter);
+    g_iconart = lv_obj_create(g_icon);
+    lv_obj_remove_style_all(g_iconart);
+    lv_obj_set_size(g_iconart, IB, IB);
+    lv_obj_center(g_iconart);
+    lv_obj_remove_flag(g_iconart, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     g_name = lv_label_create(launcher_screen);
     lv_obj_set_style_text_color(g_name, lv_color_hex(COL_TXT), 0);
-    lv_obj_set_style_text_font(g_name, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(g_name, UI_FONT_L, 0);
     lv_obj_align(g_name, LV_ALIGN_CENTER, 0, ICON / 2 + 14);
 
     lv_obj_t *al = lv_label_create(launcher_screen);
