@@ -1,0 +1,15 @@
+## GeekTool-IDF 组件依赖(组件管理器自动下载)
+## 版本对齐小智官方对本板的依赖,均为已验证可用的版本。
+dependencies:
+  idf:
+    version: ">=5.1"
+  # CO5300 QSPI AMOLED 面板驱动
+  espressif/esp_lcd_co5300: "^2.0.3"
+  # CST9217 触摸
+  waveshare/esp_lcd_touch_cst9217: "^1.0.3"
+  # 注:TCA9554 IO 扩展 M1 用不到,先不引入(它在 IDF6 上有依赖缺失问题)。
+  #     M2 若需要,再用支持 IDF6 的版本加回来,而不是去改 managed_components。
+  # LVGL 移植层(双缓冲 / DMA / 刷新)—— 注意它依赖 LVGL v9
+  # 放宽到 ^,让组件管理器在 IDF 6 上挑到兼容版本
+  esp_lvgl_port: "^2.7.2"
+  lvgl/lvgl: "^9.2.0"
