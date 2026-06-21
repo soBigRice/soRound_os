@@ -8,8 +8,10 @@
 #include "esp_timer.h"
 #include "esp_system.h"
 #include "esp_idf_version.h"
+#include "esp_heap_caps.h"
 
 static lv_obj_t *g_heap_row = NULL;
+static lv_obj_t *g_int_row  = NULL;
 static lv_obj_t *g_up_row   = NULL;
 static uint32_t  g_last_ms  = 0;
 
@@ -44,6 +46,9 @@ static void sys_enter(lv_obj_t *parent) {
     snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(esp_get_free_heap_size() / 1024));
     g_heap_row = ui_list_row(list, "Free heap", buf, COL_OK);
 
+    snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
+    g_int_row = ui_list_row(list, "Int free", buf, COL_OK);   // 内部 RAM(DMA 用);开关 app 后若持续下降=泄漏
+
     ui_list_row(list, "SDK", esp_get_idf_version(), COL_TXT2);
 
     fmt_uptime(buf, sizeof(buf), now_ms());
@@ -60,12 +65,16 @@ static void sys_tick(void) {
         lv_obj_t *r = ui_list_row_right(g_heap_row);
         if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(esp_get_free_heap_size() / 1024)); lv_label_set_text(r, buf); }
     }
+    if (g_int_row) {
+        lv_obj_t *r = ui_list_row_right(g_int_row);
+        if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024)); lv_label_set_text(r, buf); }
+    }
     if (g_up_row) {
         lv_obj_t *r = ui_list_row_right(g_up_row);
         if (r) { fmt_uptime(buf, sizeof(buf), now_ms()); lv_label_set_text(r, buf); }
     }
 }
 
-static void sys_exit(void) { g_heap_row = NULL; g_up_row = NULL; }
+static void sys_exit(void) { g_heap_row = NULL; g_int_row = NULL; g_up_row = NULL; }
 
 const app_t app_sys = { "System", COL_SYS, sys_enter, sys_tick, sys_exit };

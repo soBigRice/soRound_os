@@ -1,8 +1,11 @@
-// Nothing 风格点阵表盘。时间用 5×7 小圆点画(手绘点阵),外环 60 点,红点冒号 + 秒点。
-// 低运动:数字每分钟重建一次,冒号 1Hz 闪,秒点每秒挪一下 —— 天然符合避撕裂原则。
+// 锁屏表盘框架(多表盘 + 低功耗 AOD)+ 4 款表盘(dots/bold/rings/image)。
+// 全屏黑底(AMOLED 省电),Nothing 单色 + 唯一红强调。手绘 5×7 点阵数字。
+// 低运动:数字每分钟重建;活动态冒号 0.5Hz 闪 + 秒点沿环;AOD 态冒号常亮、秒点隐藏、只按分钟刷新。
 #include "watchface.h"
 #include "app.h"
 #include "power.h"
+#include "settings.h"
+#include "img_store.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
 #include <stdio.h>
@@ -12,12 +15,16 @@
 #define WF_CX   233
 #define WF_CY   233
 #define RING_R  213
-#define P       13     // 点距
-#define R       5      // 数字点半径
-#define Y0      150    // 数字顶行 y(上移给下方信息区腾地方)
-#define NRED    0xd1283a   // Nothing 红
 
-// 5×7 点阵字模(0-9)
+// 表盘接口:每款表盘实现 build/update/destroy,注册进 FACES[]
+typedef struct {
+    const char *name;                 // ASCII,切换时短暂显示
+    void (*build)(lv_obj_t *root);    // 在 root(wf_content)上建全部 UI
+    void (*update)(const struct tm *t, bool aod, bool min_changed);  // 周期刷新(框架按状态调度)
+    void (*destroy)(void);            // 清理表盘私有指针(内容已随 wf_content 销毁)
+} watchface_t;
+
+// 5×7 点阵字模(0-9)—— 各表盘共用
 static const char *const DIGITS[10][7] = {
     {"01110","10001","10011","10101","11001","10001","01110"},
     {"00100","01100","00100","00100","00100","00100","01110"},
@@ -30,14 +37,8 @@ static const char *const DIGITS[10][7] = {
     {"01110","10001","10001","01110","10001","10001","01110"},
     {"01110","10001","10001","01111","00001","00010","01100"},
 };
-static const int CELL_X[4] = { 76, 151, 250, 325 };   // 4 个数字格的左 x(HH:MM)
 
-static lv_obj_t *wf_screen, *wf_time, *wf_colon[2], *wf_sec, *wf_date, *wf_wifi, *wf_bat;
-static lv_timer_t *wf_timer;
-static int  s_last_min = -1;
-static bool s_colon_on = true;
-static int  s_bat_div  = 0;
-
+/* ===== 共用基元 ===== */
 static lv_obj_t *mkdot(lv_obj_t *par, int cx, int cy, int r, uint32_t color, lv_opa_t opa) {
     lv_obj_t *d = lv_obj_create(par);
     lv_obj_remove_style_all(d);
@@ -48,35 +49,66 @@ static lv_obj_t *mkdot(lv_obj_t *par, int cx, int cy, int r, uint32_t color, lv_
     lv_obj_set_style_bg_opa(d, opa, 0);
     lv_obj_remove_flag(d, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(d, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);   // 让手势冒泡到 wf_screen(上滑解锁)
+    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);   // 手势冒泡到 wf_screen(上滑解锁 / 左右滑换表盘)
     return d;
 }
 
-static void draw_digit(char ch, int ox) {
+// 在 (ox,oy) 左上角画一个 5×7 点阵数字
+static void draw_digit_at(lv_obj_t *par, char ch, int ox, int oy, int pitch, int r, uint32_t color, lv_opa_t opa) {
     if (ch < '0' || ch > '9') return;
     const char *const *g = DIGITS[ch - '0'];
-    for (int r = 0; r < 7; r++)
+    for (int row = 0; row < 7; row++)
         for (int c = 0; c < 5; c++)
-            if (g[r][c] == '1')
-                mkdot(wf_time, ox + c * P + P / 2, Y0 + r * P + P / 2, R, COL_TXT, LV_OPA_COVER);
+            if (g[row][c] == '1')
+                mkdot(par, ox + c * pitch + pitch / 2, oy + row * pitch + pitch / 2, r, color, opa);
 }
 
-static void update_date(struct tm *tm) {
+// 居中画 HH:MM 的 4 个数字(不含冒号),返回冒号中心 x;冒号由调用方画(便于闪烁/着色)
+static int draw_time_digits(lv_obj_t *par, const struct tm *t, int cx, int cy, int pitch, int r, uint32_t col, lv_opa_t opa) {
+    char b[5];
+    snprintf(b, sizeof b, "%02d%02d", t->tm_hour, t->tm_min);
+    int dw = 5 * pitch, g = pitch, colw = pitch;
+    int total = 4 * dw + 4 * g + colw;
+    int x0 = cx - total / 2, oy = cy - (7 * pitch) / 2, ox = x0;
+    draw_digit_at(par, b[0], ox, oy, pitch, r, col, opa); ox += dw + g;
+    draw_digit_at(par, b[1], ox, oy, pitch, r, col, opa); ox += dw + g;
+    int colon_cx = ox + colw / 2; ox += colw + g;
+    draw_digit_at(par, b[2], ox, oy, pitch, r, col, opa); ox += dw + g;
+    draw_digit_at(par, b[3], ox, oy, pitch, r, col, opa);
+    return colon_cx;
+}
+
+static lv_obj_t *mklabel(lv_obj_t *par, const lv_font_t *font, uint32_t color, int y) {
+    lv_obj_t *l = lv_label_create(par);
+    lv_obj_set_style_text_font(l, font, 0);
+    lv_obj_set_style_text_color(l, lv_color_hex(color), 0);
+    lv_label_set_text(l, "");
+    lv_obj_align(l, LV_ALIGN_TOP_MID, 0, y);
+    lv_obj_add_flag(l, LV_OBJ_FLAG_EVENT_BUBBLE);
+    return l;
+}
+
+/* ============================================================ Dots 表盘 ============================================================ */
+#define D_P   13
+#define D_R   5
+#define D_Y0  150
+static lv_obj_t *d_time, *d_colon[2], *d_sec, *d_date, *d_wifi, *d_bat;
+static bool      d_colon_on;
+
+static void dots_date(const struct tm *t) {
     static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
     static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
-    char d[24];
-    snprintf(d, sizeof d, "%s  %02d  %s", wd[tm->tm_wday], tm->tm_mday, mo[tm->tm_mon]);
-    lv_label_set_text(wf_date, d);
+    char s[24];
+    snprintf(s, sizeof s, "%s  %02d  %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
+    lv_label_set_text(d_date, s);
 }
 
-static void update_net_and_battery(void) {
-    // WiFi 名(没连/没初始化都显示 wifi off)
+static void dots_netbat(void) {
     wifi_ap_record_t ap;
     bool wifi_ok = (esp_wifi_sta_get_ap_info(&ap) == ESP_OK);
-    lv_label_set_text(wf_wifi, wifi_ok ? (const char *)ap.ssid : "wifi off");
-    lv_obj_set_style_text_color(wf_wifi, lv_color_hex(wifi_ok ? COL_WIFI : COL_TXT2), 0);
+    lv_label_set_text(d_wifi, wifi_ok ? (const char *)ap.ssid : "wifi off");
+    lv_obj_set_style_text_color(d_wifi, lv_color_hex(wifi_ok ? COL_WIFI : COL_TXT2), 0);
 
-    // IP(连上才有)
     char ip[24] = "";
     if (wifi_ok) {
         esp_netif_t *nif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
@@ -84,47 +116,283 @@ static void update_net_and_battery(void) {
         if (nif && esp_netif_get_ip_info(nif, &ipi) == ESP_OK && ipi.ip.addr)
             snprintf(ip, sizeof ip, "  " IPSTR, IP2STR(&ipi.ip));
     }
-
-    // 电量 + IP(+充电色/⚡)
     int soc; pwr_state_t st;
     if (power_read(&soc, &st)) {
         bool charging = (st == PWR_CHARGING || st == PWR_FULL);
         char b[48];
         snprintf(b, sizeof b, "%s bat %d%%%s", charging ? LV_SYMBOL_CHARGE : "", soc, ip);
-        lv_label_set_text(wf_bat, b);
-        lv_obj_set_style_text_color(wf_bat, lv_color_hex(charging ? COL_WIFI : COL_TXT2), 0);
+        lv_label_set_text(d_bat, b);
+        lv_obj_set_style_text_color(d_bat, lv_color_hex(charging ? COL_WIFI : COL_TXT2), 0);
     }
 }
 
+static void dots_build(lv_obj_t *root) {
+    for (int i = 0; i < 60; i++) {            // 点阵外环(分钟刻度)
+        float a = i / 60.0f * 6.2832f - 1.5708f;
+        bool big = (i % 5 == 0);
+        mkdot(root, WF_CX + (int)(cosf(a) * RING_R), WF_CY + (int)(sinf(a) * RING_R),
+              big ? 3 : 2, COL_TXT, big ? LV_OPA_60 : LV_OPA_30);
+    }
+    d_time = lv_obj_create(root);
+    lv_obj_remove_style_all(d_time);
+    lv_obj_set_size(d_time, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(d_time, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(d_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    int oy = D_Y0;
+    d_colon[0] = mkdot(root, WF_CX, oy + 2 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
+    d_colon[1] = mkdot(root, WF_CX, oy + 4 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
+    d_sec      = mkdot(root, WF_CX, WF_CY - RING_R, 4, COL_TXT, LV_OPA_COVER);
+
+    d_date = mklabel(root, UI_FONT_M, COL_TXT2, 262);
+    d_wifi = mklabel(root, UI_FONT_M, COL_TXT2, 286);
+    d_bat  = mklabel(root, &lv_font_montserrat_14, COL_TXT2, 310);
+    d_colon_on = true;
+}
+
+static void dots_update(const struct tm *t, bool aod, bool mc) {
+    if (mc) {
+        lv_obj_clean(d_time);
+        draw_time_digits(d_time, t, WF_CX, D_Y0 + (7 * D_P) / 2, D_P, D_R, COL_TXT, LV_OPA_COVER);
+        dots_date(t);
+        dots_netbat();
+    }
+    lv_opa_t copa;
+    if (aod) copa = LV_OPA_COVER;
+    else { d_colon_on = !d_colon_on; copa = d_colon_on ? LV_OPA_COVER : LV_OPA_TRANSP; }
+    lv_obj_set_style_bg_opa(d_colon[0], copa, 0);
+    lv_obj_set_style_bg_opa(d_colon[1], copa, 0);
+
+    if (aod) {
+        lv_obj_add_flag(d_sec, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(d_sec, LV_OBJ_FLAG_HIDDEN);
+        float a = t->tm_sec / 60.0f * 6.2832f - 1.5708f;
+        lv_obj_set_pos(d_sec, WF_CX + (int)(cosf(a) * RING_R) - 4, WF_CY + (int)(sinf(a) * RING_R) - 4);
+    }
+}
+
+static void dots_destroy(void) { d_time = d_colon[0] = d_colon[1] = d_sec = d_date = d_wifi = d_bat = NULL; }
+
+/* ============================================================ Bold 表盘(极简大字,HH 上 / MM 下) ============================================================ */
+#define B_P   22
+#define B_R   8
+#define B_X0  112
+#define B_X1  244
+#define B_YH  64
+#define B_YM  248
+static lv_obj_t *b_time, *b_dot, *b_date;
+static bool      b_on;
+
+static void bold_build(lv_obj_t *root) {
+    b_time = lv_obj_create(root);
+    lv_obj_remove_style_all(b_time);
+    lv_obj_set_size(b_time, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(b_time, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(b_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    b_dot = mkdot(root, WF_CX, WF_CY, 7, COL_RED, LV_OPA_COVER);   // 两行之间居中的红心跳点
+    b_date = mklabel(root, UI_FONT_M, COL_TXT2, 0);
+    lv_obj_align(b_date, LV_ALIGN_BOTTOM_MID, 0, -36);
+    b_on = true;
+}
+
+static void bold_update(const struct tm *t, bool aod, bool mc) {
+    if (mc) {
+        lv_obj_clean(b_time);
+        char hh[3], mm[3];
+        snprintf(hh, sizeof hh, "%02d", t->tm_hour);
+        snprintf(mm, sizeof mm, "%02d", t->tm_min);
+        draw_digit_at(b_time, hh[0], B_X0, B_YH, B_P, B_R, COL_TXT, LV_OPA_COVER);
+        draw_digit_at(b_time, hh[1], B_X1, B_YH, B_P, B_R, COL_TXT, LV_OPA_COVER);
+        draw_digit_at(b_time, mm[0], B_X0, B_YM, B_P, B_R, COL_TXT, LV_OPA_COVER);
+        draw_digit_at(b_time, mm[1], B_X1, B_YM, B_P, B_R, COL_TXT, LV_OPA_COVER);
+        static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
+        static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
+        char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
+        lv_label_set_text(b_date, s);
+    }
+    lv_opa_t opa;
+    if (aod) opa = LV_OPA_COVER;
+    else { b_on = !b_on; opa = b_on ? LV_OPA_COVER : LV_OPA_30; }
+    lv_obj_set_style_bg_opa(b_dot, opa, 0);
+}
+
+static void bold_destroy(void) { b_time = b_dot = b_date = NULL; }
+
+/* ============================================================ Rings 表盘(同心点环:外=分钟,内=小时,中心数字) ============================================================ */
+#define RG_RO 205
+#define RG_RI 150
+static lv_obj_t *r_ring, *r_center;
+
+static void rings_build(lv_obj_t *root) {
+    r_ring = lv_obj_create(root);
+    lv_obj_remove_style_all(r_ring);
+    lv_obj_set_size(r_ring, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(r_ring, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(r_ring, LV_OBJ_FLAG_EVENT_BUBBLE);
+    r_center = lv_obj_create(root);
+    lv_obj_remove_style_all(r_center);
+    lv_obj_set_size(r_center, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(r_center, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(r_center, LV_OBJ_FLAG_EVENT_BUBBLE);
+}
+
+static void rings_update(const struct tm *t, bool aod, bool mc) {
+    (void)aod;
+    if (!mc) return;                          // 同心环天然平静:仅按分钟重建
+    lv_obj_clean(r_ring);
+    int mn = t->tm_min, hr = t->tm_hour % 12;
+    for (int i = 0; i < 60; i++) {            // 外环:分钟进度
+        float a = i / 60.0f * 6.2832f - 1.5708f;
+        int x = WF_CX + (int)(cosf(a) * RG_RO), y = WF_CY + (int)(sinf(a) * RG_RO);
+        if (i < mn)       mkdot(r_ring, x, y, 3, COL_TXT, LV_OPA_COVER);
+        else if (i == mn) mkdot(r_ring, x, y, 4, COL_RED, LV_OPA_COVER);   // 当前分钟:红色引导点
+        else              mkdot(r_ring, x, y, 2, COL_TXT, LV_OPA_30);
+    }
+    for (int h = 0; h < 12; h++) {            // 内环:小时进度
+        float a = h / 12.0f * 6.2832f - 1.5708f;
+        int x = WF_CX + (int)(cosf(a) * RG_RI), y = WF_CY + (int)(sinf(a) * RG_RI);
+        if (h < hr)       mkdot(r_ring, x, y, 4, COL_TXT, LV_OPA_COVER);
+        else if (h == hr) mkdot(r_ring, x, y, 5, COL_TXT, LV_OPA_COVER);
+        else              mkdot(r_ring, x, y, 3, COL_TXT, LV_OPA_30);
+    }
+    lv_obj_clean(r_center);                    // 中心小号数字 HH:MM
+    int cc = draw_time_digits(r_center, t, WF_CX, WF_CY, 9, 3, COL_TXT, LV_OPA_COVER);
+    int oy = WF_CY - (7 * 9) / 2;
+    mkdot(r_center, cc, oy + 2 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+    mkdot(r_center, cc, oy + 4 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+}
+
+static void rings_destroy(void) { r_ring = r_center = NULL; }
+
+/* ============================================================ Image 表盘(全屏 JPEG 背景 + 时间叠加) ============================================================ */
+#define IM_CY 392
+static lv_obj_t *im_time, *im_msg;
+
+static void image_build(lv_obj_t *root) {
+    const lv_image_dsc_t *dsc = img_store_face_image();
+    if (dsc) {
+        lv_obj_t *img = lv_image_create(root);
+        lv_image_set_src(img, dsc);
+        lv_obj_center(img);
+        lv_obj_add_flag(img, LV_OBJ_FLAG_EVENT_BUBBLE);
+        lv_obj_t *scrim = lv_obj_create(root);   // 时间区半透明深色衬底,保证可读
+        lv_obj_remove_style_all(scrim);
+        lv_obj_set_size(scrim, 320, 96);
+        lv_obj_align(scrim, LV_ALIGN_BOTTOM_MID, 0, -28);
+        lv_obj_set_style_radius(scrim, 16, 0);
+        lv_obj_set_style_bg_color(scrim, lv_color_black(), 0);
+        lv_obj_set_style_bg_opa(scrim, LV_OPA_60, 0);
+        lv_obj_remove_flag(scrim, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(scrim, LV_OBJ_FLAG_EVENT_BUBBLE);
+    } else {
+        im_msg = lv_label_create(root);
+        lv_obj_set_style_text_font(im_msg, UI_FONT_M, 0);
+        lv_obj_set_style_text_color(im_msg, lv_color_hex(COL_TXT2), 0);
+        lv_obj_set_style_text_align(im_msg, LV_TEXT_ALIGN_CENTER, 0);
+        lv_label_set_text(im_msg, "no image\nput a 466x466\nbg.jpg in images/");
+        lv_obj_center(im_msg);
+        lv_obj_add_flag(im_msg, LV_OBJ_FLAG_EVENT_BUBBLE);
+    }
+    im_time = lv_obj_create(root);
+    lv_obj_remove_style_all(im_time);
+    lv_obj_set_size(im_time, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(im_time, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(im_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+}
+
+static void image_update(const struct tm *t, bool aod, bool mc) {
+    (void)aod;
+    if (!mc) return;                          // 图片表盘平静:冒号常亮、无秒点,仅按分钟刷新
+    lv_obj_clean(im_time);
+    int cc = draw_time_digits(im_time, t, WF_CX, IM_CY, 10, 4, COL_TXT, LV_OPA_COVER);
+    int oy = IM_CY - (7 * 10) / 2;
+    mkdot(im_time, cc, oy + 2 * 10 + 5, 4, COL_RED, LV_OPA_COVER);
+    mkdot(im_time, cc, oy + 4 * 10 + 5, 4, COL_RED, LV_OPA_COVER);
+}
+
+static void image_destroy(void) { im_time = im_msg = NULL; }
+
+/* ============================================================ 表盘注册表 ============================================================ */
+static const watchface_t WF_DOTS  = { "dots",  dots_build,  dots_update,  dots_destroy  };
+static const watchface_t WF_BOLD  = { "bold",  bold_build,  bold_update,  bold_destroy  };
+static const watchface_t WF_RINGS = { "rings", rings_build, rings_update, rings_destroy };
+static const watchface_t WF_IMAGE = { "image", image_build, image_update, image_destroy };
+static const watchface_t *const FACES[] = { &WF_DOTS, &WF_BOLD, &WF_RINGS, &WF_IMAGE };
+
+/* ============================================================ 框架 ============================================================ */
+static lv_obj_t *wf_screen, *wf_content, *wf_toast, *wf_lockdot;
+static lv_timer_t *wf_timer;
+static const watchface_t *cur_face;
+static int  s_idx;
+static bool s_aod;
+static int  s_last_min = -1;
+
+int         watchface_count(void)      { return (int)(sizeof(FACES) / sizeof(FACES[0])); }
+const char *watchface_name(int idx)    { return (idx >= 0 && idx < watchface_count()) ? FACES[idx]->name : ""; }
+
 static void wf_tick(lv_timer_t *t) {
+    (void)t;
+    if (!cur_face) return;
     time_t now = time(NULL);
     struct tm tm;
     localtime_r(&now, &tm);
+    bool mc = (tm.tm_min != s_last_min);
+    cur_face->update(&tm, s_aod, mc);
+    if (mc) s_last_min = tm.tm_min;
+}
 
-    if (tm.tm_min != s_last_min) {            // 整分才重建数字
-        lv_obj_clean(wf_time);
-        char hh[3], mm[3];
-        snprintf(hh, sizeof hh, "%02d", tm.tm_hour);
-        snprintf(mm, sizeof mm, "%02d", tm.tm_min);
-        draw_digit(hh[0], CELL_X[0]);
-        draw_digit(hh[1], CELL_X[1]);
-        draw_digit(mm[0], CELL_X[2]);
-        draw_digit(mm[1], CELL_X[3]);
-        update_date(&tm);
-        update_net_and_battery();
-        s_last_min = tm.tm_min;
-    }
+void watchface_select(int idx) {
+    int n = watchface_count();
+    if (idx < 0) idx = 0;
+    if (idx >= n) idx = n - 1;
+    if (cur_face && cur_face->destroy) cur_face->destroy();
+    lv_obj_clean(wf_content);
+    s_idx = idx;
+    cur_face = FACES[idx];
+    cur_face->build(wf_content);
+    s_last_min = -1;
+    if (watchface_visible()) wf_tick(NULL);    // 立即按当前状态(活动/AOD)画一帧
+}
 
-    s_colon_on = !s_colon_on;                 // 冒号 1Hz 闪
-    lv_opa_t opa = s_colon_on ? LV_OPA_COVER : LV_OPA_TRANSP;
-    lv_obj_set_style_bg_opa(wf_colon[0], opa, 0);
-    lv_obj_set_style_bg_opa(wf_colon[1], opa, 0);
+static void toast_opa_cb(void *o, int32_t v) { lv_obj_set_style_opa((lv_obj_t *)o, (lv_opa_t)v, 0); }
 
-    float a = tm.tm_sec / 60.0f * 6.2832f - 1.5708f;   // 秒点沿环
-    lv_obj_set_pos(wf_sec, WF_CX + (int)(cosf(a) * RING_R) - 4,
-                           WF_CY + (int)(sinf(a) * RING_R) - 4);
+static void show_toast(const char *name) {
+    lv_label_set_text(wf_toast, name);
+    lv_anim_delete(wf_toast, toast_opa_cb);
+    lv_obj_set_style_opa(wf_toast, LV_OPA_COVER, 0);
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, wf_toast);
+    lv_anim_set_exec_cb(&a, toast_opa_cb);
+    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
+    lv_anim_set_delay(&a, 800);
+    lv_anim_set_duration(&a, 500);
+    lv_anim_start(&a);
+}
 
-    if (++s_bat_div >= 4) { s_bat_div = 0; update_net_and_battery(); }   // 每 ~2s 刷网络/电量
+void watchface_next(int dir) {
+    int n = watchface_count();
+    int idx = (s_idx + dir + n) % n;
+    watchface_select(idx);
+    settings_set_face((uint8_t)idx);
+    settings_save();
+    show_toast(watchface_name(idx));
+}
+
+void watchface_set_aod(bool aod) {
+    if (aod == s_aod) return;
+    s_aod = aod;
+    s_last_min = -1;                            // 强制按新状态重画(去掉/恢复闪烁与秒点)
+    if (watchface_visible() && wf_timer) wf_tick(NULL);
+}
+
+static void wf_gesture_cb(lv_event_t *e) {
+    (void)e;
+    lv_dir_t d = lv_indev_get_gesture_dir(lv_indev_active());
+    if (d == LV_DIR_LEFT)       watchface_next(+1);
+    else if (d == LV_DIR_RIGHT) watchface_next(-1);
 }
 
 void watchface_init(void) {
@@ -134,52 +402,41 @@ void watchface_init(void) {
     lv_obj_set_style_bg_color(wf_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(wf_screen, LV_OPA_COVER, 0);
     lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_SCROLLABLE);
+    // 关键:wf_screen 建在 lv_layer_top() 上(parent 非空),默认带 GESTURE_BUBBLE,会把手势继续
+    // 冒泡到 layer_top,使挂在 wf_screen 上的手势回调(换表盘 / 上滑解锁)永远收不到。去掉它,
+    // 手势就停在 wf_screen(子节点仍保留 GESTURE_BUBBLE,手势能从表盘内容冒上来)。
+    lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_event_cb(wf_screen, wf_gesture_cb, LV_EVENT_GESTURE, NULL);   // 左右滑换表盘
 
-    for (int i = 0; i < 60; i++) {            // 点阵外环
-        float a = i / 60.0f * 6.2832f - 1.5708f;
-        bool big = (i % 5 == 0);
-        mkdot(wf_screen, WF_CX + (int)(cosf(a) * RING_R), WF_CY + (int)(sinf(a) * RING_R),
-              big ? 3 : 2, COL_TXT, big ? LV_OPA_60 : LV_OPA_30);
-    }
+    wf_content = lv_obj_create(wf_screen);
+    lv_obj_remove_style_all(wf_content);
+    lv_obj_set_size(wf_content, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(wf_content, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(wf_content, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    wf_time = lv_obj_create(wf_screen);       // 数字容器(每分钟 clean+重建)
-    lv_obj_remove_style_all(wf_time);
-    lv_obj_set_size(wf_time, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(wf_time, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(wf_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+    wf_lockdot = mkdot(wf_screen, WF_CX, 40, 3, COL_RED, LV_OPA_COVER);   // 顶端"已锁定"红点(各表盘共用)
 
-    wf_colon[0] = mkdot(wf_screen, WF_CX, Y0 + 2 * P + P / 2, R, NRED, LV_OPA_COVER);
-    wf_colon[1] = mkdot(wf_screen, WF_CX, Y0 + 4 * P + P / 2, R, NRED, LV_OPA_COVER);
-    wf_sec      = mkdot(wf_screen, WF_CX, WF_CY - RING_R, 4, COL_TXT, LV_OPA_COVER);
-    mkdot(wf_screen, WF_CX, 40, 3, NRED, LV_OPA_COVER);   // 顶端"已锁定"红点
+    wf_toast = lv_label_create(wf_screen);
+    lv_obj_set_style_text_font(wf_toast, UI_FONT_L, 0);
+    lv_obj_set_style_text_color(wf_toast, lv_color_hex(COL_TXT), 0);
+    lv_label_set_text(wf_toast, "");
+    lv_obj_align(wf_toast, LV_ALIGN_BOTTOM_MID, 0, -52);
+    lv_obj_set_style_opa(wf_toast, LV_OPA_TRANSP, 0);
+    lv_obj_add_flag(wf_toast, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    wf_date = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_date, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(wf_date, lv_color_hex(COL_TXT2), 0);
-    lv_label_set_text(wf_date, "");
-    lv_obj_align(wf_date, LV_ALIGN_TOP_MID, 0, 262);
-
-    wf_wifi = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_wifi, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(wf_wifi, lv_color_hex(COL_TXT2), 0);
-    lv_label_set_text(wf_wifi, "");
-    lv_obj_align(wf_wifi, LV_ALIGN_TOP_MID, 0, 286);
-
-    wf_bat = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_bat, &lv_font_montserrat_14, 0);
-    lv_obj_set_style_text_color(wf_bat, lv_color_hex(COL_TXT2), 0);
-    lv_label_set_text(wf_bat, "");
-    lv_obj_align(wf_bat, LV_ALIGN_TOP_MID, 0, 310);
+    cur_face = NULL;
+    s_aod = false;
+    watchface_select(settings_face());
 }
 
 void watchface_show(void) {
     if (!wf_screen) return;
-    s_last_min = -1;                          // 强制重建数字
+    s_last_min = -1;
     lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(wf_screen);
-    if (!wf_timer) wf_timer = lv_timer_create(wf_tick, 500, NULL);
-    wf_tick(NULL);                            // 立即刷一帧
+    if (!wf_timer) wf_timer = lv_timer_create(wf_tick, 1000, NULL);
+    wf_tick(NULL);
 }
 
 void watchface_hide(void) {

@@ -37,10 +37,14 @@ extern const app_t app_i2c;
 extern const app_t app_sys;
 extern const app_t app_ota;
 extern const app_t app_weather;
+extern const app_t app_calendar;
+extern const app_t app_countdown;
 extern const app_t app_settings;
 extern const app_t app_audio;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
+
+void wifi_service_start(void);   // 开机自动起 WiFi 并重连记住的 AP(在 app_wifi.c,main 启动末尾调用)
 
 void launcher_start(void);   // 创建启动器并加载(需在 lvgl_port 锁内调用)
 void go_home(void);          // app 内返回启动器

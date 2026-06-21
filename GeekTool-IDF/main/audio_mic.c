@@ -12,7 +12,10 @@
 
 #define TAG       "mic"
 #define MIC_RATE  16000
-#define ES7210_ADDR 0x40
+// ES7210 I2C 地址:这里要传【8 位写地址】,esp_codec_dev 的 i2c ctrl 内部会 >>1 取 7 位
+// (audio_codec_ctrl_i2c.c: device_address = addr >> 1)。0x80>>1=0x40 才是 ES7210。
+// 之前误填 0x40 → 实际寻到 7 位 0x20(TCA9554 IO 扩展)→ ES7210 从未配置 → 无音频数据,竖条静止。
+#define ES7210_ADDR ES7210_CODEC_DEFAULT_ADDR   // = 0x80
 
 static i2s_chan_handle_t       s_rx;
 static esp_codec_dev_handle_t  s_dev;
@@ -61,7 +64,7 @@ bool audio_mic_start(i2c_master_bus_handle_t i2c_bus) {
 
     esp_codec_dev_sample_info_t fs = { .bits_per_sample = 16, .channel = 1, .sample_rate = MIC_RATE };
     if (esp_codec_dev_open(s_dev, &fs) != ESP_CODEC_DEV_OK) { ESP_LOGE(TAG, "codec_dev_open"); return false; }
-    esp_codec_dev_set_in_channel_gain(s_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), 30.0f);  // 增益 30dB
+    esp_codec_dev_set_in_channel_gain(s_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), 40.0f);  // 增益 40dB(更灵敏)
     ESP_LOGI(TAG, "mic started @ %dHz", MIC_RATE);
     return true;
 }
@@ -77,5 +80,5 @@ void audio_mic_stop(void) {
     if (s_codec_if) { audio_codec_delete_codec_if(s_codec_if); s_codec_if = NULL; }
     if (s_ctrl_if)  { audio_codec_delete_ctrl_if(s_ctrl_if);   s_ctrl_if  = NULL; }
     if (s_data_if)  { audio_codec_delete_data_if(s_data_if);   s_data_if  = NULL; }
-    if (s_rx) { i2s_channel_disable(s_rx); i2s_del_channel(s_rx); s_rx = NULL; }
+    if (s_rx) { i2s_channel_disable(s_rx); i2s_del_channel(s_rx); s_rx = NULL; }   // 显式 disable 再删,确保 DMA 缓冲释放(已 disable 时返回错误,忽略)
 }

@@ -31,6 +31,7 @@ static volatile bool s_scan_done    = false;
 static volatile bool s_connecting   = false;
 static volatile bool s_got_ip       = false;
 static volatile bool s_disconnected = false;
+static volatile bool s_suppress_rc  = false;   // 切换 AP 的瞬间抑制自动重连(避免重连到旧 AP)
 static uint32_t      connect_start  = 0;
 
 static uint32_t now_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
@@ -38,8 +39,17 @@ static uint32_t now_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
 /* ---------- esp_wifi / IP 事件(只设标志,勿碰 LVGL) ---------- */
 static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data) {
     if (base == WIFI_EVENT) {
-        if (id == WIFI_EVENT_SCAN_DONE)             s_scan_done = true;
-        else if (id == WIFI_EVENT_STA_DISCONNECTED) s_disconnected = true;
+        if (id == WIFI_EVENT_STA_START) {
+            // 开机/重启:若 NVS 里有记住的 AP(FLASH 存储会自动加载),直接自动连
+            wifi_config_t wc;
+            if (esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
+        } else if (id == WIFI_EVENT_SCAN_DONE) {
+            s_scan_done = true;
+        } else if (id == WIFI_EVENT_STA_DISCONNECTED) {
+            s_got_ip = false;
+            s_disconnected = true;
+            if (!s_suppress_rc) esp_wifi_connect();   // 掉线自动重连(回到信号范围/AP 恢复即重连)
+        }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         s_got_ip = true;
     }
@@ -55,9 +65,9 @@ static void wifi_svc_init(void) {
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_evt, NULL, NULL));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_evt, NULL, NULL));
-    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_RAM));
+    ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));   // ★凭据写 NVS,重启/重烧后还在
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    ESP_ERROR_CHECK(esp_wifi_start());                            // → STA_START 事件里自动连记住的 AP
 
     // SNTP 校时:连上后自动同步(时区在 main 里设为 CST-8),供表盘显示真实时间
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
@@ -95,10 +105,12 @@ static void start_connect(const char *ssid, const char *pass) {
     strncpy((char *)wc.sta.ssid, ssid, sizeof(wc.sta.ssid) - 1);
     if (pass && pass[0]) strncpy((char *)wc.sta.password, pass, sizeof(wc.sta.password) - 1);
 
+    s_suppress_rc = true;              // 抑制下面 disconnect 触发的"自动重连回旧 AP"
     esp_wifi_disconnect();             // 若已连别的 AP,先断开(未连接则忽略错误)
-    esp_wifi_set_config(WIFI_IF_STA, &wc);
+    esp_wifi_set_config(WIFI_IF_STA, &wc);   // FLASH 存储 → 自动写入 NVS,记住这个 AP
     s_got_ip = false;
     s_disconnected = false;
+    s_suppress_rc = false;
     esp_wifi_connect();
     s_connecting = true;
     connect_start = now_ms();
@@ -273,5 +285,8 @@ static void wifi_exit(void) {
     g_status = NULL;
     // 保留已连接状态,不 deinit wifi(下次进入更快)
 }
+
+// 开机自动起 WiFi 协议栈(STA_START 事件里会自动连记住的 AP)。由 main 在启动末尾调用,幂等。
+void wifi_service_start(void) { wifi_svc_init(); }
 
 const app_t app_wifi = { "WiFi", COL_WIFI, wifi_enter, wifi_tick, wifi_exit };

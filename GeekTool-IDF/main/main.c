@@ -51,5 +51,8 @@ void app_main(void) {
         launcher_start();
         lvgl_port_unlock();
     }
+
+    wifi_service_start();            // 开机自动起 WiFi + 重连记住的 AP(不碰 LVGL,放锁外)
+
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");
 }
