@@ -37,6 +37,8 @@ extern const app_t app_i2c;
 extern const app_t app_sys;
 extern const app_t app_ota;
 extern const app_t app_weather;
+extern const app_t app_settings;
+extern const app_t app_audio;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
 

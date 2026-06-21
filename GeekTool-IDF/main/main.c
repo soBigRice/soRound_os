@@ -12,6 +12,7 @@
 #include "board_config.h"
 #include "display.h"
 #include "app.h"
+#include "settings.h"
 
 static const char *TAG = "main";
 
@@ -38,6 +39,7 @@ void app_main(void) {
 
     s_i2c_bus = init_i2c();
     lv_display_t *disp = display_init();
+    settings_init();                 // 读 NVS + 应用亮度(需 display 已 init)
     touch_init(s_i2c_bus, disp);
 
     if (lvgl_port_lock(0)) {

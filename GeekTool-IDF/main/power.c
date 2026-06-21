@@ -49,6 +49,13 @@ int power_key_event(void) {
     return 0;
 }
 
+// 音频 codec(ES7210/ES8311)由 AXP2101 ALDO1 供电。只开 ALDO1、不动其它轨(别影响已工作的显示)。
+void power_audio_on(void) {
+    wr_reg(0x92, (3300 - 500) / 100);                 // ALDO1 = 3.3V
+    uint8_t v;
+    if (rd_reg(0x90, &v)) wr_reg(0x90, v | 0x01);     // 使能 ALDO1(bit0),保留其它 LDO 状态
+}
+
 bool power_read(int *soc, pwr_state_t *st) {
     uint8_t s2, lvl;
     if (!rd_reg(0x01, &s2) || !rd_reg(0xA4, &lvl)) return false;

@@ -1,11 +1,13 @@
 idf_component_register(
     SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "lock.c" "glyph.c"
          "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_ota.c" "app_weather.c"
+         "settings.c" "app_settings.c" "audio_mic.c" "app_audio.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common
              esp_wifi esp_netif esp_event lwip
              esp_https_ota app_update esp_http_client esp-tls mbedtls
+             esp_driver_i2s esp_codec_dev
 )
 
 # GCC 的 -Wformat-truncation 对 snprintf 的小缓冲过度保守(把 %d 当成最长 11 字符),

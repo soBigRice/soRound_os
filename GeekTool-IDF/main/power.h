@@ -15,3 +15,4 @@ bool power_read(int *soc, pwr_state_t *st);   // soc:0-100;读失败返回 false
 void power_off(void);                         // AXP2101 关机(reg 0x10 bit0)
 void power_key_init(void);                    // 使能 AXP2101 PWRON 键短/长按 IRQ
 int  power_key_event(void);                   // 轮询:0=无 / 1=短按 / 2=长按(读后自动清)
+void power_audio_on(void);                    // 使能 AXP2101 ALDO1(3.3V)给音频 codec(ES7210)供电

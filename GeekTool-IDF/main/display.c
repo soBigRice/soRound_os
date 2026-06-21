@@ -93,7 +93,8 @@ lv_display_t *display_init(void) {
     lvgl_port_display_cfg_t disp_cfg = {
         .io_handle    = io,
         .panel_handle = panel,
-        .buffer_size  = LCD_H_RES * 160,  // 单缓冲放大到 160 行
+        .buffer_size  = LCD_H_RES * 80,   // 单缓冲 80 行(~73KB 内部 DMA RAM)
+                                          // 注:加了音频组件后内部 RAM 吃紧,从 160 行降到 80 行才放得下
         .double_buffer = false,           // ★单缓冲:消除双缓冲交替造成的闪烁(小智 SPI 屏也用单缓冲)
         .hres         = LCD_H_RES,
         .vres         = LCD_V_RES,
@@ -112,7 +113,10 @@ lv_display_t *display_init(void) {
 }
 
 void display_set_brightness(uint8_t level) {
-    if (s_io) esp_lcd_panel_io_tx_param(s_io, 0x51, (uint8_t[]){ level }, 1);
+    if (!s_io) return;
+    // CO5300 走 QSPI:命令必须按 QSPI 编码(写命令 opcode 0x02<<24 | cmd<<8),
+    // 直接发裸 0x51 面板收不到 —— 这就是之前亮度/锁屏变暗不生效的根因。
+    esp_lcd_panel_io_tx_param(s_io, (0x02 << 24) | (0x51 << 8), (uint8_t[]){ level }, 1);
 }
 
 void display_sleep(bool sleep) {

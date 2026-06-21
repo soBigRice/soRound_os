@@ -4,6 +4,7 @@
 #include "watchface.h"
 #include "display.h"
 #include "power.h"
+#include "settings.h"
 
 #define DIM_MS     15000   // 空闲变暗
 #define SLEEP_MS   30000   // 空闲熄屏
@@ -18,7 +19,7 @@ static void set_screen(scr_t s) {
     if (s == s_scr) return;
     s_scr = s;
     switch (s) {
-        case SCR_FULL: display_sleep(false); display_set_brightness(BR_FULL); break;
+        case SCR_FULL: display_sleep(false); display_set_brightness(settings_brightness()); break;
         case SCR_DIM:  display_sleep(false); display_set_brightness(BR_DIM);  break;
         case SCR_OFF:  display_set_brightness(0); display_sleep(true);         break;
     }

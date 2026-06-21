@@ -11,7 +11,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_ota, &app_weather };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_ota, &app_weather, &app_settings, &app_audio };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -69,8 +69,25 @@ static void ic_sun(lv_obj_t *p) {                  // 太阳:圆 + 8 向光点 +
     }
 }
 
+static void ic_settings(lv_obj_t *p) {             // 设置:三条滑轨 + 旋钮(中间红)
+    int xs = IC_C - 30, xe = IC_C + 30;
+    glyph_line(p, xs, IC_C - 20, xe, IC_C - 20, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C - 12, IC_C - 20, 6, COL_TXT);
+    glyph_line(p, xs, IC_C, xe, IC_C, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C + 14, IC_C, 6, COL_RED);
+    glyph_line(p, xs, IC_C + 20, xe, IC_C + 20, IC_ST, IC_DR, COL_TXT);
+    glyph_dot(p, IC_C - 2, IC_C + 20, 6, COL_TXT);
+}
+
+static void ic_audio(lv_obj_t *p) {                // 音频:四根高低不一的竖条(中间红)
+    int xs[4] = { IC_C - 24, IC_C - 8, IC_C + 8, IC_C + 24 };
+    int hh[4] = { 20, 38, 14, 30 };
+    for (int i = 0; i < 4; i++)
+        glyph_line(p, xs[i], IC_C + 22, xs[i], IC_C + 22 - hh[i], IC_ST, IC_DR, i == 1 ? COL_RED : COL_TXT);
+}
+
 typedef void (*icon_fn_t)(lv_obj_t *);
-static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_ota, ic_sun };  // 顺序对齐 APPS[]
+static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_ota, ic_sun, ic_settings, ic_audio };  // 顺序对齐 APPS[]
 
 static void draw_icon(int i) {
     lv_obj_clean(g_iconart);

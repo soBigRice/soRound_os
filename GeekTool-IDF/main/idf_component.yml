@@ -15,3 +15,5 @@ dependencies:
   lvgl/lvgl: "^9.2.0"
   # cJSON (IDF v6 不再内置,需从组件库拉取)
   espressif/cjson: "^1.7.18"
+  # 麦克风:ES7210 4 路 ADC + I2S(音频可视化 app 用),配置对齐小智
+  espressif/esp_codec_dev: "^1.3.1"

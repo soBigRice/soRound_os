@@ -21,7 +21,8 @@ static const char *TAG = "weather";
 #define WX_LAT  "31.2304"
 #define WX_LON  "121.4737"
 // Open-Meteo:无 key;数值字段;天气是 WMO code(timezone=auto 让当日低/高按本地日界)
-#define WX_URL  "https://api.open-meteo.com/v1/forecast?latitude=" WX_LAT "&longitude=" WX_LON \
+// 用 HTTP 不用 HTTPS:天气是公开数据,免去 TLS 那 ~32KB 内存(S3 内部 RAM 被显存+WiFi 占满会 ssl_setup 失败)
+#define WX_URL  "http://api.open-meteo.com/v1/forecast?latitude=" WX_LAT "&longitude=" WX_LON \
                 "&current=temperature_2m,relative_humidity_2m,weather_code" \
                 "&daily=temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=1"
 #define WX_BUF  8192                                   // open-meteo 响应 ~1-2KB
