@@ -6,9 +6,11 @@
 #include "power.h"
 #include "settings.h"
 #include "img_store.h"
+#include "glyph.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <math.h>
 
@@ -314,12 +316,96 @@ static void image_update(const struct tm *t, bool aod, bool mc) {
 
 static void image_destroy(void) { im_time = im_msg = NULL; }
 
+/* ============================================================ Weather 表盘(时间 + 实时天气,数据来自 app_weather) ============================================================ */
+static lv_obj_t *wx_time, *wx_iconc, *wx_tempc, *wx_info, *wx_msg;
+static int       wx_shown;
+
+static void wf_weather_icon(lv_obj_t *p, int code, int cx, int cy) {
+    if (code <= 1) {                                       // 晴
+        glyph_circle(p, cx, cy, 15, 8, 3, COL_TXT);
+        glyph_dot(p, cx, cy, 5, COL_RED);
+        for (int k = 0; k < 8; k++) { float a = k * 0.7854f; glyph_dot(p, cx + (int)(cosf(a) * 26), cy + (int)(sinf(a) * 26), 3, COL_TXT); }
+    } else if ((code >= 71 && code <= 77) || code == 85 || code == 86) {   // 雪
+        glyph_circle(p, cx, cy - 6, 20, 10, 3, COL_TXT);
+        for (int i = -1; i <= 1; i++) glyph_dot(p, cx + i * 16, cy + 22, 4, COL_TXT);
+    } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) {   // 雨/雷
+        glyph_circle(p, cx, cy - 6, 20, 10, 3, COL_TXT);
+        for (int i = -1; i <= 1; i++) glyph_line(p, cx + i * 16 + 4, cy + 14, cx + i * 16 - 4, cy + 32, 9, 3, COL_RED);
+    } else {                                               // 多云/雾
+        glyph_circle(p, cx, cy, 22, 11, 3, COL_TXT);
+        glyph_dot(p, cx, cy, 4, COL_TXT2);
+    }
+}
+
+static void wf_draw_temp(lv_obj_t *par, int t, int cy, int pitch, int r) {
+    char s[8]; int v = t < 0 ? -t : t;
+    snprintf(s, sizeof s, "%d", v);
+    int n = (int)strlen(s), dw = 5 * pitch, gap = pitch;
+    int total = (t < 0 ? dw + gap : 0) + n * dw + (n - 1) * gap + 2 * pitch;
+    int oy = cy - (7 * pitch) / 2, ox = WF_CX - total / 2;
+    if (t < 0) { for (int c = 1; c <= 3; c++) mkdot(par, ox + c * pitch + pitch / 2, oy + 3 * pitch + pitch / 2, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
+    for (int k = 0; k < n; k++) { draw_digit_at(par, s[k], ox, oy, pitch, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
+    glyph_circle(par, ox + pitch, oy + pitch, pitch / 2 + 1, 6, 2, COL_TXT);   // 度环 °
+}
+
+static lv_obj_t *wx_full(lv_obj_t *root) {
+    lv_obj_t *c = lv_obj_create(root);
+    lv_obj_remove_style_all(c);
+    lv_obj_set_size(c, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(c, LV_OBJ_FLAG_EVENT_BUBBLE);
+    return c;
+}
+
+static void weather_build(lv_obj_t *root) {
+    wx_time  = wx_full(root);
+    wx_iconc = wx_full(root);
+    wx_tempc = wx_full(root);
+    wx_info = mklabel(root, UI_FONT_M, COL_TXT2, 312);
+    wx_msg  = mklabel(root, UI_FONT_M, COL_TXT2, 250);
+    wx_shown = -99999;
+}
+
+static void weather_update(const struct tm *t, bool aod, bool mc) {
+    (void)aod;
+    if (mc) {                                              // 顶部 HH:MM(小号),每分钟重画
+        lv_obj_clean(wx_time);
+        int oy = 96;
+        int cc = draw_time_digits(wx_time, t, WF_CX, oy + (7 * 9) / 2, 9, 3, COL_TXT, LV_OPA_COVER);
+        mkdot(wx_time, cc, oy + 2 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+        mkdot(wx_time, cc, oy + 4 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+    }
+    weather_poll();                                        // 后台按需拉(连着 WiFi 才拉)
+    int temp, lo, hi, code, hum;
+    bool ok = weather_cached(&temp, &lo, &hi, &code, &hum);
+    int key = ok ? (code * 1000 + temp + 500) : -1;
+    if (key != wx_shown) {                                 // 天气变了才重画图标/温度
+        wx_shown = key;
+        lv_obj_clean(wx_iconc);
+        lv_obj_clean(wx_tempc);
+        if (ok) {
+            lv_obj_add_flag(wx_msg, LV_OBJ_FLAG_HIDDEN);
+            wf_weather_icon(wx_iconc, code, WF_CX, 178);
+            wf_draw_temp(wx_tempc, temp, 256, 15, 5);
+            char b[40]; snprintf(b, sizeof b, "%d / %d", lo, hi);
+            lv_label_set_text(wx_info, b);
+        } else {
+            lv_obj_remove_flag(wx_msg, LV_OBJ_FLAG_HIDDEN);
+            lv_label_set_text(wx_msg, "connect wifi");
+            lv_label_set_text(wx_info, "");
+        }
+    }
+}
+
+static void weather_destroy(void) { wx_time = wx_iconc = wx_tempc = wx_info = wx_msg = NULL; }
+
 /* ============================================================ 表盘注册表 ============================================================ */
-static const watchface_t WF_DOTS  = { "dots",  dots_build,  dots_update,  dots_destroy  };
-static const watchface_t WF_BOLD  = { "bold",  bold_build,  bold_update,  bold_destroy  };
-static const watchface_t WF_RINGS = { "rings", rings_build, rings_update, rings_destroy };
-static const watchface_t WF_IMAGE = { "image", image_build, image_update, image_destroy };
-static const watchface_t *const FACES[] = { &WF_DOTS, &WF_BOLD, &WF_RINGS, &WF_IMAGE };
+static const watchface_t WF_DOTS    = { "dots",    dots_build,    dots_update,    dots_destroy    };
+static const watchface_t WF_BOLD    = { "bold",    bold_build,    bold_update,    bold_destroy    };
+static const watchface_t WF_RINGS   = { "rings",   rings_build,   rings_update,   rings_destroy   };
+static const watchface_t WF_WEATHER = { "weather", weather_build, weather_update, weather_destroy };
+static const watchface_t WF_IMAGE   = { "image",   image_build,   image_update,   image_destroy   };
+static const watchface_t *const FACES[] = { &WF_DOTS, &WF_BOLD, &WF_RINGS, &WF_WEATHER, &WF_IMAGE };
 
 /* ============================================================ 框架 ============================================================ */
 static lv_obj_t *wf_screen, *wf_content, *wf_toast, *wf_lockdot;

@@ -22,7 +22,7 @@ static const char *TAG = "wifi";
 #define SCAN_MAX     20
 #define CONNECT_TMO  15000   // 连接超时(ms)
 
-static lv_obj_t *g_list = NULL, *g_status = NULL;
+static lv_obj_t *g_list = NULL, *g_status = NULL, *g_sw = NULL;
 static lv_obj_t *dlg = NULL, *pwd_ta = NULL, *kb = NULL;
 static char sel_ssid[33] = {0};
 
@@ -34,6 +34,9 @@ static volatile bool s_connecting   = false;
 static volatile bool s_got_ip       = false;
 static volatile bool s_disconnected = false;
 static volatile bool s_suppress_rc  = false;   // 切换 AP 的瞬间抑制自动重连(避免重连到旧 AP)
+static volatile bool s_wifi_on      = true;    // WiFi 开关
+static volatile bool s_scan_want    = false;   // 想扫描(等射频空出来再开扫)
+static int           s_scan_tries   = 0;
 static uint32_t      connect_start  = 0;
 
 static uint32_t now_ms(void) { return (uint32_t)(esp_timer_get_time() / 1000); }
@@ -50,7 +53,8 @@ static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data) {
         } else if (id == WIFI_EVENT_STA_DISCONNECTED) {
             s_got_ip = false;
             s_disconnected = true;
-            if (!s_suppress_rc) esp_wifi_connect();   // 掉线自动重连(回到信号范围/AP 恢复即重连)
+            // 掉线自动重连;但开关关闭、或正在/将要扫描时不抢射频
+            if (s_wifi_on && !s_suppress_rc && !s_scan_want && !s_scanning) esp_wifi_connect();
         }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         s_got_ip = true;
@@ -72,6 +76,7 @@ static void wifi_svc_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));   // ★凭据写 NVS,重启/重烧后还在
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());                            // → STA_START 事件里自动连记住的 AP
+    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);                           // WiFi 调制解调器睡眠,省电(关 WiFi 开关可省更多)
 
     // SNTP 校时:连上后自动同步(时区在 main 里设为 CST-8),供表盘显示真实时间
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
@@ -89,17 +94,16 @@ static void set_status(const char *txt, uint32_t color) {
     lv_obj_set_style_text_color(g_status, lv_color_hex(color), 0);
 }
 
-static void start_scan(void) {
-    esp_wifi_scan_stop();              // 取消可能残留的扫描(无则忽略)
+// 请求扫描:先把射频从"连接中"释放出来,再由 wifi_tick 逐帧重试开扫(直到成功)。
+// 这样无论之前是连着还是在反复重连,都能稳定扫到,而不是直接 "scan failed"。
+static void request_scan(void) {
+    if (!s_wifi_on) { set_status("wifi off", COL_TXT2); return; }
+    s_scan_want = true;
+    s_scan_tries = 0;
     s_scan_done = false;
-    wifi_scan_config_t sc = { .show_hidden = true };
-    if (esp_wifi_scan_start(&sc, false) != ESP_OK) {   // 异步
-        s_scanning = false;
-        set_status("Scan failed", COL_WARN);
-        return;
-    }
-    s_scanning = true;
-    set_status("Scanning...", COL_TXT2);
+    esp_wifi_scan_stop();
+    esp_wifi_disconnect();            // 释放射频;此刻 s_scan_want=true,掉线不会自动重连
+    set_status("scanning...", COL_TXT2);
 }
 
 static void start_connect(const char *ssid, const char *pass) {
@@ -240,6 +244,19 @@ static void wifi_populate(void) {
     ESP_LOGI(TAG, "scan done: %u AP(s)", (unsigned)n);
 }
 
+/* ---------- 开关 / 手动扫描 ---------- */
+static void wifi_sw_cb(lv_event_t *e) {
+    s_wifi_on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
+    if (s_wifi_on) { s_suppress_rc = false; request_scan(); }
+    else {
+        s_scan_want = false; s_scanning = false; s_suppress_rc = true;
+        esp_wifi_scan_stop(); esp_wifi_disconnect();
+        if (g_list) lv_obj_clean(g_list);
+        set_status("wifi off", COL_TXT2);
+    }
+}
+static void wifi_scan_cb(lv_event_t *e) { request_scan(); }
+
 /* ---------- App 生命周期 ---------- */
 static void wifi_enter(lv_obj_t *parent) {
     wifi_svc_init();
@@ -256,15 +273,42 @@ static void wifi_enter(lv_obj_t *parent) {
     lv_obj_set_style_radius(g_status, 10, 0);
     lv_obj_align(g_status, LV_ALIGN_BOTTOM_MID, 0, -28);
 
+    // 顶部:WiFi 开关 + 手动扫描
+    g_sw = lv_switch_create(parent);
+    lv_obj_align(g_sw, LV_ALIGN_TOP_LEFT, 110, 104);
+    lv_obj_remove_flag(g_sw, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    if (s_wifi_on) lv_obj_add_state(g_sw, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(g_sw, wifi_sw_cb, LV_EVENT_VALUE_CHANGED, NULL);
+
+    lv_obj_t *sb = lv_button_create(parent);
+    lv_obj_set_size(sb, 92, 42);
+    lv_obj_set_style_bg_color(sb, lv_color_hex(0x1c1c22), 0);
+    lv_obj_set_style_radius(sb, 12, 0);
+    lv_obj_align(sb, LV_ALIGN_TOP_RIGHT, -92, 102);
+    lv_obj_remove_flag(sb, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_add_event_cb(sb, wifi_scan_cb, LV_EVENT_CLICKED, NULL);
+    lv_obj_t *sbl = lv_label_create(sb);
+    lv_label_set_text(sbl, "scan");
+    lv_obj_set_style_text_color(sbl, lv_color_white(), 0);
+    lv_obj_center(sbl);
+
     s_connecting = false;
-    start_scan();
+    if (s_wifi_on) request_scan();
+    else           set_status("wifi off", COL_TXT2);
 }
 
 static void wifi_tick(void) {
+    if (s_scan_want && !s_scanning) {                  // 等射频空出来再开扫,逐 tick 重试(~1.2s)
+        wifi_scan_config_t sc = { .show_hidden = true };
+        if (esp_wifi_scan_start(&sc, false) == ESP_OK) { s_scanning = true; s_scan_want = false; }
+        else if (++s_scan_tries > 24)                  { s_scan_want = false; set_status("scan failed", COL_WARN); }
+    }
     if (s_scanning && s_scan_done) {
         s_scanning = false;
         wifi_populate();
         set_status("", COL_TXT2);
+        wifi_config_t wc;            // 扫完连回记住的 AP
+        if (s_wifi_on && esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
     }
     if (s_connecting) {
         if (s_got_ip) {
@@ -285,9 +329,11 @@ static void wifi_tick(void) {
 static void wifi_exit(void) {
     close_dialog();
     s_scanning = false;
+    s_scan_want = false;
     s_connecting = false;
     g_list = NULL;
     g_status = NULL;
+    g_sw = NULL;
     // 保留已连接状态,不 deinit wifi(下次进入更快)
 }
 

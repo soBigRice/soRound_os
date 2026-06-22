@@ -35,9 +35,7 @@ void lock_set(bool locked) {
 
 bool lock_is_locked(void) { return s_locked; }
 
-static void unlock_gesture(lv_event_t *e) {
-    if (lv_indev_get_gesture_dir(lv_indev_active()) == LV_DIR_TOP) lock_set(false);   // 上滑解锁
-}
+// 解锁改为【侧键短按】(button_cb),表盘上滑不再解锁 —— 避免看表盘时误触解锁。
 
 /* 省电:仅锁屏时按空闲超时进入平静/熄屏;触摸/按键唤醒。
    空闲即进入"平静"(变暗+停闪+按分钟刷新),无论充放电都生效(插着 USB 也能看到变暗)。
@@ -64,7 +62,7 @@ static void button_cb(lv_timer_t *t) {
 
 void lock_init(void) {
     watchface_init();
-    lv_obj_add_event_cb(watchface_root(), unlock_gesture, LV_EVENT_GESTURE, NULL);
+    // 不再挂上滑解锁手势;解锁用侧键短按(见 button_cb)
 
     power_key_init();                            // 使能 PWRON 键 IRQ
     lv_timer_create(button_cb, 100, NULL);       // 100ms 轮询 PWRON IRQ

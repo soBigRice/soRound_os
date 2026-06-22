@@ -44,10 +44,15 @@ extern const app_t app_audio;
 extern const app_t app_about;
 extern const app_t app_level;
 extern const app_t app_maze;
+extern const app_t app_stopwatch;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
 
 void wifi_service_start(void);   // 开机自动起 WiFi 并重连记住的 AP(在 app_wifi.c,main 启动末尾调用)
+
+// 天气数据(app_weather.c 持有 + 拉取),供天气表盘共用
+void weather_poll(void);                                                   // 后台按需拉取
+bool weather_cached(int *temp, int *lo, int *hi, int *code, int *hum);     // 取缓存,有数据返回 true
 
 void launcher_start(void);   // 创建启动器并加载(需在 lvgl_port 锁内调用)
 void go_home(void);          // app 内返回启动器

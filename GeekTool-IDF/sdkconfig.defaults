@@ -8,8 +8,9 @@ CONFIG_SPIRAM_SPEED_80M=y
 # 32MB Flash(芯片实际 32MB,镜像头与之匹配)
 CONFIG_ESPTOOLPY_FLASHSIZE_32MB=y
 
-# 240MHz
+# 240MHz 峰值 + 动态调频(空闲降到 80MHz)省电;不开 light sleep 以保显示/触摸稳定
 CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ_240=y
+CONFIG_PM_ENABLE=y
 
 # 1kHz tick(触摸/动画更跟手)
 CONFIG_FREERTOS_HZ=1000

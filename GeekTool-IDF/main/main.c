@@ -7,6 +7,7 @@
 #include "nvs_flash.h"
 #include "driver/i2c_master.h"
 #include "esp_lvgl_port.h"
+#include "esp_pm.h"
 #include "esp_log.h"
 
 #include "board_config.h"
@@ -37,6 +38,10 @@ static i2c_master_bus_handle_t init_i2c(void) {
 void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
     setenv("TZ", "CST-8", 1); tzset();           // 中国时区,供表盘 localtime 用
+
+    // 省电:动态调频 —— 空闲时 CPU 从 240 降到 80MHz(不开 light sleep,显示/触摸/音频不受影响)
+    esp_pm_config_t pm = { .max_freq_mhz = 240, .min_freq_mhz = 80, .light_sleep_enable = false };
+    esp_pm_configure(&pm);
 
     s_i2c_bus = init_i2c();
     rtc_begin();

@@ -3,7 +3,7 @@ idf_component_register(
          "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_ota.c" "app_weather.c"
          "settings.c" "app_settings.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
          "img_store.c" "app_countdown.c" "audio_out.c" "app_about.c"
-         "rtc.c" "imu.c" "app_level.c" "app_maze.c"
+         "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common

@@ -6,6 +6,7 @@
 #include "esp_crt_bundle.h"
 #include "esp_wifi.h"
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -186,6 +187,26 @@ static void start_fetch(void) {
     if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) { s_state = WX_FAIL; return; }
     s_state = WX_LOADING;
     xTaskCreate(wx_task, "wx", 8192, NULL, 5, NULL);
+}
+
+// 给天气表盘用:后台按需拉取(OK 后 20 分钟刷新,否则 1 分钟重试)+ 取缓存
+void weather_poll(void) {
+    if (s_state == WX_LOADING) return;
+    static uint32_t last = 0;
+    uint32_t now = (uint32_t)(esp_timer_get_time() / 1000);
+    uint32_t period = (s_state == WX_OK) ? 20u * 60 * 1000 : 60u * 1000;
+    if (last && (now - last) < period) return;
+    last = now;
+    start_fetch();
+}
+bool weather_cached(int *temp, int *lo, int *hi, int *code, int *hum) {
+    if (s_state != WX_OK) return false;
+    if (temp) *temp = s_temp_i;
+    if (lo)   *lo = s_lo;
+    if (hi)   *hi = s_hi;
+    if (code) *code = s_code;
+    if (hum)  *hum = s_hum_i;
+    return true;
 }
 
 /* ===== App 生命周期 ===== */

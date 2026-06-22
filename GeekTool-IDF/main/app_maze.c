@@ -15,9 +15,13 @@
 #define OY     89
 #define BALL_R 7
 #define BOUND_R 215         // 圆屏兜底
-#define ACC_K  1.3f
-#define DAMP   0.86f
-#define MAXV   7.0f         // 限速防穿墙(< 墙厚+球径)
+// 真实物理:a = 倾斜分量 × g × 像素/米;按时间(秒)积分,分子步防穿墙
+#define G_MS2  9.8f         // 真实重力
+#define PPM    150.0f       // 像素/米(屏幕很小,取手感值;越大越快)
+#define DT_S   0.05f        // tick 周期(s)
+#define SUBS   5            // 物理子步
+#define BDAMP  0.997f       // 每子步阻尼(接近无摩擦的滚动)
+#define VMAX   560.0f       // px/s 上限(= BALL_R / 子步dt,防穿墙)
 #define MAXW   100
 
 typedef struct { int x, y, w, h; } rect_t;
@@ -125,30 +129,32 @@ static void maze_tick(void) {
     }
     float tx, ty;
     if (!imu_read_tilt(&tx, &ty)) return;
-    vx += tx * ACC_K; vy += ty * ACC_K;
-    vx *= DAMP; vy *= DAMP;
-    float sp = sqrtf(vx * vx + vy * vy);
-    if (sp > MAXV) { vx = vx * MAXV / sp; vy = vy * MAXV / sp; }
-    float nx = bx + vx, ny = by + vy;
-
-    for (int i = 0; i < s_nwall; i++) {          // 圆 vs 矩形
-        float cx = clampf(nx, s_walls[i].x, s_walls[i].x + s_walls[i].w);
-        float cy = clampf(ny, s_walls[i].y, s_walls[i].y + s_walls[i].h);
-        float dx = nx - cx, dy = ny - cy, d2 = dx * dx + dy * dy;
-        if (d2 < BALL_R * BALL_R) {
-            float d = sqrtf(d2);
-            if (d > 0.01f) {
-                float nxn = dx / d, nyn = dy / d;
-                nx = cx + nxn * BALL_R; ny = cy + nyn * BALL_R;
-                float vn = vx * nxn + vy * nyn;
-                if (vn < 0) { vx -= vn * nxn; vy -= vn * nyn; }
-            } else { ny = s_walls[i].y - BALL_R; vy = 0; }
+    float ax = tx * G_MS2 * PPM, ay = ty * G_MS2 * PPM;   // 真实重力加速度(px/s^2)
+    float sdt = DT_S / SUBS;
+    for (int s = 0; s < SUBS; s++) {                       // 按时间分子步积分(球可跑很快也不穿墙)
+        vx += ax * sdt; vy += ay * sdt;                    // vx/vy 单位:px/s
+        vx *= BDAMP; vy *= BDAMP;
+        float sp = sqrtf(vx * vx + vy * vy);
+        if (sp > VMAX) { vx = vx * VMAX / sp; vy = vy * VMAX / sp; }
+        float nx = bx + vx * sdt, ny = by + vy * sdt;
+        for (int i = 0; i < s_nwall; i++) {               // 圆 vs 矩形
+            float cx = clampf(nx, s_walls[i].x, s_walls[i].x + s_walls[i].w);
+            float cy = clampf(ny, s_walls[i].y, s_walls[i].y + s_walls[i].h);
+            float dx = nx - cx, dy = ny - cy, d2 = dx * dx + dy * dy;
+            if (d2 < BALL_R * BALL_R) {
+                float d = sqrtf(d2);
+                if (d > 0.01f) {
+                    float nxn = dx / d, nyn = dy / d;
+                    nx = cx + nxn * BALL_R; ny = cy + nyn * BALL_R;
+                    float vn = vx * nxn + vy * nyn;
+                    if (vn < 0) { vx -= vn * nxn; vy -= vn * nyn; }
+                } else { ny = s_walls[i].y - BALL_R; vy = 0; }
+            }
         }
+        float ex = nx - MCX, ey = ny - MCY, ed = sqrtf(ex * ex + ey * ey);
+        if (ed > BOUND_R) { nx = MCX + ex / ed * BOUND_R; ny = MCY + ey / ed * BOUND_R; vx *= 0.3f; vy *= 0.3f; }
+        bx = nx; by = ny;
     }
-    float ex = nx - MCX, ey = ny - MCY, ed = sqrtf(ex * ex + ey * ey);
-    if (ed > BOUND_R) { nx = MCX + ex / ed * BOUND_R; ny = MCY + ey / ed * BOUND_R; vx *= 0.3f; vy *= 0.3f; }
-
-    bx = nx; by = ny;
     lv_obj_set_pos(g_ball, (int)bx - BALL_R, (int)by - BALL_R);
 
     int gx = OX + (N - 1) * CELL + CELL / 2, gy = OY + (N - 1) * CELL + CELL / 2;
