@@ -41,6 +41,9 @@ extern const app_t app_calendar;
 extern const app_t app_countdown;
 extern const app_t app_settings;
 extern const app_t app_audio;
+extern const app_t app_about;
+extern const app_t app_level;
+extern const app_t app_maze;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
 

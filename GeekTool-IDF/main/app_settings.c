@@ -39,15 +39,15 @@ static lv_obj_t *mk_row(lv_obj_t *parent, const char *name, int y, int mn, int m
     lv_obj_set_style_text_font(lbl, UI_FONT_L, 0);
     lv_obj_set_style_text_color(lbl, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(lbl, name);
-    lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, 78, y);
+    lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, 92, y);
 
     *vlabel = lv_label_create(parent);
     lv_obj_set_style_text_font(*vlabel, UI_FONT_M, 0);
     lv_obj_set_style_text_color(*vlabel, lv_color_hex(COL_TXT2), 0);
-    lv_obj_align(*vlabel, LV_ALIGN_TOP_RIGHT, -78, y + 3);
+    lv_obj_align(*vlabel, LV_ALIGN_TOP_RIGHT, -92, y + 3);
 
     lv_obj_t *sl = lv_slider_create(parent);
-    lv_obj_set_width(sl, 300);
+    lv_obj_set_width(sl, 280);
     lv_slider_set_range(sl, mn, mx);
     lv_slider_set_value(sl, val, LV_ANIM_OFF);
     lv_obj_align(sl, LV_ALIGN_TOP_MID, 0, y + 34);
@@ -60,7 +60,8 @@ static lv_obj_t *mk_row(lv_obj_t *parent, const char *name, int y, int mn, int m
 static void settings_enter(lv_obj_t *parent) {
     audio_out_init();                 // 起扬声器(音量预览 + 之后的提示音);退出时释放
     char b[8];
-    mk_row(parent, "brightness", 92, SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
+    // 4 行都收进圆的内接区(y ~104..396),避免圆角处被裁
+    mk_row(parent, "brightness", 104, SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
     snprintf(b, sizeof b, "%d%%", settings_brightness() * 100 / 255);
     lv_label_set_text(g_br_val, b);
 
@@ -74,9 +75,9 @@ static void settings_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(al, UI_FONT_L, 0);
     lv_obj_set_style_text_color(al, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(al, "always-on");
-    lv_obj_align(al, LV_ALIGN_TOP_LEFT, 86, 336);
+    lv_obj_align(al, LV_ALIGN_TOP_LEFT, 96, 322);
     lv_obj_t *sw1 = lv_switch_create(parent);
-    lv_obj_align(sw1, LV_ALIGN_TOP_RIGHT, -86, 332);
+    lv_obj_align(sw1, LV_ALIGN_TOP_RIGHT, -96, 318);
     lv_obj_remove_flag(sw1, LV_OBJ_FLAG_GESTURE_BUBBLE);
     if (settings_idle_mode() == IDLE_AOD) lv_obj_add_state(sw1, LV_STATE_CHECKED);
     lv_obj_add_event_cb(sw1, aod_changed, LV_EVENT_VALUE_CHANGED, NULL);
@@ -86,9 +87,9 @@ static void settings_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(sl2, UI_FONT_L, 0);
     lv_obj_set_style_text_color(sl2, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(sl2, "silent");
-    lv_obj_align(sl2, LV_ALIGN_TOP_LEFT, 86, 406);
+    lv_obj_align(sl2, LV_ALIGN_TOP_LEFT, 96, 374);
     lv_obj_t *sw2 = lv_switch_create(parent);
-    lv_obj_align(sw2, LV_ALIGN_TOP_RIGHT, -86, 402);
+    lv_obj_align(sw2, LV_ALIGN_TOP_RIGHT, -96, 370);
     lv_obj_remove_flag(sw2, LV_OBJ_FLAG_GESTURE_BUBBLE);
     if (settings_silent()) lv_obj_add_state(sw2, LV_STATE_CHECKED);
     lv_obj_add_event_cb(sw2, silent_changed, LV_EVENT_VALUE_CHANGED, NULL);

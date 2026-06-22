@@ -27,14 +27,17 @@
 
 static volatile float     s_band[NB];          // 0..1 平滑后的频段能量
 static volatile bool      s_run;
+static volatile bool      s_task_alive;        // 采集任务在跑?防快速重进时两个任务并存抢 I2S0
 static lv_obj_t          *g_line[SPOKES];
 static lv_obj_t          *g_core;              // 中心脉冲核
 static lv_point_precise_t s_pts[SPOKES][2];    // 每条 2 点(内端固定,外端随能量)
 static float              s_ca[SPOKES], s_sa[SPOKES];
 
 static void audio_task(void *arg) {
+    s_task_alive = true;
     if (!audio_mic_start(board_i2c_bus())) {
         ESP_LOGW("audio", "mic start failed — 竖条静止");
+        s_task_alive = false;
         vTaskDelete(NULL);
         return;
     }
@@ -64,6 +67,7 @@ static void audio_task(void *arg) {
         if (++logdiv >= 15) { logdiv = 0; ESP_LOGI("audio", "rms=%.0f", rms); }  // 拾音验证
     }
     audio_mic_stop();
+    s_task_alive = false;
     vTaskDelete(NULL);
 }
 
@@ -91,6 +95,9 @@ static void audio_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(g_core, LV_OPA_COVER, 0);
     lv_obj_remove_flag(g_core, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_core, LV_OBJ_FLAG_EVENT_BUBBLE);
+    // 防快速重进:确保上一个采集任务已退出,再起新的(否则两个任务抢 I2S0/全局,偶发卡死)
+    s_run = false;
+    for (int i = 0; i < 40 && s_task_alive; i++) vTaskDelay(pdMS_TO_TICKS(10));
     memset((void *)s_band, 0, sizeof(s_band));
     s_run = true;
     xTaskCreate(audio_task, "audio", 4096, NULL, 5, NULL);   // 麦克风在任务里起(含上电延时,不卡 LVGL)

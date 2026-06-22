@@ -14,6 +14,8 @@
 #include "esp_sntp.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "rtc.h"
+#include <sys/time.h>
 
 static const char *TAG = "wifi";
 
@@ -55,6 +57,8 @@ static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data) {
     }
 }
 
+static void on_time_sync(struct timeval *tv) { (void)tv; rtc_save_from_system(); }   // SNTP 校时回调
+
 /* 一次性初始化协议栈(nvs 已在 main 里 init)。多次进入 app 只初始化一次。 */
 static void wifi_svc_init(void) {
     if (s_inited) return;
@@ -72,6 +76,7 @@ static void wifi_svc_init(void) {
     // SNTP 校时:连上后自动同步(时区在 main 里设为 CST-8),供表盘显示真实时间
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
     esp_sntp_setservername(0, "pool.ntp.org");
+    sntp_set_time_sync_notification_cb(on_time_sync);   // 校时成功 → 写回 RTC,断电也准
     esp_sntp_init();
 
     s_inited = true;

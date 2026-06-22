@@ -206,7 +206,7 @@ static void countdown_enter(lv_obj_t *parent) {
 
     g_reset = mk_button(parent, "reset", 120, 46, 0x1c1c22, reset_cb);
     lv_obj_set_style_text_color(lv_obj_get_child(g_reset, 0), lv_color_hex(COL_RED), 0);   // 红字强调,与全局风格一致
-    lv_obj_align(g_reset, LV_ALIGN_BOTTOM_MID, 0, -34);
+    lv_obj_align(g_reset, LV_ALIGN_TOP_MID, 0, 332);   // 上移到下半圆内,别贴底边
 
     // IDLE 设定面板:容器本身不可点(让计时区的点击穿透到 g_centerbtn 去"开始"),按钮各自可点
     g_idle = lv_obj_create(parent);

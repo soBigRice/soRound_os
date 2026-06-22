@@ -13,6 +13,7 @@
 #include "display.h"
 #include "app.h"
 #include "settings.h"
+#include "rtc.h"
 
 static const char *TAG = "main";
 
@@ -38,6 +39,8 @@ void app_main(void) {
     setenv("TZ", "CST-8", 1); tzset();           // 中国时区,供表盘 localtime 用
 
     s_i2c_bus = init_i2c();
+    rtc_begin();
+    rtc_sync_to_system();            // RTC → 系统时间(断电/无网也走时;之后 SNTP 会再校准并写回)
     lv_display_t *disp = display_init();
     settings_init();                 // 读 NVS + 应用亮度(需 display 已 init)
     touch_init(s_i2c_bus, disp);
