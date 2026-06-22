@@ -3,6 +3,7 @@
 // 低运动:数字每分钟重建;活动态冒号 0.5Hz 闪 + 秒点沿环;AOD 态冒号常亮、秒点隐藏、只按分钟刷新。
 #include "watchface.h"
 #include "app.h"
+#include "quickpanel.h"
 #include "power.h"
 #include "settings.h"
 #include "img_store.h"
@@ -317,35 +318,43 @@ static void image_update(const struct tm *t, bool aod, bool mc) {
 static void image_destroy(void) { im_time = im_msg = NULL; }
 
 /* ============================================================ Weather 表盘(时间 + 实时天气,数据来自 app_weather) ============================================================ */
-static lv_obj_t *wx_time, *wx_iconc, *wx_tempc, *wx_info, *wx_msg;
+// 以【时间为主】:大字 HH:MM 居中,天气退成顶部一个小组件(图标+温度+湿度)。
+#define WX_TOP_CY  108     // 顶部天气组件竖直中心
+#define WX_TIME_CY 238     // 大时间竖直中心(主角,基本居中)
+static lv_obj_t *wx_time, *wx_top, *wx_hum, *wx_date, *wx_range;
 static int       wx_shown;
 
-static void wf_weather_icon(lv_obj_t *p, int code, int cx, int cy) {
+// 顶部小天气图标(点描,缩小版),中心 (cx,cy)
+static void wf_wx_icon_small(lv_obj_t *p, int code, int cx, int cy) {
     if (code <= 1) {                                       // 晴
-        glyph_circle(p, cx, cy, 15, 8, 3, COL_TXT);
-        glyph_dot(p, cx, cy, 5, COL_RED);
-        for (int k = 0; k < 8; k++) { float a = k * 0.7854f; glyph_dot(p, cx + (int)(cosf(a) * 26), cy + (int)(sinf(a) * 26), 3, COL_TXT); }
+        glyph_circle(p, cx, cy, 9, 6, 2, COL_TXT);
+        glyph_dot(p, cx, cy, 3, COL_RED);
+        for (int k = 0; k < 8; k++) { float a = k * 0.7854f; glyph_dot(p, cx + (int)(cosf(a) * 16), cy + (int)(sinf(a) * 16), 2, COL_TXT); }
     } else if ((code >= 71 && code <= 77) || code == 85 || code == 86) {   // 雪
-        glyph_circle(p, cx, cy - 6, 20, 10, 3, COL_TXT);
-        for (int i = -1; i <= 1; i++) glyph_dot(p, cx + i * 16, cy + 22, 4, COL_TXT);
+        glyph_circle(p, cx, cy - 3, 11, 7, 2, COL_TXT);
+        for (int i = -1; i <= 1; i++) glyph_dot(p, cx + i * 9, cy + 13, 2, COL_TXT);
     } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) {   // 雨/雷
-        glyph_circle(p, cx, cy - 6, 20, 10, 3, COL_TXT);
-        for (int i = -1; i <= 1; i++) glyph_line(p, cx + i * 16 + 4, cy + 14, cx + i * 16 - 4, cy + 32, 9, 3, COL_RED);
+        glyph_circle(p, cx, cy - 3, 11, 7, 2, COL_TXT);
+        for (int i = -1; i <= 1; i++) glyph_line(p, cx + i * 9 + 2, cy + 8, cx + i * 9 - 2, cy + 18, 6, 2, COL_RED);
     } else {                                               // 多云/雾
-        glyph_circle(p, cx, cy, 22, 11, 3, COL_TXT);
-        glyph_dot(p, cx, cy, 4, COL_TXT2);
+        glyph_circle(p, cx, cy, 12, 7, 2, COL_TXT);
+        glyph_dot(p, cx, cy, 3, COL_TXT2);
     }
 }
 
-static void wf_draw_temp(lv_obj_t *par, int t, int cy, int pitch, int r) {
-    char s[8]; int v = t < 0 ? -t : t;
+// 顶部天气组件:[小图标]  [小号点阵温度]°  —— 整组在 WX_TOP_CY 处水平居中
+static void wf_wx_top(lv_obj_t *p, int code, int temp) {
+    char s[8]; int v = temp < 0 ? -temp : temp;
     snprintf(s, sizeof s, "%d", v);
-    int n = (int)strlen(s), dw = 5 * pitch, gap = pitch;
-    int total = (t < 0 ? dw + gap : 0) + n * dw + (n - 1) * gap + 2 * pitch;
-    int oy = cy - (7 * pitch) / 2, ox = WF_CX - total / 2;
-    if (t < 0) { for (int c = 1; c <= 3; c++) mkdot(par, ox + c * pitch + pitch / 2, oy + 3 * pitch + pitch / 2, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
-    for (int k = 0; k < n; k++) { draw_digit_at(par, s[k], ox, oy, pitch, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
-    glyph_circle(par, ox + pitch, oy + pitch, pitch / 2 + 1, 6, 2, COL_TXT);   // 度环 °
+    int n = (int)strlen(s), pitch = 7, r = 3, dw = 5 * pitch, gap = pitch;
+    int iconw = 42, icogap = 16;
+    int total = iconw + icogap + (temp < 0 ? dw + gap : 0) + n * (dw + gap) + 2 * pitch;
+    int x0 = WF_CX - total / 2;
+    wf_wx_icon_small(p, code, x0 + iconw / 2, WX_TOP_CY);
+    int oy = WX_TOP_CY - (7 * pitch) / 2, ox = x0 + iconw + icogap;
+    if (temp < 0) { for (int c = 1; c <= 3; c++) mkdot(p, ox + c * pitch + pitch / 2, oy + 3 * pitch + pitch / 2, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
+    for (int k = 0; k < n; k++) { draw_digit_at(p, s[k], ox, oy, pitch, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
+    glyph_circle(p, ox + pitch, oy + pitch, pitch / 2 + 1, 5, 2, COL_TXT);   // 度环 °
 }
 
 static lv_obj_t *wx_full(lv_obj_t *root) {
@@ -358,46 +367,48 @@ static lv_obj_t *wx_full(lv_obj_t *root) {
 }
 
 static void weather_build(lv_obj_t *root) {
-    wx_time  = wx_full(root);
-    wx_iconc = wx_full(root);
-    wx_tempc = wx_full(root);
-    wx_info = mklabel(root, UI_FONT_M, COL_TXT2, 312);
-    wx_msg  = mklabel(root, UI_FONT_M, COL_TXT2, 250);
+    wx_top  = wx_full(root);                               // 顶部天气组件(图标+温度,按需重画)
+    wx_time = wx_full(root);                               // 中心大时间(每分钟重画)
+    wx_hum   = mklabel(root, UI_FONT_M, COL_TXT2, 140);    // 湿度(组在天气下方)
+    wx_date  = mklabel(root, UI_FONT_M, COL_TXT2, 316);    // 日期
+    wx_range = mklabel(root, UI_FONT_M, COL_TXT2, 348);    // 当日低/高
     wx_shown = -99999;
 }
 
 static void weather_update(const struct tm *t, bool aod, bool mc) {
     (void)aod;
-    if (mc) {                                              // 顶部 HH:MM(小号),每分钟重画
+    if (mc) {                                              // 中心大 HH:MM(主角)+ 日期,每分钟重画
         lv_obj_clean(wx_time);
-        int oy = 96;
-        int cc = draw_time_digits(wx_time, t, WF_CX, oy + (7 * 9) / 2, 9, 3, COL_TXT, LV_OPA_COVER);
-        mkdot(wx_time, cc, oy + 2 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
-        mkdot(wx_time, cc, oy + 4 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+        int cc = draw_time_digits(wx_time, t, WF_CX, WX_TIME_CY, D_P, D_R, COL_TXT, LV_OPA_COVER);
+        int oy = WX_TIME_CY - (7 * D_P) / 2;
+        mkdot(wx_time, cc, oy + 2 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
+        mkdot(wx_time, cc, oy + 4 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
+        static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
+        static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
+        char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
+        lv_label_set_text(wx_date, s);
     }
     weather_poll();                                        // 后台按需拉(连着 WiFi 才拉)
     int temp, lo, hi, code, hum;
     bool ok = weather_cached(&temp, &lo, &hi, &code, &hum);
-    int key = ok ? (code * 1000 + temp + 500) : -1;
-    if (key != wx_shown) {                                 // 天气变了才重画图标/温度
+    int key = ok ? (code * 100000 + (temp + 60) * 100 + hum) : -1;
+    if (key != wx_shown) {                                 // 天气/温度/湿度变了才重画
         wx_shown = key;
-        lv_obj_clean(wx_iconc);
-        lv_obj_clean(wx_tempc);
+        lv_obj_clean(wx_top);
         if (ok) {
-            lv_obj_add_flag(wx_msg, LV_OBJ_FLAG_HIDDEN);
-            wf_weather_icon(wx_iconc, code, WF_CX, 178);
-            wf_draw_temp(wx_tempc, temp, 256, 15, 5);
-            char b[40]; snprintf(b, sizeof b, "%d / %d", lo, hi);
-            lv_label_set_text(wx_info, b);
+            wf_wx_top(wx_top, code, temp);
+            char hb[16]; snprintf(hb, sizeof hb, "hum %d%%", hum);
+            lv_label_set_text(wx_hum, hb);
+            char rb[24]; snprintf(rb, sizeof rb, "%d / %d", lo, hi);
+            lv_label_set_text(wx_range, rb);
         } else {
-            lv_obj_remove_flag(wx_msg, LV_OBJ_FLAG_HIDDEN);
-            lv_label_set_text(wx_msg, "connect wifi");
-            lv_label_set_text(wx_info, "");
+            lv_label_set_text(wx_hum, "connect wifi");
+            lv_label_set_text(wx_range, "");
         }
     }
 }
 
-static void weather_destroy(void) { wx_time = wx_iconc = wx_tempc = wx_info = wx_msg = NULL; }
+static void weather_destroy(void) { wx_time = wx_top = wx_hum = wx_date = wx_range = NULL; }
 
 /* ============================================================ 表盘注册表 ============================================================ */
 static const watchface_t WF_DOTS    = { "dots",    dots_build,    dots_update,    dots_destroy    };
@@ -470,15 +481,18 @@ void watchface_next(int dir) {
 void watchface_set_aod(bool aod) {
     if (aod == s_aod) return;
     s_aod = aod;
+    if (aod) quickpanel_close();                // 进入平静态前收起快捷面板,免半亮残留
     s_last_min = -1;                            // 强制按新状态重画(去掉/恢复闪烁与秒点)
     if (watchface_visible() && wf_timer) wf_tick(NULL);
 }
 
 static void wf_gesture_cb(lv_event_t *e) {
     (void)e;
+    if (quickpanel_is_open()) return;                  // 面板开着时手势归面板(它已停止冒泡)
     lv_dir_t d = lv_indev_get_gesture_dir(lv_indev_active());
-    if (d == LV_DIR_LEFT)       watchface_next(+1);
-    else if (d == LV_DIR_RIGHT) watchface_next(-1);
+    if (d == LV_DIR_LEFT)        watchface_next(+1);
+    else if (d == LV_DIR_RIGHT)  watchface_next(-1);
+    else if (d == LV_DIR_BOTTOM) quickpanel_open();    // 顶部下拉 → 快捷面板
 }
 
 void watchface_init(void) {
@@ -511,6 +525,8 @@ void watchface_init(void) {
     lv_obj_set_style_opa(wf_toast, LV_OPA_TRANSP, 0);
     lv_obj_add_flag(wf_toast, LV_OBJ_FLAG_EVENT_BUBBLE);
 
+    quickpanel_init(wf_screen);   // 下拉快捷面板:挂在 wf_screen 最上层,初始隐藏在屏幕上方
+
     cur_face = NULL;
     s_aod = false;
     watchface_select(settings_face());
@@ -527,6 +543,7 @@ void watchface_show(void) {
 
 void watchface_hide(void) {
     if (!wf_screen) return;
+    quickpanel_hide();                          // 解锁离开表盘:复位下拉面板,免下次回来还开着
     lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
     if (wf_timer) { lv_timer_delete(wf_timer); wf_timer = NULL; }
 }

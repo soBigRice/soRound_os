@@ -49,6 +49,8 @@ extern const app_t *const APPS[];
 extern const int APP_COUNT;
 
 void wifi_service_start(void);   // 开机自动起 WiFi 并重连记住的 AP(在 app_wifi.c,main 启动末尾调用)
+void wifi_service_set_enabled(bool on);   // 快捷面板:开关 WiFi(开=连记住的 AP,关=断开省电)
+bool wifi_service_enabled(void);          // 当前 WiFi 开关状态
 
 // 天气数据(app_weather.c 持有 + 拉取),供天气表盘共用
 void weather_poll(void);                                                   // 后台按需拉取

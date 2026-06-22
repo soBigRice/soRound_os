@@ -245,15 +245,30 @@ static void wifi_populate(void) {
 }
 
 /* ---------- 开关 / 手动扫描 ---------- */
-static void wifi_sw_cb(lv_event_t *e) {
-    s_wifi_on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
-    if (s_wifi_on) { s_suppress_rc = false; request_scan(); }
-    else {
+// 外部(快捷面板)开关 WiFi:开=连记住的 AP(不强制扫描),关=断开省电。幂等,可在没进 WiFi app 时调。
+void wifi_service_set_enabled(bool on) {
+    if (!s_inited) wifi_svc_init();
+    s_wifi_on = on;
+    if (on) {
+        s_suppress_rc = false;
+        wifi_config_t wc;
+        if (esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
+    } else {
         s_scan_want = false; s_scanning = false; s_suppress_rc = true;
         esp_wifi_scan_stop(); esp_wifi_disconnect();
         if (g_list) lv_obj_clean(g_list);
-        set_status("wifi off", COL_TXT2);
     }
+    if (g_sw) {   // WiFi app 正开着 → 同步开关 UI
+        if (on) lv_obj_add_state(g_sw, LV_STATE_CHECKED);
+        else    lv_obj_remove_state(g_sw, LV_STATE_CHECKED);
+    }
+}
+bool wifi_service_enabled(void) { return s_wifi_on; }
+
+static void wifi_sw_cb(lv_event_t *e) {
+    bool on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
+    if (on) { s_wifi_on = true; s_suppress_rc = false; request_scan(); }   // app 内开 → 扫描列出
+    else    { wifi_service_set_enabled(false); set_status("wifi off", COL_TXT2); }
 }
 static void wifi_scan_cb(lv_event_t *e) { request_scan(); }
 
