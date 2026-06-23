@@ -76,9 +76,12 @@ int audio_mic_read(int16_t *buf, int samples) {
 }
 
 void audio_mic_stop(void) {
+    // esp_codec_dev_close 内部 disable i2s 通道;若没读过(通道未 enable,如刚进就退)会刷无害的 "not enabled yet",压掉
+    esp_log_level_set("i2s_common", ESP_LOG_NONE);
     if (s_dev) { esp_codec_dev_close(s_dev); esp_codec_dev_delete(s_dev); s_dev = NULL; }
     if (s_codec_if) { audio_codec_delete_codec_if(s_codec_if); s_codec_if = NULL; }
     if (s_ctrl_if)  { audio_codec_delete_ctrl_if(s_ctrl_if);   s_ctrl_if  = NULL; }
     if (s_data_if)  { audio_codec_delete_data_if(s_data_if);   s_data_if  = NULL; }
-    if (s_rx) { i2s_channel_disable(s_rx); i2s_del_channel(s_rx); s_rx = NULL; }   // 显式 disable 再删,确保 DMA 缓冲释放(已 disable 时返回错误,忽略)
+    if (s_rx) { i2s_del_channel(s_rx); s_rx = NULL; }   // codec close 已 disable,直接删
+    esp_log_level_set("i2s_common", ESP_LOG_INFO);
 }

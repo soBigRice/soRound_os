@@ -102,7 +102,8 @@ static void request_scan(void) {
     s_scan_tries = 0;
     s_scan_done = false;
     esp_wifi_scan_stop();
-    esp_wifi_disconnect();            // 释放射频;此刻 s_scan_want=true,掉线不会自动重连
+    // ★不再 disconnect:在已连接状态下后台扫描,保持连接不掉。
+    //   (之前每次进 WiFi app 都断开重连,用户看到连接反复中断 —— 清理的应是 app,不是连接。)
     set_status("scanning...", COL_TXT2);
 }
 
@@ -217,9 +218,26 @@ static uint32_t rssi_color(int rssi) {
 
 static void wifi_row_click(lv_event_t *e) {
     lv_obj_t *row = lv_event_get_target_obj(e);
-    bool secured  = (bool)(intptr_t)lv_obj_get_user_data(row);
+    intptr_t flags = (intptr_t)lv_obj_get_user_data(row);
+    bool secured = (flags & 1), saved = (flags & 2);
     const char *ssid = lv_label_get_text(lv_obj_get_child(row, 0));
-    if (secured) show_password_dialog(ssid);
+
+    wifi_ap_record_t cur;                                  // 已连上这个 → 不动,提示一下
+    if (esp_wifi_sta_get_ap_info(&cur) == ESP_OK && strcmp((const char *)cur.ssid, ssid) == 0) {
+        set_status("connected", COL_OK);
+        return;
+    }
+    if (saved) {                                           // 连过、密码记在 NVS → 直接重连,不再弹密码框
+        strncpy(sel_ssid, ssid, sizeof(sel_ssid) - 1); sel_ssid[sizeof(sel_ssid) - 1] = 0;
+        s_suppress_rc = false;
+        s_got_ip = false; s_disconnected = false;
+        esp_wifi_connect();                                // 用记住的配置直接连
+        s_connecting = true; connect_start = now_ms();
+        ESP_LOGI(TAG, "reconnect saved \"%s\"", ssid);
+        set_status("Connecting...", COL_TXT2);
+        return;
+    }
+    if (secured) show_password_dialog(ssid);               // 新的加密网络才要密码
     else         start_connect(ssid, "");
 }
 
@@ -231,12 +249,22 @@ static void wifi_populate(void) {
     uint16_t n = SCAN_MAX;
     if (esp_wifi_scan_get_ap_records(&n, recs) != ESP_OK) n = 0;
 
+    wifi_ap_record_t cur; bool have_cur = (esp_wifi_sta_get_ap_info(&cur) == ESP_OK);   // 当前已连的 AP
+    wifi_config_t wc;     bool have_saved = (esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]);  // NVS 记住的 AP(连过的)
+
     for (uint16_t i = 0; i < n; i++) {
         const char *ssid = recs[i].ssid[0] ? (const char *)recs[i].ssid : "<hidden>";
+        bool secured  = (recs[i].authmode != WIFI_AUTH_OPEN);
+        bool is_cur   = have_cur   && strcmp(ssid, (const char *)cur.ssid)     == 0;
+        bool is_saved = have_saved && strcmp(ssid, (const char *)wc.sta.ssid)  == 0;
+
         char rs[8]; snprintf(rs, sizeof(rs), "%d", recs[i].rssi);
-        bool secured = (recs[i].authmode != WIFI_AUTH_OPEN);
-        lv_obj_t *row = ui_list_row(g_list, ssid, rs, rssi_color(recs[i].rssi));
-        lv_obj_set_user_data(row, (void *)(intptr_t)secured);
+        const char *rval = is_cur ? "connected" : (is_saved ? "saved" : rs);    // 右侧标注:连上/已存/信号
+        uint32_t    rcol = is_cur ? COL_OK      : (is_saved ? COL_TXT : rssi_color(recs[i].rssi));
+
+        lv_obj_t *row = ui_list_row(g_list, ssid, rval, rcol);
+        // user_data 低 2 位:bit0=加密  bit1=已保存(连过)→ 点了直接用记住的密码重连,不再弹密码框
+        lv_obj_set_user_data(row, (void *)(intptr_t)((secured ? 1 : 0) | (is_saved ? 2 : 0)));
         lv_obj_add_event_cb(row, wifi_row_click, LV_EVENT_CLICKED, NULL);
     }
     if (n == 0) ui_list_row(g_list, "No networks", NULL, 0);
@@ -322,8 +350,11 @@ static void wifi_tick(void) {
         s_scanning = false;
         wifi_populate();
         set_status("", COL_TXT2);
-        wifi_config_t wc;            // 扫完连回记住的 AP
-        if (s_wifi_on && esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
+        wifi_ap_record_t ap;        // 扫描期间没掉线就保持现连接;只有真没连上才连回记住的 AP
+        if (s_wifi_on && esp_wifi_sta_get_ap_info(&ap) != ESP_OK) {
+            wifi_config_t wc;
+            if (esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
+        }
     }
     if (s_connecting) {
         if (s_got_ip) {

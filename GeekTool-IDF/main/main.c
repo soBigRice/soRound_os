@@ -9,6 +9,7 @@
 #include "esp_lvgl_port.h"
 #include "esp_pm.h"
 #include "esp_log.h"
+#include "esp_system.h"
 
 #include "board_config.h"
 #include "display.h"
@@ -36,6 +37,12 @@ static i2c_master_bus_handle_t init_i2c(void) {
 }
 
 void app_main(void) {
+    // 上次复位原因:poweron/ext=正常;panic/int_wdt/task_wdt=崩溃;sw=软件看门狗重启;brownout=掉压。
+    // 死机排查关键:开机看这行就知道上次是"真崩溃(会重启)"还是被软件看门狗救回来的卡死。
+    static const char *const RRS[] = { "unknown","poweron","ext","sw","panic","int_wdt","task_wdt","wdt","deepsleep","brownout","sdio" };
+    esp_reset_reason_t rr = esp_reset_reason();
+    ESP_LOGW(TAG, "last reset: %s", (int)rr < (int)(sizeof(RRS) / sizeof(RRS[0])) ? RRS[rr] : "?");
+
     ESP_ERROR_CHECK(nvs_flash_init());
     setenv("TZ", "CST-8", 1); tzset();           // 中国时区,供表盘 localtime 用
 

@@ -32,12 +32,16 @@ void audio_out_deinit(void) {
     s_abort = true;                                            // 通知播放任务停
     for (int i = 0; i < 60 && s_busy; i++) vTaskDelay(pdMS_TO_TICKS(10));  // 等它退出(≤600ms),防 use-after-free
     s_abort = false;
+    // esp_codec_dev_close 内部会 disable i2s 通道;若这次没播放过(通道从未被 enable),
+    // 它的 disable 落在未启用的通道上,会刷一条无害的 i2s_common "not enabled yet" 错误。teardown 期间压掉该 tag。
+    esp_log_level_set("i2s_common", ESP_LOG_NONE);
     if (s_dev)      { esp_codec_dev_close(s_dev); esp_codec_dev_delete(s_dev); s_dev = NULL; }
     if (s_codec_if) { audio_codec_delete_codec_if(s_codec_if); s_codec_if = NULL; }
     if (s_ctrl_if)  { audio_codec_delete_ctrl_if(s_ctrl_if);   s_ctrl_if  = NULL; }
     if (s_gpio_if)  { audio_codec_delete_gpio_if(s_gpio_if);   s_gpio_if  = NULL; }
     if (s_data_if)  { audio_codec_delete_data_if(s_data_if);   s_data_if  = NULL; }
-    if (s_tx)       { i2s_channel_disable(s_tx); i2s_del_channel(s_tx); s_tx = NULL; }   // 先 disable 再删,确保 DMA 缓冲释放
+    if (s_tx)       { i2s_del_channel(s_tx); s_tx = NULL; }
+    esp_log_level_set("i2s_common", ESP_LOG_INFO);   // 恢复,后续真有 i2s 错误照常打印
 }
 
 void audio_out_init(void) {

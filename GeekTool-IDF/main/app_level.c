@@ -8,8 +8,8 @@
  * Do your best to be yourself
  * Copyright (c) 2026 by superRice, All Rights Reserved. 
  */
-// 水平仪 —— QMI8658。整屏大碗 + 真实重力小球:重力加速 + 惯性/摩擦 + 很弱的回中力(浅碗)。
-// 任意方向稍微一倾(~18°)球就滚到碗沿,放平自动回中;背景显示倾角参数(藏在球后)。
+// 水平仪 —— QMI8658 加速度计。标准水平仪算法:倾角【直接】映射气泡位置(无重力加速/惯性/摩擦),只做轻度消抖。
+// 放平=居中 0°,倾斜则气泡按倾角比例偏移,到碗沿即夹住;中心显示总倾角 + 两轴角。重力物理只迷宫 app 用。
 #include "app.h"
 #include "glyph.h"
 #include "imu.h"
@@ -20,14 +20,12 @@
 #define LCY 233
 #define DISH 188
 #define BALL_R 20
-#define MAXR (DISH - BALL_R)   // 球心最大半径 168
-#define ACCEL 9.8f             // 重力加速(越大越灵敏)
-#define FRIC  0.85f            // 摩擦(越小越快停)
-#define CTR   0.004f           // 回中力(很弱:稍倾即可到沿,放平才回中)
-#define MAXV  16.0f
+#define MAXR (DISH - BALL_R)   // 气泡最大半径 168
+#define GAIN   500.0f          // 倾斜分量 → 像素:约 ±20° 时气泡到碗沿
+#define SMOOTH 0.35f           // 轻度低通消抖(只为去抖,不是惯性/动量 —— 松手立即停在当前倾角)
 
 static lv_obj_t *g_ball, *g_big, *g_axes;
-static float ox, oy, vx, vy;
+static float ox, oy;
 
 static void level_enter(lv_obj_t *parent) {
     glyph_circle(parent, LCX, LCY, DISH, 16, 2, COL_TXT2);   // 碗沿
@@ -59,7 +57,7 @@ static void level_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(g_ball, LV_OPA_COVER, 0);
     lv_obj_add_flag(g_ball, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    ox = oy = vx = vy = 0;
+    ox = oy = 0;
 }
 
 static void level_tick(void) {
@@ -70,19 +68,16 @@ static void level_tick(void) {
         if (!imu_read_tilt(&tx, &ty)) return;
         imu_read_accel(&a3x, &a3y, &az);
     }
-    // 真实重力:加速 + 摩擦 + 很弱回中(浅碗)
-    vx += tx * ACCEL - ox * CTR;
-    vy += ty * ACCEL - oy * CTR;
-    vx *= FRIC; vy *= FRIC;
-    float sp = sqrtf(vx * vx + vy * vy);
-    if (sp > MAXV) { vx = vx * MAXV / sp; vy = vy * MAXV / sp; }
-    ox += vx; oy += vy;
-    float d = sqrtf(ox * ox + oy * oy);
-    if (d > MAXR) { ox = ox * MAXR / d; oy = oy * MAXR / d; vx *= 0.3f; vy *= 0.3f; }   // 贴碗沿
+    // 标准水平仪:倾角【直接】映射气泡位置(无加速/惯性/摩擦),只做轻度消抖
+    float gx = tx * GAIN, gy = ty * GAIN;
+    float d = sqrtf(gx * gx + gy * gy);
+    if (d > MAXR) { gx = gx * MAXR / d; gy = gy * MAXR / d; }   // 夹到碗沿
+    ox += (gx - ox) * SMOOTH;
+    oy += (gy - oy) * SMOOTH;
     lv_obj_set_pos(g_ball, LCX + (int)ox - BALL_R, LCY + (int)oy - BALL_R);
 
     float tilt = sqrtf(tx * tx + ty * ty);
-    uint32_t col = tilt < 0.04f ? 0x36e0c0 : (tilt < 0.25f ? COL_TXT : COL_RED);
+    uint32_t col = tilt < 0.018f ? 0x36e0c0 : (tilt < 0.12f ? COL_TXT : COL_RED);   // <~1° 绿(水平)/ <~7° 白 / 更大红
     lv_obj_set_style_bg_color(g_ball, lv_color_hex(col), 0);
 
     // 参数:总倾角 + 两轴角(度)

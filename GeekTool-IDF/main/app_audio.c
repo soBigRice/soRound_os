@@ -123,7 +123,10 @@ static void audio_tick(void) {
 }
 
 static void audio_exit(void) {
-    s_run = false;                       // 任务自己收尾(停麦+自删),避免 use-after-free
+    s_run = false;                       // 通知采集任务停
+    // 退出即等任务收尾(停麦 + 删 I2S0/codec + 自删),≤500ms。彻底释放 I2S0,
+    // 下一个 app(设置/倒计时的扬声器同用 I2S0)才不会撞上半释放的麦克风。
+    for (int i = 0; i < 50 && s_task_alive; i++) vTaskDelay(pdMS_TO_TICKS(10));
     for (int s = 0; s < SPOKES; s++) g_line[s] = NULL;
     g_core = NULL;
 }

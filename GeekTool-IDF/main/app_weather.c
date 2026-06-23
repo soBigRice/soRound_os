@@ -30,6 +30,7 @@ static const char *TAG = "weather";
 
 typedef enum { WX_IDLE, WX_LOADING, WX_OK, WX_FAIL } wx_state_t;
 static volatile wx_state_t s_state = WX_IDLE;
+static volatile bool       s_task_alive = false;   // 拉取任务在跑?防反复进 app 起多个 8KB 栈任务堆积爆内存
 static int  s_temp_i = 0, s_lo = 0, s_hi = 0, s_hum_i = 0, s_code = -1;
 static char s_cond[40] = "";
 
@@ -179,14 +180,17 @@ static void wx_task(void *arg) {
         }
     }
     free(body);
+    s_task_alive = false;
     vTaskDelete(NULL);
 }
 
 static void start_fetch(void) {
+    if (s_task_alive) return;                         // 已有拉取任务在跑 → 不重复起(单实例,自删后才允许下一次)
     wifi_ap_record_t ap;
     if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) { s_state = WX_FAIL; return; }
     s_state = WX_LOADING;
-    xTaskCreate(wx_task, "wx", 8192, NULL, 5, NULL);
+    s_task_alive = true;                              // 置位在 create 前,杜绝竞态重入
+    if (xTaskCreate(wx_task, "wx", 8192, NULL, 5, NULL) != pdPASS) { s_task_alive = false; s_state = WX_FAIL; }
 }
 
 // 给天气表盘用:后台按需拉取(OK 后 20 分钟刷新,否则 1 分钟重试)+ 取缓存

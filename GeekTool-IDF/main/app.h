@@ -6,7 +6,8 @@
 #define COL_BG    0x000000   // 黑(背景)
 #define COL_TXT   0xffffff   // 白(主文字/线条)
 #define COL_TXT2  0x6a6a6e   // 灰(次要文字)
-#define COL_RED   0xd1283a   // 唯一强调色(低电量/充电/危险/选中)
+#define COL_RED   0xd1283a   // 唯一强调色(低电量/危险/选中)
+#define COL_CHARGE 0x30d158  // 充电态功能绿:电量环 + ⚡ 仅插电时变绿(柔和不刺眼,黑白红基调外的唯一功能色)
 
 // 旧的多彩别名统一收敛到黑白红(改这里 = 全局变色,各 app 不用动)
 #define COL_RING  COL_TXT
@@ -35,7 +36,6 @@ typedef struct {
 extern const app_t app_wifi;
 extern const app_t app_i2c;
 extern const app_t app_sys;
-extern const app_t app_ota;
 extern const app_t app_weather;
 extern const app_t app_calendar;
 extern const app_t app_countdown;

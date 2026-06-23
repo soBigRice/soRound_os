@@ -27,6 +27,11 @@ CONFIG_LV_FONT_MONTSERRAT_20=y
 CONFIG_LV_FONT_UNSCII_8=y
 CONFIG_LV_FONT_UNSCII_16=y
 CONFIG_LV_USE_THEME_DEFAULT=y
+# ★LVGL 改用系统 heap(标准 malloc/free)而非自带 64KB 固定池:
+#   点阵 app(秒表/倒计时)一次创建上百个 lv_obj,64KB 池被隐藏表盘+启动器+快捷面板占用后会爆,
+#   导致 lv_obj_create 返回 NULL → 点图标即崩。改用 heap 后 LVGL 可用约 165KB 内部 RAM,不再溢出。
+CONFIG_LV_USE_BUILTIN_MALLOC=n
+CONFIG_LV_USE_CLIB_MALLOC=y
 
 # 禁用 LVGL 任务的看门狗(显示刷新可能较慢)
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=n

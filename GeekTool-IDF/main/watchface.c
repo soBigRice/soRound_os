@@ -481,18 +481,15 @@ void watchface_next(int dir) {
 void watchface_set_aod(bool aod) {
     if (aod == s_aod) return;
     s_aod = aod;
-    if (aod) quickpanel_close();                // 进入平静态前收起快捷面板,免半亮残留
     s_last_min = -1;                            // 强制按新状态重画(去掉/恢复闪烁与秒点)
     if (watchface_visible() && wf_timer) wf_tick(NULL);
 }
 
 static void wf_gesture_cb(lv_event_t *e) {
     (void)e;
-    if (quickpanel_is_open()) return;                  // 面板开着时手势归面板(它已停止冒泡)
     lv_dir_t d = lv_indev_get_gesture_dir(lv_indev_active());
-    if (d == LV_DIR_LEFT)        watchface_next(+1);
-    else if (d == LV_DIR_RIGHT)  watchface_next(-1);
-    else if (d == LV_DIR_BOTTOM) quickpanel_open();    // 顶部下拉 → 快捷面板
+    if (d == LV_DIR_LEFT)       watchface_next(+1);    // 锁屏只换表盘;下拉面板是全局的(顶边热区,见 launcher),锁屏不出现
+    else if (d == LV_DIR_RIGHT) watchface_next(-1);
 }
 
 void watchface_init(void) {
@@ -525,8 +522,6 @@ void watchface_init(void) {
     lv_obj_set_style_opa(wf_toast, LV_OPA_TRANSP, 0);
     lv_obj_add_flag(wf_toast, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    quickpanel_init(wf_screen);   // 下拉快捷面板:挂在 wf_screen 最上层,初始隐藏在屏幕上方
-
     cur_face = NULL;
     s_aod = false;
     watchface_select(settings_face());
@@ -534,6 +529,7 @@ void watchface_init(void) {
 
 void watchface_show(void) {
     if (!wf_screen) return;
+    quickpanel_hide();                          // 进锁屏:收起全局下拉面板(锁屏不显示控制面板)
     s_last_min = -1;
     lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
     lv_obj_move_foreground(wf_screen);
@@ -543,7 +539,6 @@ void watchface_show(void) {
 
 void watchface_hide(void) {
     if (!wf_screen) return;
-    quickpanel_hide();                          // 解锁离开表盘:复位下拉面板,免下次回来还开着
     lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
     if (wf_timer) { lv_timer_delete(wf_timer); wf_timer = NULL; }
 }

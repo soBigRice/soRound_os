@@ -107,7 +107,11 @@ lv_display_t *display_init(void) {
             .full_refresh = false,
         },
     };
+    // CO5300 不支持 swap_xy(我们本就不需要),但 lvgl_port 初始化会无条件调一次 esp_lcd_panel_swap_xy,
+    // 驱动遂刷一条无害的 E "swap_xy is not supported"。旋转之后不再变,故只在这一次 add_disp 期间压掉该 tag。
+    esp_log_level_set("co5300_spi", ESP_LOG_NONE);
     lv_display_t *disp = lvgl_port_add_disp(&disp_cfg);
+    esp_log_level_set("co5300_spi", ESP_LOG_INFO);   // 恢复,后续真有错误照常打印
     lv_display_add_event_cb(disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, NULL);
     return disp;
 }
