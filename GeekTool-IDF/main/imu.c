@@ -38,7 +38,8 @@ bool imu_init(void) {
     if (!try_addr(0x6b) && !try_addr(0x6a)) { ESP_LOGW(TAG, "QMI8658 not found"); return false; }
     wr(0x02, 0x40);   // CTRL1:地址自增、小端
     wr(0x03, 0x05);   // CTRL2:加速度 ±2g,ODR ~250Hz
-    wr(0x08, 0x01);   // CTRL7:使能加速度计
+    wr(0x04, 0x55);   // CTRL3:陀螺仪 ±512dps(64 LSB/dps),ODR ~250Hz —— 数字孪生用,水平仪/迷宫只读加速度不受影响
+    wr(0x08, 0x03);   // CTRL7:使能加速度计(bit0)+ 陀螺仪(bit1)
     vTaskDelay(pdMS_TO_TICKS(20));
     s_ok = true;
     ESP_LOGI(TAG, "QMI8658 ready");
@@ -56,6 +57,20 @@ bool imu_read_accel(float *x, float *y, float *z) {
     *x = ax / 16384.0f;
     *y = ay / 16384.0f;
     *z = az / 16384.0f;
+    return true;
+}
+
+bool imu_read_gyro(float *x, float *y, float *z) {
+    if (!s_tried) imu_init();
+    if (!s_ok) return false;
+    uint8_t b[6];
+    if (!rd(0x3B, b, 6)) return false;            // Gx_L..Gz_H,小端 16bit
+    int16_t gx = (int16_t)((b[1] << 8) | b[0]);
+    int16_t gy = (int16_t)((b[3] << 8) | b[2]);
+    int16_t gz = (int16_t)((b[5] << 8) | b[4]);
+    *x = gx / 64.0f;                              // ±512dps → 64 LSB/dps
+    *y = gy / 64.0f;
+    *z = gz / 64.0f;
     return true;
 }
 

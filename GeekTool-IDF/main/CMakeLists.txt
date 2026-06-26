@@ -5,10 +5,12 @@ idf_component_register(
          "settings.c" "app_settings.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
          "img_store.c" "app_countdown.c" "audio_out.c" "app_about.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c"
+         "ble_twin.c" "app_twin.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common
              esp_wifi esp_netif esp_event lwip
+             bt
              esp_http_client esp-tls mbedtls
              esp_driver_i2s esp_codec_dev
              fatfs esp_jpeg

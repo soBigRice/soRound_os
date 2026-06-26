@@ -17,7 +17,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_audio, &app_level, &app_maze, &app_about };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_audio, &app_level, &app_maze, &app_twin, &app_about };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -116,6 +116,25 @@ static void ic_stopwatch(lv_obj_t *p) {            // 秒表:点描表体 + 顶�
     glyph_line(p, IC_C, IC_C - 38, IC_C, IC_C - 30, IC_ST, IC_DR, COL_TXT);
 }
 
+static void ic_twin(lv_obj_t *p) {                 // 数字孪生:左右两个方块隔中线镜像 + 链路点 + 红心
+    int half = 16, gap = 20;
+    int lx = IC_C - gap - half, rx = IC_C + gap + half;
+    // 左方块(设备)
+    glyph_line(p, lx - half, IC_C - half, lx + half, IC_C - half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, lx - half, IC_C + half, lx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, lx - half, IC_C - half, lx - half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, lx + half, IC_C - half, lx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    // 右方块(网页)
+    glyph_line(p, rx - half, IC_C - half, rx + half, IC_C - half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, rx - half, IC_C + half, rx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, rx - half, IC_C - half, rx - half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    glyph_line(p, rx + half, IC_C - half, rx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
+    // 中线链路
+    glyph_dot(p, IC_C - 6, IC_C, 3, COL_TXT);
+    glyph_dot(p, IC_C + 6, IC_C, 3, COL_TXT);
+    glyph_dot(p, IC_C, IC_C, 4, COL_RED);
+}
+
 static void ic_about(lv_obj_t *p) {                // 关于:同心点环 + 红核(soRound 徽标)
     glyph_circle(p, IC_C, IC_C, 30, IC_ST, IC_DR, COL_TXT);
     glyph_circle(p, IC_C, IC_C, 17, IC_ST, IC_DR, COL_TXT);
@@ -140,7 +159,7 @@ static void ic_audio(lv_obj_t *p) {                // 音频:四根高低不一�
 }
 
 typedef void (*icon_fn_t)(lv_obj_t *);
-static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_sun, ic_calendar, ic_countdown, ic_stopwatch, ic_settings, ic_audio, ic_level, ic_maze, ic_about };  // 顺序对齐 APPS[]
+static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_sun, ic_calendar, ic_countdown, ic_stopwatch, ic_settings, ic_audio, ic_level, ic_maze, ic_twin, ic_about };  // 顺序对齐 APPS[]
 
 static void draw_icon(int i) {
     lv_obj_clean(g_iconart);

@@ -36,3 +36,18 @@ CONFIG_LV_USE_CLIB_MALLOC=y
 # 禁用 LVGL 任务的看门狗(显示刷新可能较慢)
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU0=n
 CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1=n
+
+# ---- BLE(NimBLE):数字孪生 app(app_twin)用,设备做 GATT 外设向网页 notify 传感器帧 ----
+# 注:sdkconfig.defaults 的值后面不能跟行内注释(尤其 int 类型会被整行当作值而失效),注释须独立成行。
+CONFIG_BT_ENABLED=y
+# 用 NimBLE 主机(比 Bluedroid 省 RAM),自动关 Bluedroid
+CONFIG_BT_NIMBLE_ENABLED=y
+# 只做外设 + 广播,关掉 central/observer 省内存
+CONFIG_BT_NIMBLE_ROLE_PERIPHERAL=y
+CONFIG_BT_NIMBLE_ROLE_BROADCASTER=y
+# CONFIG_BT_NIMBLE_ROLE_CENTRAL is not set
+# CONFIG_BT_NIMBLE_ROLE_OBSERVER is not set
+# 大 MTU,一帧一包
+CONFIG_BT_NIMBLE_ATT_PREFERRED_MTU=247
+# WiFi/BLE 共用单天线 → 开软件共存(twin app 运行时还会临时关 WiFi 让 BLE 更稳)
+CONFIG_ESP_COEX_SW_COEXIST_ENABLE=y

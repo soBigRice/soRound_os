@@ -1,0 +1,272 @@
+<!doctype html>
+<!--
+  GeekTool 数字孪生 · 网页端(Web Bluetooth + Three.js)
+  设备:app_twin / ble_twin.c —— 广播名 GeekTwin,向本页 notify 20 字节传感器帧。
+
+  ★必须用 http://localhost 或 https 打开,file:// 双击打开不行(Web Bluetooth + ES module 都会失效):
+     cd GeekTool-IDF/web
+     python3 -m http.server 8000
+     用桌面 Chrome / Edge 打开 http://localhost:8000/twin.html   (Safari/Firefox/iOS 不支持 Web Bluetooth)
+
+  结构说明:蓝牙/按钮逻辑放在【普通脚本】里,不依赖 Three.js —— 即使 3D 加载失败也能连、能看数据。
+            Three.js 放在下面的 module 里动态加载(带备用 CDN),只负责把共享状态 window.twinState 画成 3D。
+-->
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeekTwin · 数字孪生</title>
+<style>
+  :root { --bg:#000; --txt:#fff; --txt2:#6a6a6e; --red:#d1283a; --green:#30d158; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); overflow:hidden;
+         font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  /* 画布只做视觉,放最底层且不吃点击 → 永远不会挡住按钮 */
+  #stage { position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .hud { position:fixed; z-index:10; padding:14px 16px; background:rgba(20,20,22,.72);
+         border:1px solid #2a2a2e; border-radius:14px; backdrop-filter:blur(6px); }
+  #panel { top:16px; left:16px; min-width:230px; }
+  #title { font-size:13px; letter-spacing:2px; color:var(--txt2); margin-bottom:10px; }
+  #dot { display:inline-block; width:9px; height:9px; border-radius:50%;
+         background:var(--txt2); margin-right:7px; vertical-align:middle; }
+  .row { display:flex; justify-content:space-between; gap:18px; font-size:13px; line-height:1.9; }
+  .row span:first-child { color:var(--txt2); }
+  .mono { font-variant-numeric:tabular-nums; }
+  #batt { height:6px; background:#26262a; border-radius:3px; margin:8px 0 4px; overflow:hidden; }
+  #battfill { height:100%; width:0%; background:var(--txt); transition:width .3s,background .3s; }
+  /* 控制栏在底部,层级最高,确保可点 */
+  #controls { position:fixed; z-index:30; bottom:16px; left:16px; display:flex; gap:10px; align-items:center; }
+  button { font:inherit; color:var(--txt); background:#16161a; border:1px solid var(--txt2);
+           border-radius:22px; padding:11px 20px; cursor:pointer; letter-spacing:1px; }
+  button:hover { border-color:var(--txt); }
+  button:disabled { opacity:.4; cursor:default; }
+  #connect { border-color:var(--red); }
+  /* 提示条居中浮在控制栏上方,不吃点击 → 不会挡住按钮 */
+  #hint { position:fixed; z-index:20; left:50%; bottom:74px; transform:translateX(-50%);
+          max-width:84vw; text-align:center; font-size:12.5px; color:var(--txt2);
+          pointer-events:none; padding:9px 14px; }
+  #hint.show { background:rgba(20,20,22,.8); border:1px solid #2a2a2e; border-radius:10px; }
+  .warn { color:var(--red); }
+</style>
+</head>
+<body>
+  <div id="stage"></div>
+
+  <div id="panel" class="hud">
+    <div id="title"><span id="dot"></span><span id="state">未连接</span></div>
+    <div id="batt"><div id="battfill"></div></div>
+    <div class="row"><span>电量</span><span class="mono" id="v-batt">— %</span></div>
+    <div class="row"><span>加速度</span><span class="mono" id="v-acc">—</span></div>
+    <div class="row"><span>角速度</span><span class="mono" id="v-gyr">—</span></div>
+    <div class="row"><span>帧率</span><span class="mono" id="v-rate">— Hz</span></div>
+  </div>
+
+  <div id="controls">
+    <button id="connect">连接设备</button>
+    <button id="ping" disabled>Ping 设备</button>
+    <button id="zero" disabled>归零朝向</button>
+  </div>
+  <div id="hint"></div>
+
+<!-- ========== 普通脚本:Web Bluetooth + 按钮 + 帧解析(不依赖 Three.js,务必能跑) ========== -->
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const hint = $('hint');
+  function say(html, warn) {
+    hint.innerHTML = warn ? '<span class="warn">' + html + '</span>' : html;
+    hint.classList.add('show');
+  }
+
+  // 模型读取的共享状态(Three.js module 会读它)
+  const twinState = window.twinState = { ax:0, ay:0, az:1, gz:0, connected:false };
+
+  // ---- GATT UUID(须与 ble_twin.c 一致)----
+  const SVC = 'c0de0001-feed-face-cafe-0123456789ab';
+  const TX  = 'c0de0002-feed-face-cafe-0123456789ab';
+  const RX  = 'c0de0003-feed-face-cafe-0123456789ab';
+
+  let device = null, rxChar = null;
+
+  function setLinked(on) {
+    twinState.connected = on;
+    $('state').textContent = on ? '已连接 · GeekTwin' : '未连接';
+    $('dot').style.background = on ? 'var(--green)' : 'var(--txt2)';
+    $('ping').disabled = !on;
+    $('zero').disabled = !on;
+    $('connect').textContent = on ? '断开' : '连接设备';
+  }
+
+  // 帧率统计
+  let frames = 0, lastRateT = performance.now();
+  setInterval(() => {
+    const hz = frames * 1000 / (performance.now() - lastRateT);
+    $('v-rate').textContent = hz.toFixed(0) + ' Hz';
+    frames = 0; lastRateT = performance.now();
+  }, 1000);
+
+  function onFrame(e) {
+    const dv = e.target.value;              // DataView,小端
+    if (dv.byteLength < 20) return;
+    const flags = dv.getUint8(1), soc = dv.getUint8(2);
+    twinState.ax = dv.getInt16(4, true) / 1000;
+    twinState.ay = dv.getInt16(6, true) / 1000;
+    twinState.az = dv.getInt16(8, true) / 1000;
+    const gx = dv.getInt16(10, true) / 10, gy = dv.getInt16(12, true) / 10, gz = dv.getInt16(14, true) / 10;
+    twinState.gz = gz;
+    frames++;
+
+    const charging = flags & 0x01, full = flags & 0x02;
+    $('v-batt').textContent = soc + ' %' + (full ? ' (满)' : charging ? ' (充电)' : '');
+    const fill = $('battfill');
+    fill.style.width = soc + '%';
+    fill.style.background = (charging || full) ? 'var(--green)' : (soc > 20 ? 'var(--txt)' : 'var(--red)');
+    $('v-acc').textContent = `${twinState.ax.toFixed(2)} ${twinState.ay.toFixed(2)} ${twinState.az.toFixed(2)}`;
+    $('v-gyr').textContent = `${gx.toFixed(0)} ${gy.toFixed(0)} ${gz.toFixed(0)} °/s`;
+  }
+
+  async function connect() {
+    if (device && device.gatt.connected) { device.gatt.disconnect(); return; }
+    if (!navigator.bluetooth) {
+      say('此浏览器/环境不支持 Web Bluetooth。请用桌面 Chrome/Edge,且经 http://localhost 或 https 打开(不能 file:// 双击)。', true);
+      return;
+    }
+    try {
+      say('正在弹出设备选择器…(请选 GeekTwin)');
+      device = await navigator.bluetooth.requestDevice({ filters: [{ services: [SVC] }], optionalServices: [SVC] });
+      device.addEventListener('gattserverdisconnected', () => { setLinked(false); rxChar = null; say('已断开。'); });
+      const server  = await device.gatt.connect();
+      const service = await server.getPrimaryService(SVC);
+      const txChar  = await service.getCharacteristic(TX);
+      await txChar.startNotifications();
+      txChar.addEventListener('characteristicvaluechanged', onFrame);
+      rxChar = await service.getCharacteristic(RX);
+      setLinked(true);
+      say('已连接。倾斜 / 旋转设备,模型实时同步。');
+    } catch (err) {
+      // 用户取消选择器会抛 NotFoundError,属正常
+      say('连接失败:' + (err && err.message ? err.message : err), true);
+      console.error(err);
+    }
+  }
+
+  async function ping() {
+    if (!rxChar) return;
+    try {
+      const data = new Uint8Array([0x01]);
+      if (rxChar.writeValueWithoutResponse) await rxChar.writeValueWithoutResponse(data);
+      else await rxChar.writeValue(data);
+      say('已发送 Ping,设备应显示 rx ok。');
+    } catch (err) { say('写入失败:' + err.message, true); }
+  }
+
+  // 按钮绑定 —— 这段一定会执行(不依赖任何外部加载)
+  $('connect').onclick = connect;
+  $('ping').onclick = ping;
+  $('zero').onclick = () => { if (window.twinZero) window.twinZero(); };
+
+  // 启动即给出状态提示
+  if (!navigator.bluetooth)
+    say('此浏览器/环境不支持 Web Bluetooth。请用桌面 Chrome/Edge,且经 http://localhost 或 https 打开(不能 file:// 双击)。', true);
+  else
+    say('设备进入 twin app 后,点「连接设备」选 GeekTwin。');
+})();
+</script>
+
+<!-- ========== module:Three.js 动态加载(带备用 CDN),只画 3D;失败也不影响蓝牙 ========== -->
+<script type="module">
+async function loadThree() {
+  const urls = [
+    'https://unpkg.com/three@0.160.0/build/three.module.js',
+    'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js',
+  ];
+  for (const u of urls) {
+    try { return await import(u); } catch (e) { console.warn('three load failed:', u, e); }
+  }
+  return null;
+}
+
+const hint = document.getElementById('hint');
+const THREE = await loadThree();
+if (!THREE) {
+  // 3D 加载不了(断网/被墙),但蓝牙与数据照常 —— 只提示一下
+  const prev = hint.innerHTML;
+  hint.innerHTML = prev + '<br><span class="warn">(3D 模型加载失败,数据仍会同步;检查网络或换个网络)</span>';
+} else {
+  const st = window.twinState;
+  const stage = document.getElementById('stage');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, innerWidth / innerHeight, 0.1, 100);
+  camera.position.set(0, 1.6, 4); camera.lookAt(0, 0, 0);
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setSize(innerWidth, innerHeight);
+  renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+  stage.appendChild(renderer.domElement);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+  const dir = new THREE.DirectionalLight(0xffffff, 1.1); dir.position.set(3, 5, 4); scene.add(dir);
+
+  const watch = new THREE.Group();
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(1.7, 1.7, 0.32),
+    new THREE.MeshStandardMaterial({ color: 0x1a1a1e, metalness: 0.3, roughness: 0.55 }));
+  watch.add(body);
+  watch.add(new THREE.LineSegments(new THREE.EdgesGeometry(body.geometry),
+    new THREE.LineBasicMaterial({ color: 0xffffff })));
+  const mark = new THREE.Mesh(new THREE.CircleGeometry(0.16, 24),
+    new THREE.MeshBasicMaterial({ color: 0xd1283a }));
+  mark.position.set(0, 0.55, 0.17); watch.add(mark);
+  watch.add(new THREE.AxesHelper(1.25));
+  scene.add(watch);
+
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
+  // ============ IMU → 3D 朝向校准(对齐固件 imu.c 的 MAP_*)============
+  // 本板【芯片 X/Y 相对屏幕是交换的】(见 imu.c:MAP_TX=ay / MAP_TY=ax)。
+  // 加速度计向量 =「设备朝上」方向(静止时指向天空)。把它从【芯片系】映射到【模型系】:
+  //   模型 +X(右)    = 芯片 +Y      ← 屏幕右 = 芯片 +Y
+  //   模型 +Y(上)    = 芯片 -X      ← 屏幕下 = 芯片 +X,故"上" = -X
+  //   模型 +Z(出屏面)= 芯片 +Z      ← 正面朝上平放时朝天
+  // ▼ 校准旋钮:某个方向转反了,就翻对应这一行的符号(和改 imu.c 的 MAP 一个套路)。
+  const MAP_X = (ax, ay, az) =>  ay;   // → 模型右
+  const MAP_Y = (ax, ay, az) => -ax;   // → 模型上
+  const MAP_Z = (ax, ay, az) =>  az;   // → 模型法线(正面)
+  const YAW_SIGN = 1;                  // 陀螺仪 z 积分方向;水平转设备时模型转反了就改 -1
+  // 自检口诀:正面朝上平放→模型平躺;竖起正对自己→模型正脸朝你;右边压低→模型右边压低。
+
+  const UP = new THREE.Vector3(0, 1, 0);
+  const upVec = new THREE.Vector3();
+  const tiltQ = new THREE.Quaternion();    // 重力定的倾斜(绝对,不漂)
+  const smoothQ = new THREE.Quaternion();  // 平滑后的倾斜
+  const yawQ = new THREE.Quaternion();
+  const ZAXIS = new THREE.Vector3(0, 0, 1);
+  let yaw = 0, yawOffset = 0, lastT = performance.now();
+  window.twinZero = () => { yawOffset = yaw; };   // 「归零朝向」:把当前水平朝向设为正前
+
+  function loop(now) {
+    const dt = Math.min((now - lastT) / 1000, 0.1); lastT = now;
+    const { ax, ay, az } = st;
+
+    // 1) 倾斜:把「设备朝上方向」对齐世界上方 → 模型与实机同步倾斜(四元数,无万向锁、不漂)
+    upVec.set(MAP_X(ax, ay, az), MAP_Y(ax, ay, az), MAP_Z(ax, ay, az));
+    if (upVec.lengthSq() > 1e-6) {
+      upVec.normalize();
+      tiltQ.setFromUnitVectors(upVec, UP);
+      smoothQ.slerp(tiltQ, 0.25);                  // 轻度平滑消抖
+    }
+    // 2) 偏航:陀螺仪 z(绕屏幕法线)积分,叠加在倾斜【之后的本地 Z 轴】上 —— 正是 gz 的物理含义
+    yaw += YAW_SIGN * (st.gz * Math.PI / 180) * dt;
+    yawQ.setFromAxisAngle(ZAXIS, yaw - yawOffset);
+    watch.quaternion.copy(smoothQ).multiply(yawQ);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
