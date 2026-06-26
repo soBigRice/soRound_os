@@ -36,11 +36,12 @@ static bool read_die_temp(float *t) {
     return true;
 }
 
-// 充电参数(寄存器值取自本板验证过的 xiaozhi 驱动):CV 4.1V / 预充 50mA / 终止 25mA;使能 die 温度 ADC。
+// 充电参数:CV 4.2V / 预充 50mA / 终止 25mA;使能 die 温度 ADC。
+// 之前沿用 xiaozhi 示例的 4.1V 保守档,电量计常停在约 95%;普通 4.2V 锂电改 4.2V 才更接近 100%。
 // 输入限流【保持芯片默认】(本板上电默认值已验证可用):之前抬到 900mA,插弱源时音频上电瞬间易过流拉崩 3.3V,
 // 故撤回。充电电流仍设 400mA,实际由默认输入档 + VinDPM 自然封顶,比原来的慢速默认仍快不少,且不会过流。
 static void charge_config(void) {
-    wr_reg(0x64, 0x02);                                        // CV 充电目标电压 4.1V
+    wr_reg(0x64, 0x03);                                        // CV 充电目标电压 4.2V(AXP2101:0x02=4.1V,0x03=4.2V)
     wr_reg(0x61, 0x02);                                        // 预充电流 50mA
     wr_reg(0x63, 0x01);                                        // 终止电流 25mA
     uint8_t v;

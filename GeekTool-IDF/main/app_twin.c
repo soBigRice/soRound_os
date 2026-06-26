@@ -142,7 +142,8 @@ static void twin_tick(void) {
 
 static void twin_exit(void) {
     s_run = false;
-    for (int i = 0; i < 50 && s_task; i++) vTaskDelay(pdMS_TO_TICKS(10));  // 等采样任务自删(≤~40ms)
+    for (int i = 0; i < 50 && s_task; i++) vTaskDelay(pdMS_TO_TICKS(10));  // 等采样任务自删(最多约 500ms)
+    ble_twin_set_rx_cb(NULL);                         // 退出后不再接收网页指令,避免 BLE 回调写已退出 app 的状态
     ble_twin_stop();
     if (s_wifi_prev) wifi_service_set_enabled(true);   // 恢复 WiFi
     g_status = g_vals = g_dot = NULL;

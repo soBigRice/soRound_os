@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 bool ble_twin_start(void);                 // 起协议栈 + 广播(幂等);失败返回 false
-void ble_twin_stop(void);                  // 断连 + 停广播 + 释放协议栈(退出 app 必调)
+void ble_twin_stop(void);                  // 退出 app:断连 + 停广播;协议栈保持初始化,避免 LVGL 任务里 stop/deinit 卡死
 bool ble_twin_connected(void);             // 当前是否有中心(浏览器)连着
 bool ble_twin_notify(const uint8_t *data, size_t len);  // 推一帧;未连/未订阅时静默返回 false
 void ble_twin_set_rx_cb(void (*cb)(const uint8_t *data, size_t len)); // 设网页指令回调(在 BLE host 任务上下文调用)
