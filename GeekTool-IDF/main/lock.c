@@ -18,10 +18,11 @@ static void set_screen(scr_t s) {
     if (s == s_scr) return;
     s_scr = s;
     switch (s) {
-        // FULL=全亮活动态(表盘正常闪/秒点);CALM=变暗 + AOD(停闪、只按分钟刷新);OFF=熄屏
-        case SCR_FULL: watchface_set_aod(false); display_sleep(false); display_set_brightness(settings_brightness()); break;
-        case SCR_CALM: watchface_set_aod(true);  display_sleep(false); display_set_brightness(BR_DIM);                break;
-        case SCR_OFF:  display_set_brightness(0); display_sleep(true);                                                break;
+        // FULL=全亮活动态(表盘正常闪/秒点);CALM=变暗 + AOD(停闪、只按分钟刷新);
+        // OFF=熄屏 + 停表盘刷新(不再重画/推屏 → CPU 长空闲,配合 tickless 进浅睡)
+        case SCR_FULL: watchface_set_sleep(false); watchface_set_aod(false); display_sleep(false); display_set_brightness(settings_brightness()); break;
+        case SCR_CALM: watchface_set_sleep(false); watchface_set_aod(true);  display_sleep(false); display_set_brightness(BR_DIM);                break;
+        case SCR_OFF:  display_set_brightness(0); display_sleep(true); watchface_set_sleep(true);                                                 break;
     }
 }
 

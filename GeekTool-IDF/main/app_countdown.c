@@ -1,8 +1,9 @@
 // 倒计时 app —— 圆形递减点环(从 12 点顺时针变暗)+ 中心 MM:SS 大点阵。
-// 一触式预设(1/3/5/10/25 分)立即开始;点中心暂停/继续,reset 重置;归零中心红字闪烁。
-// Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
+// 一触式预设(1/3/5/10/25 分)立即开始;BOOT 实体键或点中心 = 开始/暂停/继续(DONE=重置),reset 重置;
+// 归零中心红字闪烁。Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
 #include "app.h"
 #include "audio_out.h"
+#include "bootkey.h"
 #include "esp_timer.h"
 #include <stdio.h>
 #include <math.h>
@@ -109,7 +110,7 @@ static void show_state(cd_state_t st) {
     if (idle) {
         draw_mmss(s_total_s);          // 显示当前选择
     } else {
-        const char *h = (st == ST_RUN) ? "tap to pause" : (st == ST_PAUSE) ? "paused - tap to resume" : "done - tap to reset";
+        const char *h = (st == ST_RUN) ? "key/tap = pause" : (st == ST_PAUSE) ? "paused - key/tap = resume" : "done - key/tap = reset";
         lv_label_set_text(g_hint, h);
         lv_obj_set_style_text_color(g_hint, lv_color_hex(st == ST_DONE ? COL_RED : COL_TXT2), 0);
     }
@@ -127,9 +128,9 @@ static void preset_cb(lv_event_t *e) {
     begin_run(PRESETS[idx] * 60);
 }
 
-static void center_cb(lv_event_t *e) {
+static void cd_toggle(void) {              // BOOT 键 / 点计时区共用:IDLE=开始 RUN=暂停 PAUSE=继续 DONE=重置
     int64_t now = esp_timer_get_time();
-    if (s_state == ST_IDLE) { if (s_total_s >= 5) begin_run(s_total_s); return; }   // 点计时区 → 用自定义时间开始
+    if (s_state == ST_IDLE) { if (s_total_s >= 5) begin_run(s_total_s); return; }   // 用自定义时间开始
     if (s_state == ST_RUN) {
         s_remain_us = s_end_us - now; if (s_remain_us < 0) s_remain_us = 0;
         show_state(ST_PAUSE);
@@ -141,6 +142,7 @@ static void center_cb(lv_event_t *e) {
         show_state(ST_IDLE);
     }
 }
+static void center_cb(lv_event_t *e) { cd_toggle(); }
 
 static void reset_cb(lv_event_t *e) { show_state(ST_IDLE); }
 
@@ -241,12 +243,14 @@ static void countdown_enter(lv_obj_t *parent) {
         lv_obj_set_pos(b, px0 + i * (bw + bg), 330);
     }
 
+    bootkey_init();                // BOOT 键 = 开始/暂停/继续
     s_state = ST_IDLE;
     show_state(ST_IDLE);
 }
 
 static void countdown_tick(void) {
     if (!g_center) return;
+    if (bootkey_pressed()) cd_toggle();
     if (s_state == ST_RUN) {
         int64_t us = s_end_us - esp_timer_get_time();
         if (us <= 0) {

@@ -1,7 +1,8 @@
-// 正向计时器(秒表)—— 从 0 累加。点中间开始/暂停;运行时按钮=计圈(lap),停止时按钮=归零(reset)。
-// 秒环每分钟扫一圈;中心 MM:SS + 百分秒;顶部显示最近 3 圈。
+// 正向计时器(秒表)—— 从 0 累加。BOOT 实体键=开始/暂停/继续(不占锁屏侧键,防误触);
+// 屏上按钮:运行=计圈(lap),停止=归零(reset)。秒环每分钟扫一圈;中心 MM:SS + 百分秒;顶部最近 3 圈。
 #include "app.h"
 #include "glyph.h"
+#include "bootkey.h"
 #include "esp_timer.h"
 #include <stdio.h>
 #include <string.h>
@@ -33,7 +34,7 @@ static const char *const DIGITS[10][7] = {
 static bool      s_run;
 static int64_t   s_base_us, s_start_us, s_laps[MAXLAP];
 static int       s_nlap, s_last_sec = -1, s_last_ring = -1;
-static lv_obj_t *g_ringbox, *g_ring[RING_N], *g_center, *g_cs, *g_hint, *g_lap, *g_centerbtn, *g_btnl;
+static lv_obj_t *g_ringbox, *g_ring[RING_N], *g_center, *g_cs, *g_hint, *g_lap, *g_btnl;
 
 static int64_t elapsed_us(void) { return s_run ? s_base_us + (esp_timer_get_time() - s_start_us) : s_base_us; }
 
@@ -99,16 +100,16 @@ static void update_laps(void) {
     lv_label_set_text(g_lap, buf);
 }
 
-static void center_cb(lv_event_t *e) {     // 开始 / 暂停 / 继续
-    if (s_run) { s_base_us += esp_timer_get_time() - s_start_us; s_run = false; set_hint("paused", COL_TXT2); }
+static void toggle_run(void) {             // BOOT 键:开始 / 暂停 / 继续
+    if (s_run) { s_base_us += esp_timer_get_time() - s_start_us; s_run = false; set_hint("paused - boot key = resume", COL_TXT2); }
     else       { s_start_us = esp_timer_get_time(); s_run = true; set_hint("running - btn = lap", COL_TXT2); }
     update_btn();
 }
-static void btn_cb(lv_event_t *e) {        // 运行=计圈,停止=归零
+static void btn_cb(lv_event_t *e) {        // 屏上按钮:运行=计圈,停止=归零
     if (s_run) { if (s_nlap < MAXLAP) s_laps[s_nlap++] = elapsed_us(); update_laps(); }
     else {
         s_base_us = 0; s_nlap = 0; s_last_sec = -1; s_last_ring = -1;
-        update_laps(); set_hint("tap center to start", COL_TXT2);
+        update_laps(); set_hint("boot key = start", COL_TXT2);
     }
 }
 
@@ -127,7 +128,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(g_hint, UI_FONT_M, 0);
     lv_obj_set_style_text_align(g_hint, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(g_hint, LV_ALIGN_TOP_MID, 0, 86);
-    set_hint("tap center to start", COL_TXT2);
+    set_hint("boot key = start", COL_TXT2);
 
     g_lap = lv_label_create(parent);          // 最近圈
     lv_obj_set_style_text_font(g_lap, UI_FONT_M, 0);
@@ -147,14 +148,6 @@ static void stopwatch_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_color(g_cs, lv_color_hex(COL_TXT2), 0);
     lv_obj_align(g_cs, LV_ALIGN_TOP_MID, 0, 282);
 
-    g_centerbtn = lv_obj_create(parent);      // 点计时区:开始/暂停/继续
-    lv_obj_remove_style_all(g_centerbtn);
-    lv_obj_set_size(g_centerbtn, 240, 96);
-    lv_obj_align(g_centerbtn, LV_ALIGN_TOP_MID, 0, 166);
-    lv_obj_remove_flag(g_centerbtn, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_centerbtn, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_event_cb(g_centerbtn, center_cb, LV_EVENT_CLICKED, NULL);
-
     lv_obj_t *btn = lv_button_create(parent); // lap / reset
     lv_obj_set_size(btn, 120, 46);
     lv_obj_set_style_bg_color(btn, lv_color_hex(0x1c1c22), 0);
@@ -164,6 +157,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
     g_btnl = lv_label_create(btn);
     lv_obj_center(g_btnl);
 
+    bootkey_init();                           // BOOT 键 = 开始/暂停/继续
     s_run = false; s_base_us = 0; s_nlap = 0; s_last_sec = -1; s_last_ring = -1;
     update_btn();
     update_laps();
@@ -171,6 +165,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
 
 static void stopwatch_tick(void) {
     if (!g_center) return;
+    if (bootkey_pressed()) toggle_run();      // BOOT 键:开始/暂停/继续
     int64_t e = elapsed_us();
     int sec = (int)(e / 1000000);
     if (sec != s_last_sec) { draw_mmss(sec); s_last_sec = sec; }
@@ -181,7 +176,7 @@ static void stopwatch_tick(void) {
 }
 
 static void stopwatch_exit(void) {
-    g_ringbox = g_center = g_cs = g_hint = g_lap = g_centerbtn = g_btnl = NULL;
+    g_ringbox = g_center = g_cs = g_hint = g_lap = g_btnl = NULL;
     s_last_sec = s_last_ring = -1;
 }
 

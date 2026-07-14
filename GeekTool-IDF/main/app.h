@@ -45,6 +45,7 @@ extern const app_t app_about;
 extern const app_t app_level;
 extern const app_t app_maze;
 extern const app_t app_stopwatch;
+extern const app_t app_fluid;
 extern const app_t app_twin;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;

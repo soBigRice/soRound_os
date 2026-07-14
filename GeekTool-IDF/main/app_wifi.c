@@ -76,7 +76,9 @@ static void wifi_svc_init(void) {
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));   // ★凭据写 NVS,重启/重烧后还在
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());                            // → STA_START 事件里自动连记住的 AP
-    esp_wifi_set_ps(WIFI_PS_MIN_MODEM);                           // WiFi 调制解调器睡眠,省电(关 WiFi 开关可省更多)
+    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);                           // 深度调制解调器睡眠:按 listen interval(默认 3 拍,~300ms)
+                                                                  // 醒来收 beacon,比 MIN(每 DTIM)更省;代价是网络延迟略升,
+                                                                  // 手表只有天气/SNTP 轮询,无感。关 WiFi 开关仍省最多。
 
     // SNTP 校时:连上后自动同步(时区在 main 里设为 CST-8),供表盘显示真实时间
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);

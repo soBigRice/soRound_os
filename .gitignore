@@ -4,6 +4,12 @@ managed_components/
 dependencies.lock
 sdkconfig
 
+# Web frontend artifacts
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+
 # Playwright MCP
 .playwright-mcp/
 

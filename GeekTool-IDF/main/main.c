@@ -46,8 +46,11 @@ void app_main(void) {
     ESP_ERROR_CHECK(nvs_flash_init());
     setenv("TZ", "CST-8", 1); tzset();           // 中国时区,供表盘 localtime 用
 
-    // 省电:动态调频 —— 空闲时 CPU 从 240 降到 80MHz(不开 light sleep,显示/触摸/音频不受影响)
-    esp_pm_config_t pm = { .max_freq_mhz = 240, .min_freq_mhz = 80, .light_sleep_enable = false };
+    // 省电:动态调频(空闲 240→80MHz)+ 自动 light sleep(需 sdkconfig 开 TICKLESS_IDLE)。
+    // 各外设驱动(SPI 推屏/I2C/I2S/WiFi/BT)在忙时自动持 pm 锁,不会睡在事务中间;
+    // USB 插着时不睡(USJ_NO_AUTO_LS_ON_CONNECTION),调试不掉线。
+    // ★若出现触摸丢事件/屏幕异常,先把 light_sleep_enable 改回 false 定位。
+    esp_pm_config_t pm = { .max_freq_mhz = 240, .min_freq_mhz = 80, .light_sleep_enable = true };
     esp_pm_configure(&pm);
 
     s_i2c_bus = init_i2c();

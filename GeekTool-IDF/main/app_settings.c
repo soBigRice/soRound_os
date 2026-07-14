@@ -1,10 +1,11 @@
-// 设置 app —— 亮度 + 音量 两个滑块。拖动时实时应用,松手写 NVS。Nothing 单色主题(滑块用主题红强调)。
+// 设置 app —— 亮度/音量滑块 + 表盘选择 + 两个开关。改动实时应用,松手/点选写 NVS。
 #include "app.h"
 #include "settings.h"
+#include "watchface.h"
 #include "audio_out.h"
 #include <stdio.h>
 
-static lv_obj_t *g_br_val, *g_vol_val;
+static lv_obj_t *g_br_val, *g_vol_val, *g_face_val;
 
 static void br_changed(lv_event_t *e) {
     int v = lv_slider_get_value(lv_event_get_target_obj(e));
@@ -31,6 +32,30 @@ static void silent_changed(lv_event_t *e) {                    // 静音:闹钟/
     bool on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
     settings_set_silent(on ? 1 : 0);
     settings_save();
+}
+
+static void face_cb(lv_event_t *e) {                           // 表盘选择:循环 ±1,立即重建锁屏表盘 + 存 NVS
+    int dir = (int)(intptr_t)lv_event_get_user_data(e);
+    int n = watchface_count();
+    int idx = (watchface_selected() + dir + n) % n;
+    watchface_select(idx);                                     // 隐藏态重建,下次亮锁屏即新表盘
+    settings_set_face((uint8_t)idx);
+    settings_save();
+    lv_label_set_text(g_face_val, watchface_name(idx));
+}
+
+static lv_obj_t *mk_face_btn(lv_obj_t *parent, const char *sym, int rx, int y, int dir) {
+    lv_obj_t *btn = lv_button_create(parent);
+    lv_obj_set_size(btn, 48, 40);
+    lv_obj_set_style_bg_color(btn, lv_color_hex(0x1c1c22), 0);
+    lv_obj_set_style_radius(btn, 10, 0);
+    lv_obj_align(btn, LV_ALIGN_TOP_RIGHT, rx, y);
+    lv_obj_add_event_cb(btn, face_cb, LV_EVENT_CLICKED, (void *)(intptr_t)dir);
+    lv_obj_t *l = lv_label_create(btn);
+    lv_obj_set_style_text_font(l, UI_FONT_SYM, 0);
+    lv_label_set_text(l, sym);
+    lv_obj_center(l);
+    return btn;
 }
 
 static lv_obj_t *mk_row(lv_obj_t *parent, const char *name, int y, int mn, int mx, int val,
@@ -60,24 +85,40 @@ static lv_obj_t *mk_row(lv_obj_t *parent, const char *name, int y, int mn, int m
 static void settings_enter(lv_obj_t *parent) {
     audio_out_init();                 // 起扬声器(音量预览 + 之后的提示音);退出时释放
     char b[8];
-    // 4 行都收进圆的内接区(y ~104..396),避免圆角处被裁
-    mk_row(parent, "brightness", 104, SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
+    // 5 行都收进圆的内接区(y ~96..404),避免圆角处被裁
+    mk_row(parent, "brightness", 96, SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
     snprintf(b, sizeof b, "%d%%", settings_brightness() * 100 / 255);
     lv_label_set_text(g_br_val, b);
 
-    lv_obj_t *vsl = mk_row(parent, "volume", 214, 0, 100, settings_volume(), vol_changed, &g_vol_val);
+    lv_obj_t *vsl = mk_row(parent, "volume", 186, 0, 100, settings_volume(), vol_changed, &g_vol_val);
     lv_obj_add_event_cb(vsl, vol_blip, LV_EVENT_RELEASED, NULL);   // 松手试听当前音量
     snprintf(b, sizeof b, "%d%%", settings_volume());
     lv_label_set_text(g_vol_val, b);
+
+    // face:锁屏表盘选择 ‹ 名字 ›(点击立即生效)
+    lv_obj_t *fl = lv_label_create(parent);
+    lv_obj_set_style_text_font(fl, UI_FONT_L, 0);
+    lv_obj_set_style_text_color(fl, lv_color_hex(COL_TXT), 0);
+    lv_label_set_text(fl, "face");
+    lv_obj_align(fl, LV_ALIGN_TOP_LEFT, 96, 276);
+    mk_face_btn(parent, LV_SYMBOL_LEFT,  -264, 268, -1);
+    g_face_val = lv_label_create(parent);
+    lv_obj_set_style_text_font(g_face_val, UI_FONT_M, 0);
+    lv_obj_set_style_text_color(g_face_val, lv_color_hex(COL_TXT2), 0);
+    lv_obj_set_width(g_face_val, 108);
+    lv_obj_set_style_text_align(g_face_val, LV_TEXT_ALIGN_CENTER, 0);
+    lv_label_set_text(g_face_val, watchface_name(watchface_selected()));
+    lv_obj_align(g_face_val, LV_ALIGN_TOP_RIGHT, -148, 279);
+    mk_face_btn(parent, LV_SYMBOL_RIGHT, -92, 268, +1);
 
     // always-on:开=低功耗长显,关=自动熄屏
     lv_obj_t *al = lv_label_create(parent);
     lv_obj_set_style_text_font(al, UI_FONT_L, 0);
     lv_obj_set_style_text_color(al, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(al, "always-on");
-    lv_obj_align(al, LV_ALIGN_TOP_LEFT, 96, 322);
+    lv_obj_align(al, LV_ALIGN_TOP_LEFT, 96, 330);
     lv_obj_t *sw1 = lv_switch_create(parent);
-    lv_obj_align(sw1, LV_ALIGN_TOP_RIGHT, -96, 318);
+    lv_obj_align(sw1, LV_ALIGN_TOP_RIGHT, -96, 326);
     lv_obj_remove_flag(sw1, LV_OBJ_FLAG_GESTURE_BUBBLE);
     if (settings_idle_mode() == IDLE_AOD) lv_obj_add_state(sw1, LV_STATE_CHECKED);
     lv_obj_add_event_cb(sw1, aod_changed, LV_EVENT_VALUE_CHANGED, NULL);
@@ -87,14 +128,14 @@ static void settings_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(sl2, UI_FONT_L, 0);
     lv_obj_set_style_text_color(sl2, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(sl2, "silent");
-    lv_obj_align(sl2, LV_ALIGN_TOP_LEFT, 96, 374);
+    lv_obj_align(sl2, LV_ALIGN_TOP_LEFT, 96, 380);
     lv_obj_t *sw2 = lv_switch_create(parent);
-    lv_obj_align(sw2, LV_ALIGN_TOP_RIGHT, -96, 370);
+    lv_obj_align(sw2, LV_ALIGN_TOP_RIGHT, -96, 376);
     lv_obj_remove_flag(sw2, LV_OBJ_FLAG_GESTURE_BUBBLE);
     if (settings_silent()) lv_obj_add_state(sw2, LV_STATE_CHECKED);
     lv_obj_add_event_cb(sw2, silent_changed, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
-static void settings_exit(void) { audio_out_deinit(); g_br_val = g_vol_val = NULL; }
+static void settings_exit(void) { audio_out_deinit(); g_br_val = g_vol_val = g_face_val = NULL; }
 
 const app_t app_settings = { "settings", COL_TXT, settings_enter, NULL, settings_exit };

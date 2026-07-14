@@ -52,7 +52,7 @@ static lv_obj_t *mkdot(lv_obj_t *par, int cx, int cy, int r, uint32_t color, lv_
     lv_obj_set_style_bg_opa(d, opa, 0);
     lv_obj_remove_flag(d, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_remove_flag(d, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);   // 手势冒泡到 wf_screen(上滑解锁 / 左右滑换表盘)
+    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);
     return d;
 }
 
@@ -419,7 +419,7 @@ static const watchface_t WF_IMAGE   = { "image",   image_build,   image_update, 
 static const watchface_t *const FACES[] = { &WF_DOTS, &WF_BOLD, &WF_RINGS, &WF_WEATHER, &WF_IMAGE };
 
 /* ============================================================ 框架 ============================================================ */
-static lv_obj_t *wf_screen, *wf_content, *wf_toast, *wf_lockdot;
+static lv_obj_t *wf_screen, *wf_content, *wf_lockdot;
 static lv_timer_t *wf_timer;
 static const watchface_t *cur_face;
 static int  s_idx;
@@ -428,6 +428,7 @@ static int  s_last_min = -1;
 
 int         watchface_count(void)      { return (int)(sizeof(FACES) / sizeof(FACES[0])); }
 const char *watchface_name(int idx)    { return (idx >= 0 && idx < watchface_count()) ? FACES[idx]->name : ""; }
+int         watchface_selected(void)   { return s_idx; }
 
 static void wf_tick(lv_timer_t *t) {
     (void)t;
@@ -453,31 +454,6 @@ void watchface_select(int idx) {
     if (watchface_visible()) wf_tick(NULL);    // 立即按当前状态(活动/AOD)画一帧
 }
 
-static void toast_opa_cb(void *o, int32_t v) { lv_obj_set_style_opa((lv_obj_t *)o, (lv_opa_t)v, 0); }
-
-static void show_toast(const char *name) {
-    lv_label_set_text(wf_toast, name);
-    lv_anim_delete(wf_toast, toast_opa_cb);
-    lv_obj_set_style_opa(wf_toast, LV_OPA_COVER, 0);
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_var(&a, wf_toast);
-    lv_anim_set_exec_cb(&a, toast_opa_cb);
-    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
-    lv_anim_set_delay(&a, 800);
-    lv_anim_set_duration(&a, 500);
-    lv_anim_start(&a);
-}
-
-void watchface_next(int dir) {
-    int n = watchface_count();
-    int idx = (s_idx + dir + n) % n;
-    watchface_select(idx);
-    settings_set_face((uint8_t)idx);
-    settings_save();
-    show_toast(watchface_name(idx));
-}
-
 void watchface_set_aod(bool aod) {
     if (aod == s_aod) return;
     s_aod = aod;
@@ -485,11 +461,14 @@ void watchface_set_aod(bool aod) {
     if (watchface_visible() && wf_timer) wf_tick(NULL);
 }
 
-static void wf_gesture_cb(lv_event_t *e) {
-    (void)e;
-    lv_dir_t d = lv_indev_get_gesture_dir(lv_indev_active());
-    if (d == LV_DIR_LEFT)       watchface_next(+1);    // 锁屏只换表盘;下拉面板是全局的(顶边热区,见 launcher),锁屏不出现
-    else if (d == LV_DIR_RIGHT) watchface_next(-1);
+void watchface_set_sleep(bool sleep) {
+    if (sleep) {
+        if (wf_timer) { lv_timer_delete(wf_timer); wf_timer = NULL; }
+    } else if (watchface_visible() && !wf_timer) {
+        wf_timer = lv_timer_create(wf_tick, 1000, NULL);
+        s_last_min = -1;                        // 唤醒立即补画(睡着期间分钟变了)
+        wf_tick(NULL);
+    }
 }
 
 void watchface_init(void) {
@@ -499,12 +478,9 @@ void watchface_init(void) {
     lv_obj_set_style_bg_color(wf_screen, lv_color_black(), 0);
     lv_obj_set_style_bg_opa(wf_screen, LV_OPA_COVER, 0);
     lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_SCROLLABLE);
-    // 关键:wf_screen 建在 lv_layer_top() 上(parent 非空),默认带 GESTURE_BUBBLE,会把手势继续
-    // 冒泡到 layer_top,使挂在 wf_screen 上的手势回调(换表盘 / 上滑解锁)永远收不到。去掉它,
-    // 手势就停在 wf_screen(子节点仍保留 GESTURE_BUBBLE,手势能从表盘内容冒上来)。
+    // 锁屏不再响应手势:换表盘在设置 app,解锁用侧键(lock.c)。手势停在 wf_screen 即可。
     lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_event_cb(wf_screen, wf_gesture_cb, LV_EVENT_GESTURE, NULL);   // 左右滑换表盘
 
     wf_content = lv_obj_create(wf_screen);
     lv_obj_remove_style_all(wf_content);
@@ -513,14 +489,6 @@ void watchface_init(void) {
     lv_obj_add_flag(wf_content, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     wf_lockdot = mkdot(wf_screen, WF_CX, 40, 3, COL_RED, LV_OPA_COVER);   // 顶端"已锁定"红点(各表盘共用)
-
-    wf_toast = lv_label_create(wf_screen);
-    lv_obj_set_style_text_font(wf_toast, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(wf_toast, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(wf_toast, "");
-    lv_obj_align(wf_toast, LV_ALIGN_BOTTOM_MID, 0, -52);
-    lv_obj_set_style_opa(wf_toast, LV_OPA_TRANSP, 0);
-    lv_obj_add_flag(wf_toast, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     cur_face = NULL;
     s_aod = false;
