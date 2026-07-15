@@ -36,51 +36,64 @@ static char s_cond[40] = "";
 
 static lv_obj_t *g_iconbox, *g_temp, *g_cond, *g_range, *g_status;
 
-/* ===== 天气图标(点描)===== */
-static void draw_cloud(lv_obj_t *p, int cx, int cy) {
-    float px[3] = { cx - 46, cx + 2, cx + 50 }, py[3] = { cy + 10, cy - 17, cy + 6 }, pr[3] = { 34, 48, 36 };
-    float yb = cy + 40; int xL = cx - 74, xR = cx + 80, step = 14, dr = 4;
+/* ===== 天气图标(点描,统一 dr3/step10 轮廓;标准形 + 单红点缀)===== */
+#define IC_DR   3
+#define IC_ST   10
+
+// 云:中大瓣 + 左右对称小瓣 + 平底,只描外轮廓(剔除被邻瓣/底线盖住的内部点)。对称 → 标准云形
+static void draw_cloud(lv_obj_t *p, int cx, int cy, uint32_t col) {
+    struct { float x, y, r; } lobe[3] = { { cx - 40, cy + 8, 26 }, { cx, cy - 14, 36 }, { cx + 40, cy + 8, 26 } };
+    float yb = cy + 32;
+    int   xL = cx - 58, xR = cx + 58;
     for (int k = 0; k < 3; k++) {
-        int nn = (int)(2 * 3.14159f * pr[k] / step);
+        int nn = (int)(2 * 3.14159f * lobe[k].r / IC_ST);
         for (int i = 0; i < nn; i++) {
-            float a = (float)i / nn * 6.28318f, X = px[k] + cosf(a) * pr[k], Y = py[k] + sinf(a) * pr[k];
-            if (Y > yb) continue;
+            float a = (float)i / nn * 6.28318f;
+            float X = lobe[k].x + cosf(a) * lobe[k].r, Y = lobe[k].y + sinf(a) * lobe[k].r;
+            if (Y > yb) continue;                                    // 底线以下留给平底
             bool ins = false;
             for (int j = 0; j < 3; j++) {
                 if (j == k) continue;
-                float dx = X - px[j], dy = Y - py[j];
-                if (sqrtf(dx * dx + dy * dy) < pr[j] - 2) { ins = true; break; }
+                float dx = X - lobe[j].x, dy = Y - lobe[j].y, rr = lobe[j].r - 2;
+                if (dx * dx + dy * dy < rr * rr) { ins = true; break; }
             }
-            if (!ins) glyph_dot(p, (int)X, (int)Y, dr, COL_TXT);
+            if (!ins) glyph_dot(p, (int)X, (int)Y, IC_DR, col);
         }
     }
-    int bn = (xR - xL) / step;
-    for (int i = 0; i <= bn; i++) glyph_dot(p, xL + (xR - xL) * i / bn, (int)yb, dr, COL_TXT);
+    int bn = (xR - xL) / IC_ST;                                      // 平底
+    for (int i = 0; i <= bn; i++) glyph_dot(p, xL + (xR - xL) * i / bn, (int)yb, IC_DR, col);
 }
+// 晴:干净描边圆 + 8 条直射线(标准太阳,去掉红核)
 static void draw_sun(lv_obj_t *p, int cx, int cy) {
-    glyph_circle(p, cx, cy, 30, 13, 4, COL_TXT);
-    glyph_dot(p, cx, cy, 6, COL_RED);
+    glyph_circle(p, cx, cy, 27, IC_ST, IC_DR, COL_TXT);
     for (int k = 0; k < 8; k++) {
-        float a = k * 3.14159f / 4;
-        glyph_dot(p, cx + (int)(cosf(a) * 46), cy + (int)(sinf(a) * 46), 4, COL_TXT);
-        glyph_dot(p, cx + (int)(cosf(a) * 56), cy + (int)(sinf(a) * 56), 4, COL_TXT);
+        float a = k * 3.14159f / 4, c = cosf(a), s = sinf(a);
+        glyph_line(p, cx + (int)(c * 37), cy + (int)(s * 37), cx + (int)(c * 52), cy + (int)(s * 52), 7, IC_DR, COL_TXT);
     }
 }
+// 雨:云 + 3 道等距斜雨(中间一道红,单点缀)
 static void draw_rain(lv_obj_t *p, int cx, int cy) {
-    draw_cloud(p, cx, cy - 14);
-    for (int i = -1; i <= 1; i++) glyph_line(p, cx + i * 26 + 6, cy + 34, cx + i * 26 - 4, cy + 56, 11, 3, COL_RED);
+    draw_cloud(p, cx, cy - 12, COL_TXT);
+    for (int i = -1; i <= 1; i++)
+        glyph_line(p, cx + i * 30 + 8, cy + 34, cx + i * 30 - 2, cy + 58, 9, IC_DR, i == 0 ? COL_RED : COL_TXT);
 }
+// 雪:云 + 3 片六角雪花(每片=过中心 3 条短线 → 6 角星)
 static void draw_snow(lv_obj_t *p, int cx, int cy) {
-    draw_cloud(p, cx, cy - 14);
-    for (int i = -1; i <= 1; i++) glyph_dot(p, cx + i * 26, cy + 46, 4, COL_TXT);
+    draw_cloud(p, cx, cy - 12, COL_TXT);
+    int fx[3] = { cx - 30, cx, cx + 30 }, fy[3] = { cy + 46, cy + 54, cy + 46 };
+    for (int f = 0; f < 3; f++)
+        for (int k = 0; k < 3; k++) {
+            float a = k * 3.14159f / 3, c = cosf(a) * 9, s = sinf(a) * 9;
+            glyph_line(p, fx[f] - (int)c, fy[f] - (int)s, fx[f] + (int)c, fy[f] + (int)s, 6, 2, COL_TXT);
+        }
 }
 static void draw_wicon(int code) {           // WMO weather code → 点描图标
     lv_obj_clean(g_iconbox);
     int cx = 110, cy = 80;
-    if      (code <= 1)                                              draw_sun(g_iconbox, cx, cy);    // 0,1 晴
-    else if ((code >= 71 && code <= 77) || code == 85 || code == 86) draw_snow(g_iconbox, cx, cy);   // 雪
+    if      (code <= 1)                                              draw_sun(g_iconbox, cx, cy);           // 0,1 晴
+    else if ((code >= 71 && code <= 77) || code == 85 || code == 86) draw_snow(g_iconbox, cx, cy);          // 雪
     else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) draw_rain(g_iconbox, cx, cy); // 雨/雷
-    else                                                            draw_cloud(g_iconbox, cx, cy);   // 2,3,45,48 多云/雾
+    else                                                            draw_cloud(g_iconbox, cx, cy, COL_TXT); // 2,3,45,48 多云/雾
 }
 
 /* ===== 大号点阵温度(5×7)===== */

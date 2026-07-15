@@ -1,0 +1,34 @@
+name: build-firmware
+
+# 打 v* tag(如 git tag v1.0 && git push --tags)→ 构建 GeekTool.bin → 传到同名 Release。
+# 设备端 OTA_URL 指向 releases/latest/download/GeekTool.bin,点 update 即拉这里最新的 bin。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:      # 也可在 Actions 页面手动触发(手动跑不发 Release,只验证能否构建)
+
+permissions:
+  contents: write         # 建 Release / 传资产需要
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # ★拉全历史 + tag:esp_app_desc 的版本号来自 git describe,浅克隆会变 unknown
+
+      - name: Build (ESP-IDF v6.0.1, esp32s3)
+        uses: espressif/esp-idf-ci-action@v1
+        with:
+          esp_idf_version: v6.0.1   # 若该镜像拉取失败,改成 release-v6.0
+          target: esp32s3
+          path: GeekTool-IDF        # 固件工程在子目录;sdkconfig 被 gitignore,CI 从 sdkconfig.defaults 重生成
+
+      - name: Publish firmware to Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: GeekTool-IDF/build/GeekTool.bin
+          fail_on_unmatched_files: true   # bin 没生成就让工作流红掉,别发空 Release

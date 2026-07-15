@@ -6,6 +6,7 @@
 #include "app.h"
 #include "imu.h"
 #include "esp_heap_caps.h"
+#include "esp_pm.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -17,17 +18,19 @@
 #define NPART   240             // 粒子数
 #define R_MIN   4
 #define R_MAX   6
-#define GRAV    0.55f           // 满倾斜加速度(px/帧²)
-#define DRAG    0.985f          // 速度阻尼
-#define V_MAX   6.0f            // 限速,防高速穿透
-#define ITERS   2               // 约束求解迭代
+#define GRAV    0.72f           // 满倾斜加速度(px/子步²):抬高 → 起步更猛、跟手
+#define DRAG    0.996f          // 速度阻尼(每子步;越接近 1 越"稀"越活):放松 → 惯性更足、更灵活
+#define V_MAX   6.0f            // 每子步限速 ≈ 粒径 → 不穿透;×SUBSTEP 得每帧有效速度
+#define SUBSTEP 4               // 每渲染帧跑几个物理小步:速度×4 又不穿墙不穿粒,这是"流畅+灵活"的关键
+#define ITERS   2               // 每子步约束求解迭代
 #define HCELL   13              // 空间哈希格边长(≥最大直径)
 #define HW      (BW / HCELL + 1)
 
 typedef struct {
     float   x, y, px, py;       // 当前/上帧位置(Verlet:速度 = 差分)
-    int16_t ix, iy;             // 上次画在画布上的整数位置(擦除用)
-    uint8_t r, col;             // 半径 4-6 / 颜色索引
+    int16_t ix, iy;             // 当前画在画布上的整数位置(擦除用)
+    int16_t nix, niy;           // 本帧新整数位置(渲染前算好)
+    uint8_t r, col, mv;         // 半径 4-6 / 颜色索引 / 本帧是否移动(增量渲染用)
 } part_t;
 
 static part_t  *g_p;            // 粒子 + 哈希表同块 malloc(退出经 LV_EVENT_DELETE 释放)
@@ -41,6 +44,7 @@ static int       g_calm;                             // 连续静止帧计数
 static float     g_ltx, g_lty;                       // 上次倾斜(唤醒判断)
 static int       g_dx1, g_dy1, g_dx2, g_dy2;         // 本帧脏矩形(像素)
 static lv_timer_t *g_timer;
+static esp_pm_lock_handle_t g_pm;                    // 钉住 CPU 240MHz:物理+渲染吃满算力才丝滑(DFS 空闲会掉到 80)
 
 static uint32_t rnd(void) {
     static uint32_t s = 0x9d2c5681;
@@ -64,7 +68,7 @@ static void draw_disc(int cx, int cy, int r, uint16_t c) {
     mark_dirty(cx - r, cy - r, cx + r, cy + r);
 }
 
-/* 一帧:擦旧 → Verlet 积分 → 迭代(粒-粒分离 + 圆壁钳位)→ 画新 → 无效化脏矩形 */
+/* 一帧:子步进物理(积分 + 分离 + 圆壁)×SUBSTEP → 只擦/画移动过的粒子 → 无效化流动带 */
 static void fluid_frame(lv_timer_t *t) {
     (void)t;
     float tx = 0, ty = 1.0f;
@@ -79,73 +83,88 @@ static void fluid_frame(lv_timer_t *t) {
     float ax = (mag < 0.04f) ? 0 : tx * GRAV;   // 放平:无平面重力,靠阻尼自然停住
     float ay = (mag < 0.04f) ? 0 : ty * GRAV;
 
-    g_dx1 = BW; g_dy1 = BW; g_dx2 = -1; g_dy2 = -1;
-
-    for (int i = 0; i < NPART; i++)             // 擦旧(先全部擦,再全部画,重叠才不留渣)
-        draw_disc(g_p[i].ix, g_p[i].iy, g_p[i].r, g_lut[0]);
-
+    // === 物理:每渲染帧跑 SUBSTEP 个小步。每步位移 ≤ V_MAX(≈粒径)不穿透,
+    //     叠起来每帧有效速度 ×SUBSTEP → 真流体的快速涌动,却仍稳定。渲染只在最后做一次。===
     float maxd2 = 0;
-    for (int i = 0; i < NPART; i++) {           // Verlet 积分:速度=位置差分,隐式且稳定
-        part_t *p = &g_p[i];
-        float vx = (p->x - p->px) * DRAG, vy = (p->y - p->py) * DRAG;
-        if (vx > V_MAX) vx = V_MAX; else if (vx < -V_MAX) vx = -V_MAX;
-        if (vy > V_MAX) vy = V_MAX; else if (vy < -V_MAX) vy = -V_MAX;
-        p->px = p->x; p->py = p->y;
-        p->x += vx + ax; p->y += vy + ay;
-        float d2 = vx * vx + vy * vy;
-        if (d2 > maxd2) maxd2 = d2;
-    }
-
-    for (int it = 0; it < ITERS; it++) {
-        memset(g_head, 0xFF, HW * HW * sizeof(int16_t));            // 重建空间哈希
-        for (int i = 0; i < NPART; i++) {
-            int c = (int)(g_p[i].y / HCELL) * HW + (int)(g_p[i].x / HCELL);
-            g_next[i] = g_head[c]; g_head[c] = i;
-        }
-        for (int i = 0; i < NPART; i++) {                           // 粒-粒位置式分离(只解 j>i,免重复)
-            part_t *a = &g_p[i];
-            int cx = (int)(a->x / HCELL), cy = (int)(a->y / HCELL);
-            for (int ny = cy - 1; ny <= cy + 1; ny++)
-                for (int nx = cx - 1; nx <= cx + 1; nx++) {
-                    if ((unsigned)nx >= HW || (unsigned)ny >= HW) continue;
-                    for (int j = g_head[ny * HW + nx]; j >= 0; j = g_next[j]) {
-                        if (j <= i) continue;
-                        part_t *b = &g_p[j];
-                        float dx = b->x - a->x, dy = b->y - a->y;
-                        float md = a->r + b->r, d2 = dx * dx + dy * dy;
-                        if (d2 >= md * md || d2 < 1e-4f) continue;
-                        float d = sqrtf(d2), ov = 0.5f * (md - d) / d;
-                        a->x -= dx * ov; a->y -= dy * ov;
-                        b->x += dx * ov; b->y += dy * ov;
-                    }
-                }
-        }
-        for (int i = 0; i < NPART; i++) {                           // 圆壁钳位(摩擦/回弹由 Verlet 隐式给出)
+    for (int s = 0; s < SUBSTEP; s++) {
+        for (int i = 0; i < NPART; i++) {                           // Verlet 积分
             part_t *p = &g_p[i];
-            float dx = p->x - CTR, dy = p->y - CTR, lim = R_WALL - p->r;
-            float d2 = dx * dx + dy * dy;
-            if (d2 > lim * lim) {
-                float d = sqrtf(d2), k = lim / d;
-                p->x = CTR + dx * k; p->y = CTR + dy * k;
+            float vx = (p->x - p->px) * DRAG, vy = (p->y - p->py) * DRAG;
+            if (vx > V_MAX) vx = V_MAX; else if (vx < -V_MAX) vx = -V_MAX;
+            if (vy > V_MAX) vy = V_MAX; else if (vy < -V_MAX) vy = -V_MAX;
+            p->px = p->x; p->py = p->y;
+            p->x += vx + ax; p->y += vy + ay;
+            float d2 = vx * vx + vy * vy;
+            if (d2 > maxd2) maxd2 = d2;
+        }
+        for (int it = 0; it < ITERS; it++) {
+            memset(g_head, 0xFF, HW * HW * sizeof(int16_t));        // 重建空间哈希
+            for (int i = 0; i < NPART; i++) {
+                int c = (int)(g_p[i].y / HCELL) * HW + (int)(g_p[i].x / HCELL);
+                g_next[i] = g_head[c]; g_head[c] = i;
+            }
+            for (int i = 0; i < NPART; i++) {                       // 粒-粒位置式分离(只解 j>i,免重复)
+                part_t *a = &g_p[i];
+                int cx = (int)(a->x / HCELL), cy = (int)(a->y / HCELL);
+                for (int ny = cy - 1; ny <= cy + 1; ny++)
+                    for (int nx = cx - 1; nx <= cx + 1; nx++) {
+                        if ((unsigned)nx >= HW || (unsigned)ny >= HW) continue;
+                        for (int j = g_head[ny * HW + nx]; j >= 0; j = g_next[j]) {
+                            if (j <= i) continue;
+                            part_t *b = &g_p[j];
+                            float dx = b->x - a->x, dy = b->y - a->y;
+                            float md = a->r + b->r, d2 = dx * dx + dy * dy;
+                            if (d2 >= md * md || d2 < 1e-4f) continue;
+                            float d = sqrtf(d2), ov = 0.5f * (md - d) / d;
+                            a->x -= dx * ov; a->y -= dy * ov;
+                            b->x += dx * ov; b->y += dy * ov;
+                        }
+                    }
+            }
+            for (int i = 0; i < NPART; i++) {                       // 圆壁钳位(摩擦/回弹由 Verlet 隐式给出)
+                part_t *p = &g_p[i];
+                float dx = p->x - CTR, dy = p->y - CTR, lim = R_WALL - p->r;
+                float d2 = dx * dx + dy * dy;
+                if (d2 > lim * lim) {
+                    float d = sqrtf(d2), k = lim / d;
+                    p->x = CTR + dx * k; p->y = CTR + dy * k;
+                }
             }
         }
     }
 
-    for (int i = 0; i < NPART; i++) {           // 画新位置
+    // === 增量渲染:只擦/画本帧真正移动的粒子。躺平的水保留在缓冲里不动,
+    //     脏矩形只覆盖流动带 → 静止/半沉降时推屏面积暴跌,延迟随之消失。===
+    g_dx1 = BW; g_dy1 = BW; g_dx2 = -1; g_dy2 = -1;
+    for (int i = 0; i < NPART; i++) {
         part_t *p = &g_p[i];
-        p->ix = (int16_t)(p->x + 0.5f); p->iy = (int16_t)(p->y + 0.5f);
-        draw_disc(p->ix, p->iy, p->r, g_lut[p->col]);
+        p->nix = (int16_t)(p->x + 0.5f); p->niy = (int16_t)(p->y + 0.5f);
+        p->mv  = (p->nix != p->ix || p->niy != p->iy);
     }
+    for (int i = 0; i < NPART; i++)                                 // 先擦所有移动粒子的旧位(重叠才不留渣)
+        if (g_p[i].mv) draw_disc(g_p[i].ix, g_p[i].iy, g_p[i].r, g_lut[0]);
+    for (int i = 0; i < NPART; i++)                                 // 再画到新位
+        if (g_p[i].mv) {
+            g_p[i].ix = g_p[i].nix; g_p[i].iy = g_p[i].niy;
+            draw_disc(g_p[i].ix, g_p[i].iy, g_p[i].r, g_lut[g_p[i].col]);
+        }
 
-    if (g_dx2 >= g_dx1) {                       // 无效化本帧脏矩形
+    if (g_dx2 >= g_dx1) {                                           // 有粒子动过才推屏
+        int rx1 = g_dx1, ry1 = g_dy1, rx2 = g_dx2, ry2 = g_dy2;     // 冻结流动带边界(仅此区域推屏)
+        int ex1 = rx1 - 2 * R_MAX, ey1 = ry1 - 2 * R_MAX, ex2 = rx2 + 2 * R_MAX, ey2 = ry2 + 2 * R_MAX;
+        for (int i = 0; i < NPART; i++) {                           // 修补:与流动带重叠的静止粒子被擦掉一角 → 重画补回
+            part_t *p = &g_p[i];
+            if (!p->mv && p->ix >= ex1 && p->ix <= ex2 && p->iy >= ey1 && p->iy <= ey2)
+                draw_disc(p->ix, p->iy, p->r, g_lut[p->col]);
+        }
         lv_area_t oc, a;
         lv_obj_get_coords(g_canvas, &oc);
-        a.x1 = oc.x1 + g_dx1; a.y1 = oc.y1 + g_dy1;
-        a.x2 = oc.x1 + g_dx2; a.y2 = oc.y1 + g_dy2;
+        a.x1 = oc.x1 + rx1; a.y1 = oc.y1 + ry1;                    // 只无效化流动带(静止水零推屏)
+        a.x2 = oc.x1 + rx2; a.y2 = oc.y1 + ry2;
         lv_obj_invalidate_area(g_canvas, &a);
     }
 
-    if (maxd2 < 0.004f) { if (++g_calm > 20) { g_asleep = true; } }   // ~0.06px/帧以下持续 20 帧 → 睡
+    if (maxd2 < 0.004f) { if (++g_calm > 20) g_asleep = true; }     // 持续静止 → 睡
     else g_calm = 0;
     if (g_asleep)
         for (int i = 0; i < NPART; i++) { g_p[i].px = g_p[i].x; g_p[i].py = g_p[i].y; }   // 清残余速度,醒来不漂
@@ -201,12 +220,16 @@ static void fluid_enter(lv_obj_t *parent) {
     lv_label_set_text(g_hint, g_has_imu ? "" : "no sensor - gravity down");
     lv_obj_align(g_hint, LV_ALIGN_TOP_MID, 0, 90);
 
+    if (esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "fluid", &g_pm) == ESP_OK)
+        esp_pm_lock_acquire(g_pm);                               // 本 app 期间 CPU 常 240MHz(退出释放,恢复 DFS+浅睡)
+
     g_asleep = false; g_calm = 0; g_ltx = g_lty = 0;
     g_timer = lv_timer_create(fluid_frame, 33, NULL);             // 30fps 专属节拍(launcher tick 只有 20fps)
 }
 
 static void fluid_exit(void) {
     if (g_timer) { lv_timer_delete(g_timer); g_timer = NULL; }    // 先停定时器,再由删屏回调释放缓冲
+    if (g_pm) { esp_pm_lock_release(g_pm); esp_pm_lock_delete(g_pm); g_pm = NULL; }
     g_canvas = g_hint = NULL;
     g_p = NULL; g_head = g_next = NULL; g_buf = NULL;
 }

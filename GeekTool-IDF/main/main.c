@@ -10,6 +10,7 @@
 #include "esp_pm.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "esp_ota_ops.h"
 
 #include "board_config.h"
 #include "display.h"
@@ -71,6 +72,15 @@ void app_main(void) {
     }
 
     wifi_service_start();            // 开机自动起 WiFi + 重连记住的 AP(不碰 LVGL,放锁外)
+
+    // OTA 回滚确认:若本次是 OTA 新固件(PENDING_VERIFY),走到这里说明启动成功 → 转 VALID,
+    // 不再回退。非 OTA 启动或已 VALID 时此调用无副作用。放在 UI+WiFi 都起来之后,证明固件可用。
+    esp_ota_img_states_t st;
+    const esp_partition_t *run = esp_ota_get_running_partition();
+    if (esp_ota_get_state_partition(run, &st) == ESP_OK && st == ESP_OTA_IMG_PENDING_VERIFY) {
+        esp_ota_mark_app_valid_cancel_rollback();
+        ESP_LOGW(TAG, "OTA image confirmed valid (rollback canceled)");
+    }
 
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");
 }
