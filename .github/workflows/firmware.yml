@@ -35,8 +35,8 @@ jobs:
 
       # 国内分发:传到 Cloudflare R2(S3 兼容接口),设备从 ota.miaozong.cc 直链拉(GitHub 资产国内常被墙)。
       # 覆盖同名对象 GeekTool.bin → always-latest;Cache-Control:no-store 让边缘不缓存,永远拉最新(免设缓存规则)。
-      # 需 3 个 Secret(R2 → Manage R2 API Tokens 建 Edit 令牌拿前两个;账号 ID 在 R2 概览页):
-      #   R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY、CF_ACCOUNT_ID。桶名 geektool-fw 直接写死(非敏感)。
+      # 只需 2 个 Secret(R2 → Manage R2 API Tokens 建 Object Read & Write 令牌):R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY。
+      # account id + 桶名非敏感(本就在 S3 endpoint 里),直接写死。
       - name: Upload firmware to Cloudflare R2
         if: startsWith(github.ref, 'refs/tags/')
         env:
@@ -45,7 +45,7 @@ jobs:
           AWS_DEFAULT_REGION: auto
         run: |
           aws s3api put-object \
-            --endpoint-url "https://${{ secrets.CF_ACCOUNT_ID }}.r2.cloudflarestorage.com" \
+            --endpoint-url "https://cd87480e09b939c24f041bc003e5391d.r2.cloudflarestorage.com" \
             --bucket geektool-fw \
             --key GeekTool.bin \
             --body GeekTool-IDF/build/GeekTool.bin \
