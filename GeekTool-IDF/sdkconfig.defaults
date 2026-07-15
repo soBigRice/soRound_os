@@ -28,10 +28,12 @@ CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="partitions.csv"
 # 若新固件启动即崩(没走到确认),下次复位 bootloader 自动回退旧 slot,防变砖。
 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y
 
-# 云 OTA 走 HTTPS 到 GitHub(302 跳 objects.githubusercontent.com)。用完整根证书包,
-# 覆盖 GitHub/AWS 的 CA —— CI 从 defaults 重生成 sdkconfig,不钉这条可能默认成精简包导致握手失败。
+# 云 OTA 走 HTTPS。用完整根证书包覆盖各家 CA;并开交叉签名验证 ——
+# Cloudflare 证书由 Google Trust Services(WE1)签发,GTS 用交叉签名,不开这条设备会
+# 报 "esp-x509-crt-bundle: Failed to verify certificate" + mbedtls 握手 -0x3000(实测)。
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE=y
 CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_DEFAULT_FULL=y
+CONFIG_MBEDTLS_CERTIFICATE_BUNDLE_CROSS_SIGNED_VERIFY=y
 
 # LVGL
 CONFIG_LV_COLOR_DEPTH_16=y
