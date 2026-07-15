@@ -2,6 +2,7 @@
 // 一触式预设(1/3/5/10/25 分)立即开始;BOOT 实体键或点中心 = 开始/暂停/继续(DONE=重置),reset 重置;
 // 归零中心红字闪烁。Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
 #include "app.h"
+#include "glyph.h"
 #include "audio_out.h"
 #include "bootkey.h"
 #include "esp_timer.h"
@@ -16,18 +17,7 @@
 #define CP      13        // 数字点距
 #define CDR     5         // 数字点半径
 
-static const char *const DIGITS[10][7] = {
-    {"01110","10001","10011","10101","11001","10001","01110"},
-    {"00100","01100","00100","00100","00100","00100","01110"},
-    {"01110","10001","00001","00010","00100","01000","11111"},
-    {"11110","00001","00001","01110","00001","00001","11110"},
-    {"00010","00110","01010","10010","11111","00010","00010"},
-    {"11111","10000","11110","00001","00001","10001","01110"},
-    {"00110","01000","10000","11110","10001","10001","01110"},
-    {"11111","00001","00010","00100","01000","01000","01000"},
-    {"01110","10001","10001","01110","10001","10001","01110"},
-    {"01110","10001","10001","01111","00001","00010","01100"},
-};
+/* 5×7 点阵字模在 glyph_font5x7[](glyph.c),各计时/表盘 app 共用 */
 
 typedef enum { ST_IDLE, ST_RUN, ST_PAUSE, ST_DONE } cd_state_t;
 static cd_state_t s_state;
@@ -65,7 +55,7 @@ static void vis(lv_obj_t *o, bool on) {
 
 static void draw_digit(lv_obj_t *par, char ch, int ox, int oy, uint32_t col) {
     if (ch < '0' || ch > '9') return;
-    const char *const *g = DIGITS[ch - '0'];
+    const char *const *g = glyph_font5x7[ch - '0'];
     for (int r = 0; r < 7; r++)
         for (int c = 0; c < 5; c++)
             if (g[r][c] == '1') mkdot(par, ox + c * CP + CP / 2, oy + r * CP + CP / 2, CDR, col, LV_OPA_COVER);

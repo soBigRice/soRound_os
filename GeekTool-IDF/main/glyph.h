@@ -7,3 +7,6 @@ lv_obj_t *glyph_dot(lv_obj_t *par, int x, int y, int r, uint32_t color);
 void glyph_arc(lv_obj_t *par, int cx, int cy, int r, float a0, float a1, int step, int dotr, uint32_t color);
 void glyph_line(lv_obj_t *par, int x0, int y0, int x1, int y1, int step, int dotr, uint32_t color);
 void glyph_circle(lv_obj_t *par, int cx, int cy, int r, int step, int dotr, uint32_t color);
+
+// 5×7 点阵数字字模 0-9('1'=亮点),各表盘/计时 app 共用。glyph_font5x7[d][row] 是 5 字符串。
+extern const char *const glyph_font5x7[10][7];
