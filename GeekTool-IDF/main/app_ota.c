@@ -25,10 +25,12 @@ static const char *TAG = "ota";
 //   本地测试想用局域网 HTTP,临时改回 http://<你电脑IP>:8000/GeekTool.bin(build 目录起 http.server)。
 #define OTA_URL "https://ota.miaozong.cc/GeekTool.bin"
 
-typedef enum { OTA_IDLE, OTA_RUNNING, OTA_OK, OTA_FAIL } ota_state_t;
+// CHECKING=连上读镜像头比版本;UPTODATE=远端与当前同版本,不刷。
+typedef enum { OTA_IDLE, OTA_CHECKING, OTA_RUNNING, OTA_OK, OTA_FAIL, OTA_UPTODATE } ota_state_t;
 static volatile ota_state_t s_state = OTA_IDLE;
 static volatile int         s_pct = 0;         // 下载进度 0-100
 static volatile bool        s_task_alive = false;
+static char                 s_newver[32];      // 远端固件版本号(读镜像头得到,展示用)
 
 static lv_obj_t *g_status, *g_bar, *g_pctlbl;
 
@@ -45,6 +47,23 @@ static void ota_task(void *arg) {
     esp_https_ota_handle_t h = NULL;
     esp_err_t err = esp_https_ota_begin(&cfg, &h);
     if (err != ESP_OK) { ESP_LOGE(TAG, "begin: %s", esp_err_to_name(err)); goto done; }
+
+    // 版本比对:只读镜像头拿到新固件版本号(不下载整包),与当前运行版本比。
+    // 相同 → abort 不刷,提示"已是最新";不同才继续下载。get_img_desc 失败则跳过检查照常刷(安全兜底)。
+    esp_app_desc_t nd;
+    if (esp_https_ota_get_img_desc(h, &nd) == ESP_OK) {
+        strncpy(s_newver, nd.version, sizeof s_newver - 1); s_newver[sizeof s_newver - 1] = 0;
+        const esp_app_desc_t *cur = esp_app_get_description();
+        ESP_LOGI(TAG, "remote=%s current=%s", nd.version, cur->version);
+        if (strncmp(nd.version, cur->version, sizeof nd.version) == 0) {
+            esp_https_ota_abort(h); h = NULL;
+            s_state = OTA_UPTODATE;                    // 同版本:不刷不重启
+            s_task_alive = false;
+            vTaskDelete(NULL);
+            return;
+        }
+    }
+    s_state = OTA_RUNNING;                             // 有新版 → 进入下载态(tick 显示进度)
 
     int total = esp_https_ota_get_image_size(h);      // Content-Length;可能为 -1(chunked)
     while ((err = esp_https_ota_perform(h)) == ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
@@ -71,7 +90,7 @@ done:
 }
 
 static void start_btn(lv_event_t *e) {
-    if (s_task_alive || s_state == OTA_RUNNING) return;
+    if (s_task_alive) return;                         // 检查/下载任务在跑 → 忽略重复点
     wifi_ap_record_t ap;
     if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) {    // 没连 WiFi
         lv_label_set_text(g_status, "connect wifi first");
@@ -79,7 +98,9 @@ static void start_btn(lv_event_t *e) {
         return;
     }
     s_pct = 0;
-    s_state = OTA_RUNNING;
+    lv_bar_set_value(g_bar, 0, LV_ANIM_OFF);          // 重置上次的进度条/百分比(尤其重新检查时)
+    lv_label_set_text(g_pctlbl, "");
+    s_state = OTA_CHECKING;                           // 先连上比版本,再决定刷不刷
     s_task_alive = true;                              // 置位在 create 前,杜绝竞态重入
     if (xTaskCreate(ota_task, "ota", 8192, NULL, 5, NULL) != pdPASS) { s_task_alive = false; s_state = OTA_FAIL; }
 }
@@ -151,13 +172,18 @@ static void ota_tick(void) {
     if (s_state == shown) return;
     shown = s_state;
     switch (s_state) {
-        case OTA_RUNNING: lv_label_set_text(g_status, "updating - do not power off");
-                          lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
-        case OTA_OK:      lv_bar_set_value(g_bar, 100, LV_ANIM_OFF); lv_label_set_text(g_pctlbl, "100%");
-                          lv_label_set_text(g_status, "done - rebooting");
-                          lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); break;
-        case OTA_FAIL:    lv_label_set_text(g_status, "failed - check url / server");
-                          lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); break;
+        case OTA_CHECKING: lv_label_set_text(g_status, "checking latest version...");
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0); break;
+        case OTA_RUNNING:  lv_label_set_text(g_status, "updating - do not power off");
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
+        case OTA_OK:       lv_bar_set_value(g_bar, 100, LV_ANIM_OFF); lv_label_set_text(g_pctlbl, "100%");
+                           lv_label_set_text(g_status, "done - rebooting");
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); break;
+        case OTA_UPTODATE: { char b[48]; snprintf(b, sizeof b, "already up to date  %s", s_newver);
+                           lv_label_set_text(g_status, b);
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); } break;
+        case OTA_FAIL:     lv_label_set_text(g_status, "failed - check url / server");
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); break;
         default: break;
     }
 }
