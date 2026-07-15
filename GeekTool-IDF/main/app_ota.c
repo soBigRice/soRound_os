@@ -18,11 +18,12 @@
 
 static const char *TAG = "ota";
 
-// 云 OTA:GitHub Release 的"最新版"恒定 URL,永远指向最近一次 release 的同名资产。
-// 打 v* tag → Actions 构建 → 传 GeekTool.bin 到 Release,设备点 update 即拉最新。
+// 云 OTA:Cloudflare R2 自定义域名直链(国内可达,GitHub release 资产国内常被墙)。
+// 打 v* tag → Actions 构建 → 传 GeekTool.bin 到 R2 bucket(覆盖同名对象)→ 设备点 update 即拉最新。
+//   直链无跳转、无鉴权、HTTPS(Cloudflare 证书在 FULL crt_bundle 里)。
+//   上传时带 Cache-Control:no-store,边缘不缓存 → 永远拉最新(CI 那步已设,无需后台缓存规则)。
 //   本地测试想用局域网 HTTP,临时改回 http://<你电脑IP>:8000/GeekTool.bin(build 目录起 http.server)。
-//   注意:GitHub 走 HTTPS + 302 跳到 objects.githubusercontent.com,靠 crt_bundle 验证;仓库须 public。
-#define OTA_URL "https://github.com/soBigRice/soRound_os/releases/latest/download/GeekTool.bin"
+#define OTA_URL "https://ota.miaozong.cc/GeekTool.bin"
 
 typedef enum { OTA_IDLE, OTA_RUNNING, OTA_OK, OTA_FAIL } ota_state_t;
 static volatile ota_state_t s_state = OTA_IDLE;
