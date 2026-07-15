@@ -3,7 +3,7 @@ idf_component_register(
          "quickpanel.c"
          "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
          "settings.c" "app_settings.c" "app_ota.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
-         "img_store.c" "app_countdown.c" "audio_out.c" "app_about.c"
+         "img_store.c" "app_countdown.c" "audio_out.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c"
          "ble_twin.c" "app_twin.c"
     INCLUDE_DIRS "."
