@@ -47,139 +47,212 @@ static void face_cb(lv_event_t *e) {                           // 表盘选择:�
     lv_label_set_text(g_face_val, watchface_name(idx));
 }
 
-static lv_obj_t *mk_face_btn(lv_obj_t *parent, const char *sym, int rx, int y, int dir) {
-    lv_obj_t *btn = lv_button_create(parent);
-    lv_obj_set_size(btn, 48, 40);
-    lv_obj_set_style_bg_color(btn, lv_color_hex(0x1c1c22), 0);
-    lv_obj_set_style_radius(btn, 10, 0);
-    lv_obj_align(btn, LV_ALIGN_TOP_RIGHT, rx, y);
-    lv_obj_add_event_cb(btn, face_cb, LV_EVENT_CLICKED, (void *)(intptr_t)dir);
-    lv_obj_t *l = lv_label_create(btn);
-    lv_obj_set_style_text_font(l, UI_FONT_SYM, 0);
-    lv_label_set_text(l, sym);
-    lv_obj_center(l);
-    return btn;
+/* ===== grouped-list 组件:分区标题 + 卡片 + 统一行,用 flex 强制一致(不再绝对坐标)===== */
+#define CARD_W   324
+#define ROW_H    58
+#define CARD_BG  0x16161c
+#define DIV_COL  0x2a2a30
+#define BTN_BG   0x26262c
+
+static void mk_section(lv_obj_t *page, const char *t) {          // 分区标题(灰、拉字距、左对齐于卡片列)
+    lv_obj_t *h = lv_label_create(page);
+    lv_obj_set_width(h, CARD_W);
+    lv_obj_set_style_pad_left(h, 22, 0);
+    lv_obj_set_style_pad_top(h, 16, 0);
+    lv_obj_set_style_pad_bottom(h, 8, 0);
+    lv_obj_set_style_text_font(h, UI_FONT_M, 0);
+    lv_obj_set_style_text_color(h, lv_color_hex(COL_TXT2), 0);
+    lv_obj_set_style_text_letter_space(h, 4, 0);
+    lv_label_set_text(h, t);
 }
 
-static lv_obj_t *mk_row(lv_obj_t *parent, const char *name, int y, int mn, int mx, int val,
-                        lv_event_cb_t chg, lv_obj_t **vlabel) {
-    lv_obj_t *lbl = lv_label_create(parent);
-    lv_obj_set_style_text_font(lbl, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(lbl, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(lbl, name);
-    lv_obj_align(lbl, LV_ALIGN_TOP_LEFT, 92, y);
+static lv_obj_t *mk_card(lv_obj_t *page) {                       // 圆角深色卡片,纵向 flex 容纳若干行
+    lv_obj_t *c = lv_obj_create(page);
+    lv_obj_remove_style_all(c);
+    lv_obj_set_width(c, CARD_W);
+    lv_obj_set_height(c, LV_SIZE_CONTENT);
+    lv_obj_set_style_bg_color(c, lv_color_hex(CARD_BG), 0);
+    lv_obj_set_style_bg_opa(c, LV_OPA_COVER, 0);
+    lv_obj_set_style_radius(c, 20, 0);
+    lv_obj_set_style_pad_top(c, 2, 0);
+    lv_obj_set_style_pad_bottom(c, 2, 0);
+    lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
+    lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(c, LV_OBJ_FLAG_EVENT_BUBBLE);
+    return c;
+}
 
-    *vlabel = lv_label_create(parent);
+static void mk_divider(lv_obj_t *card) {                         // 行间发丝分隔线
+    lv_obj_t *d = lv_obj_create(card);
+    lv_obj_remove_style_all(d);
+    lv_obj_set_width(d, lv_pct(100));
+    lv_obj_set_height(d, 1);
+    lv_obj_set_style_bg_color(d, lv_color_hex(DIV_COL), 0);
+    lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);
+}
+
+// 统一行:标题左、控件右(SPACE_BETWEEN)。返回行,调用方把右侧控件塞进去即自动右对齐
+static lv_obj_t *mk_row(lv_obj_t *card, const char *title, int h) {
+    lv_obj_t *r = lv_obj_create(card);
+    lv_obj_remove_style_all(r);
+    lv_obj_set_width(r, lv_pct(100));
+    lv_obj_set_height(r, h);
+    lv_obj_set_style_pad_left(r, 20, 0);
+    lv_obj_set_style_pad_right(r, 18, 0);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(r, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(r, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_t *t = lv_label_create(r);
+    lv_obj_set_style_text_font(t, UI_FONT_L, 0);
+    lv_obj_set_style_text_color(t, lv_color_hex(COL_TXT), 0);
+    lv_label_set_text(t, title);
+    return r;
+}
+
+// 滑块行:上排标题+数值,下排整宽滑块(同在一行卡内,视觉归组)
+static lv_obj_t *mk_slider_row(lv_obj_t *card, const char *title, int mn, int mx, int val,
+                               lv_event_cb_t chg, lv_obj_t **vlabel) {
+    lv_obj_t *r = lv_obj_create(card);
+    lv_obj_remove_style_all(r);
+    lv_obj_set_width(r, lv_pct(100));
+    lv_obj_set_height(r, LV_SIZE_CONTENT);
+    lv_obj_set_style_pad_left(r, 20, 0);
+    lv_obj_set_style_pad_right(r, 20, 0);
+    lv_obj_set_style_pad_top(r, 14, 0);
+    lv_obj_set_style_pad_bottom(r, 16, 0);
+    lv_obj_set_style_pad_row(r, 12, 0);
+    lv_obj_set_flex_flow(r, LV_FLEX_FLOW_COLUMN);
+    lv_obj_remove_flag(r, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(r, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    lv_obj_t *top = lv_obj_create(r);
+    lv_obj_remove_style_all(top);
+    lv_obj_set_width(top, lv_pct(100));
+    lv_obj_set_height(top, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(top, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(top, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_flag(top, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(top, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_t *t = lv_label_create(top);
+    lv_obj_set_style_text_font(t, UI_FONT_L, 0);
+    lv_obj_set_style_text_color(t, lv_color_hex(COL_TXT), 0);
+    lv_label_set_text(t, title);
+    *vlabel = lv_label_create(top);
     lv_obj_set_style_text_font(*vlabel, UI_FONT_M, 0);
     lv_obj_set_style_text_color(*vlabel, lv_color_hex(COL_TXT2), 0);
-    lv_obj_align(*vlabel, LV_ALIGN_TOP_RIGHT, -92, y + 3);
 
-    lv_obj_t *sl = lv_slider_create(parent);
-    lv_obj_set_width(sl, 280);
+    lv_obj_t *sl = lv_slider_create(r);
+    lv_obj_set_width(sl, lv_pct(100));
     lv_slider_set_range(sl, mn, mx);
     lv_slider_set_value(sl, val, LV_ANIM_OFF);
-    lv_obj_align(sl, LV_ALIGN_TOP_MID, 0, y + 34);
-    lv_obj_remove_flag(sl, LV_OBJ_FLAG_GESTURE_BUBBLE);   // 横向拖动滑块不再冒泡成整屏手势 → 不误触返回
+    lv_obj_remove_flag(sl, LV_OBJ_FLAG_GESTURE_BUBBLE);   // 横向拖动不冒泡成整屏手势 → 不误触返回
     lv_obj_add_event_cb(sl, chg, LV_EVENT_VALUE_CHANGED, NULL);
     lv_obj_add_event_cb(sl, on_released, LV_EVENT_RELEASED, NULL);
     return sl;
 }
 
-// 分区小标题(灰,左对齐):把设置分成 display / sound / system 三块,视觉更有层次
-static lv_obj_t *mk_header(lv_obj_t *p, const char *t, int y) {
-    lv_obj_t *h = lv_label_create(p);
-    lv_obj_set_style_text_font(h, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(h, lv_color_hex(COL_TXT2), 0);
-    lv_obj_set_style_text_letter_space(h, 3, 0);   // 拉开字距,更像"分区标签"
-    lv_label_set_text(h, t);
-    lv_obj_align(h, LV_ALIGN_TOP_LEFT, 100, y);
-    return h;
+// 表盘选择控件(‹ 名字 ›)塞进某行右侧
+static void mk_face_ctl(lv_obj_t *row) {
+    lv_obj_t *box = lv_obj_create(row);
+    lv_obj_remove_style_all(box);
+    lv_obj_set_size(box, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(box, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(box, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_column(box, 8, 0);
+    lv_obj_remove_flag(box, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(box, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    for (int i = 0; i < 2; i++) {
+        int dir = i == 0 ? -1 : +1;
+        const char *sym = i == 0 ? LV_SYMBOL_LEFT : LV_SYMBOL_RIGHT;
+        if (i == 1) {                                    // 值标签夹在两钮之间
+            g_face_val = lv_label_create(box);
+            lv_obj_set_style_text_font(g_face_val, UI_FONT_M, 0);
+            lv_obj_set_style_text_color(g_face_val, lv_color_hex(COL_TXT), 0);
+            lv_obj_set_width(g_face_val, 66);
+            lv_obj_set_style_text_align(g_face_val, LV_TEXT_ALIGN_CENTER, 0);
+            lv_label_set_text(g_face_val, watchface_name(watchface_selected()));
+        }
+        lv_obj_t *btn = lv_button_create(box);
+        lv_obj_set_size(btn, 38, 34);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(BTN_BG), 0);
+        lv_obj_set_style_radius(btn, 9, 0);
+        lv_obj_add_event_cb(btn, face_cb, LV_EVENT_CLICKED, (void *)(intptr_t)dir);
+        lv_obj_t *l = lv_label_create(btn);
+        lv_obj_set_style_text_font(l, UI_FONT_SYM, 0);
+        lv_label_set_text(l, sym);
+        lv_obj_center(l);
+    }
+}
+
+// 开关塞进某行右侧(统一处理 gesture / 初值 / 回调)
+static void mk_switch(lv_obj_t *row, bool on, lv_event_cb_t cb) {
+    lv_obj_t *sw = lv_switch_create(row);
+    lv_obj_remove_flag(sw, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    if (on) lv_obj_add_state(sw, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(sw, cb, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 static void settings_enter(lv_obj_t *parent) {
     audio_out_init();                 // 起扬声器(音量预览 + 之后的提示音);退出时释放
 
-    // 可滚动单页,分区排布:display / sound / system(about)。往下滑看后两区
+    // 纵向 flex 单页:分区标题 + 卡片,统一间距;横向居中让卡片/标题左缘对齐
     lv_obj_t *page = lv_obj_create(parent);
     lv_obj_remove_style_all(page);
     lv_obj_set_size(page, lv_pct(100), lv_pct(100));
-    lv_obj_set_scroll_dir(page, LV_DIR_VER);                 // 只纵向滚(横向留给返回手势/滑块)
+    lv_obj_set_flex_flow(page, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(page, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_top(page, 62, 0);                   // 让首个标题落在圆屏可视区(避开顶部标题栏)
+    lv_obj_set_style_pad_bottom(page, 70, 0);
+    lv_obj_set_style_pad_row(page, 6, 0);
+    lv_obj_set_scroll_dir(page, LV_DIR_VER);
     lv_obj_set_scrollbar_mode(page, LV_SCROLLBAR_MODE_OFF);
-    lv_obj_add_flag(page, LV_OBJ_FLAG_EVENT_BUBBLE);         // 右滑返回照常冒泡到 app_screen
+    lv_obj_add_flag(page, LV_OBJ_FLAG_EVENT_BUBBLE);         // 右滑返回照常冒泡
 
     char b[8];
 
-    /* ================= DISPLAY ================= */
-    mk_header(page, "display", 44);
-    mk_row(page, "brightness", 76, SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
+    /* ---- DISPLAY ---- */
+    mk_section(page, "display");
+    lv_obj_t *cd = mk_card(page);
+    mk_slider_row(cd, "brightness", SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, &g_br_val);
     snprintf(b, sizeof b, "%d%%", settings_brightness() * 100 / 255);
     lv_label_set_text(g_br_val, b);
+    mk_divider(cd);
+    mk_face_ctl(mk_row(cd, "face", ROW_H));
+    mk_divider(cd);
+    mk_switch(mk_row(cd, "always-on", ROW_H), settings_idle_mode() == IDLE_AOD, aod_changed);
 
-    // face:锁屏表盘选择 ‹ 名字 ›(点击立即生效)
-    lv_obj_t *fl = lv_label_create(page);
-    lv_obj_set_style_text_font(fl, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(fl, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(fl, "face");
-    lv_obj_align(fl, LV_ALIGN_TOP_LEFT, 96, 172);
-    mk_face_btn(page, LV_SYMBOL_LEFT,  -264, 164, -1);
-    g_face_val = lv_label_create(page);
-    lv_obj_set_style_text_font(g_face_val, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(g_face_val, lv_color_hex(COL_TXT2), 0);
-    lv_obj_set_width(g_face_val, 108);
-    lv_obj_set_style_text_align(g_face_val, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(g_face_val, watchface_name(watchface_selected()));
-    lv_obj_align(g_face_val, LV_ALIGN_TOP_RIGHT, -148, 175);
-    mk_face_btn(page, LV_SYMBOL_RIGHT, -92, 164, +1);
-
-    // always-on:开=低功耗长显,关=自动熄屏
-    lv_obj_t *al = lv_label_create(page);
-    lv_obj_set_style_text_font(al, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(al, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(al, "always-on");
-    lv_obj_align(al, LV_ALIGN_TOP_LEFT, 96, 226);
-    lv_obj_t *sw1 = lv_switch_create(page);
-    lv_obj_align(sw1, LV_ALIGN_TOP_RIGHT, -96, 222);
-    lv_obj_remove_flag(sw1, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    if (settings_idle_mode() == IDLE_AOD) lv_obj_add_state(sw1, LV_STATE_CHECKED);
-    lv_obj_add_event_cb(sw1, aod_changed, LV_EVENT_VALUE_CHANGED, NULL);
-
-    glyph_line(page, 116, 274, 350, 274, 12, 2, 0x2a2a30);  // 分区分隔线(暗)
-
-    /* ================= SOUND ================= */
-    mk_header(page, "sound", 296);
-    lv_obj_t *vsl = mk_row(page, "volume", 328, 0, 100, settings_volume(), vol_changed, &g_vol_val);
-    lv_obj_add_event_cb(vsl, vol_blip, LV_EVENT_RELEASED, NULL);   // 松手试听当前音量
+    /* ---- SOUND ---- */
+    mk_section(page, "sound");
+    lv_obj_t *cs = mk_card(page);
+    lv_obj_t *vsl = mk_slider_row(cs, "volume", 0, 100, settings_volume(), vol_changed, &g_vol_val);
+    lv_obj_add_event_cb(vsl, vol_blip, LV_EVENT_RELEASED, NULL);   // 松手试听
     snprintf(b, sizeof b, "%d%%", settings_volume());
     lv_label_set_text(g_vol_val, b);
+    mk_divider(cs);
+    mk_switch(mk_row(cs, "silent", ROW_H), settings_silent(), silent_changed);
 
-    // silent:静音(闹钟/提示音关闭)
-    lv_obj_t *sl2 = lv_label_create(page);
-    lv_obj_set_style_text_font(sl2, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(sl2, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(sl2, "silent");
-    lv_obj_align(sl2, LV_ALIGN_TOP_LEFT, 96, 424);
-    lv_obj_t *sw2 = lv_switch_create(page);
-    lv_obj_align(sw2, LV_ALIGN_TOP_RIGHT, -96, 420);
-    lv_obj_remove_flag(sw2, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    if (settings_silent()) lv_obj_add_state(sw2, LV_STATE_CHECKED);
-    lv_obj_add_event_cb(sw2, silent_changed, LV_EVENT_VALUE_CHANGED, NULL);
+    /* ---- SYSTEM (about) ---- */
+    mk_section(page, "system");
+    lv_obj_t *ab = lv_obj_create(page);                     // 信息块:非 flex,内部绝对摆徽标/文字
+    lv_obj_remove_style_all(ab);
+    lv_obj_set_size(ab, CARD_W, 208);
+    lv_obj_remove_flag(ab, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(ab, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    glyph_line(page, 116, 472, 350, 472, 12, 2, 0x2a2a30);  // 分区分隔线(暗)
+    int cx = CARD_W / 2, ly = 52;                           // 同心点描环徽标 + 红核
+    glyph_circle(ab, cx, ly, 40, 13, 3, COL_TXT);
+    glyph_circle(ab, cx, ly, 26, 12, 3, COL_TXT);
+    glyph_dot(ab, cx, ly, 6, COL_RED);
 
-    /* ================= SYSTEM (about) ================= */
-    mk_header(page, "system", 494);
-    int ly = 562;                                           // 同心点描环徽标(品牌:圆)+ 红核
-    glyph_circle(page, 233, ly, 42, 13, 3, COL_TXT);
-    glyph_circle(page, 233, ly, 27, 12, 3, COL_TXT);
-    glyph_dot(page, 233, ly, 6, COL_RED);
-
-    lv_obj_t *row = lv_obj_create(page);                    // 字标 soRound(白) + OS(红)
+    lv_obj_t *row = lv_obj_create(ab);                      // 字标 soRound(白)+ OS(红)
     lv_obj_remove_style_all(row);
     lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_style_pad_column(row, 8, 0);
-    lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 620);
+    lv_obj_align(row, LV_ALIGN_TOP_MID, 0, 108);
     lv_obj_add_flag(row, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_t *n1 = lv_label_create(row);
     lv_obj_set_style_text_font(n1, UI_FONT_SYM, 0);
@@ -190,22 +263,19 @@ static void settings_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_color(n2, lv_color_hex(COL_RED), 0);
     lv_label_set_text(n2, "OS");
 
-    // 版本号取真实固件版本(esp_app_desc,随 OTA 自动变),不再写死
-    const esp_app_desc_t *ad = esp_app_get_description();
+    const esp_app_desc_t *ad = esp_app_get_description();   // 真实固件版本(随 OTA 变)
     char vb[40]; snprintf(vb, sizeof vb, "version %s", ad->version);
-    lv_obj_t *ver = lv_label_create(page);
+    lv_obj_t *ver = lv_label_create(ab);
     lv_obj_set_style_text_font(ver, UI_FONT_M, 0);
     lv_obj_set_style_text_color(ver, lv_color_hex(COL_TXT2), 0);
-    lv_obj_set_style_text_align(ver, LV_TEXT_ALIGN_CENTER, 0);
     lv_label_set_text(ver, vb);
-    lv_obj_align(ver, LV_ALIGN_TOP_MID, 0, 666);
+    lv_obj_align(ver, LV_ALIGN_TOP_MID, 0, 150);
 
-    lv_obj_t *dev = lv_label_create(page);
+    lv_obj_t *dev = lv_label_create(ab);
     lv_obj_set_style_text_font(dev, &lv_font_montserrat_14, 0);
     lv_obj_set_style_text_color(dev, lv_color_hex(COL_TXT2), 0);
-    lv_obj_set_style_text_align(dev, LV_TEXT_ALIGN_CENTER, 0);
     lv_label_set_text(dev, "ESP32-S3  /  466 round");
-    lv_obj_align(dev, LV_ALIGN_TOP_MID, 0, 694);
+    lv_obj_align(dev, LV_ALIGN_TOP_MID, 0, 178);
 }
 
 static void settings_exit(void) { audio_out_deinit(); g_br_val = g_vol_val = g_face_val = NULL; }
