@@ -43,9 +43,8 @@ func render(_ ch: Character) -> [UInt8] {           // 返回 BOX*BOX 灰度(0-2
     CTLineDraw(line, ctx)
     if let data = ctx.data {
         let p = data.bindMemory(to: UInt8.self, capacity: BOX * BOX)
-        for y in 0..<BOX {                           // CG 第 0 行是底部 → 翻转成顶行在前
-            for x in 0..<BOX { gray[y * BOX + x] = p[(BOX - 1 - y) * BOX + x] }
-        }
+        // CGBitmapContext 内存本就是顶行在前(绘图坐标系原点在左下,但存储不是)——直拷,勿翻转
+        for i in 0..<(BOX * BOX) { gray[i] = p[i] }
     }
     return gray
 }
