@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "lock.c" "glyph.c" "bootkey.c"
+    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "lock.c" "glyph.c" "bootkey.c" "i18n.c" "font_cn16.c"
          "quickpanel.c"
          "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
          "settings.c" "app_settings.c" "app_ota.c" "audio_mic.c" "app_audio.c" "app_calendar.c"

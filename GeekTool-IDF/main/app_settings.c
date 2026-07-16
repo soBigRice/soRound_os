@@ -17,7 +17,7 @@
 #define BTN_BG   0x26262c
 #define UI_FONT_XL &lv_font_montserrat_40   // 二级页大读数
 
-enum { IT_BRIGHT, IT_FACE, IT_AOD, IT_VOL, IT_SILENT, IT_ABOUT };
+enum { IT_BRIGHT, IT_FACE, IT_AOD, IT_VOL, IT_SILENT, IT_LANG, IT_ABOUT };
 
 static lv_obj_t *s_menu, *s_detail, *s_dval;   // 一级菜单 / 二级容器 / 二级大读数标签
 static int       s_cur = -1;                   // 当前打开的二级项,-1=在一级菜单
@@ -135,25 +135,27 @@ static void build_menu(void) {
     lv_obj_clean(s_menu);
     char b[16];
 
-    mk_section(s_menu, "display");
+    mk_section(s_menu, tr(S_DISPLAY));
     lv_obj_t *cd = mk_card(s_menu);
     snprintf(b, sizeof b, "%d%%", settings_brightness() * 100 / 255);
-    menu_item(cd, "brightness", b, IT_BRIGHT);
+    menu_item(cd, tr(S_BRIGHTNESS), b, IT_BRIGHT);
     mk_divider(cd);
-    menu_item(cd, "face", watchface_name(watchface_selected()), IT_FACE);
+    menu_item(cd, tr(S_FACE), watchface_name(watchface_selected()), IT_FACE);
     mk_divider(cd);
-    menu_item(cd, "always-on", settings_idle_mode() == IDLE_AOD ? "on" : "off", IT_AOD);
+    menu_item(cd, tr(S_ALWAYS_ON), tr(settings_idle_mode() == IDLE_AOD ? S_ON : S_OFF), IT_AOD);
 
-    mk_section(s_menu, "sound");
+    mk_section(s_menu, tr(S_SOUND));
     lv_obj_t *cs = mk_card(s_menu);
     snprintf(b, sizeof b, "%d%%", settings_volume());
-    menu_item(cs, "volume", b, IT_VOL);
+    menu_item(cs, tr(S_VOLUME), b, IT_VOL);
     mk_divider(cs);
-    menu_item(cs, "silent", settings_silent() ? "on" : "off", IT_SILENT);
+    menu_item(cs, tr(S_SILENT), tr(settings_silent() ? S_ON : S_OFF), IT_SILENT);
 
-    mk_section(s_menu, "system");
+    mk_section(s_menu, tr(S_SYSTEM));
     lv_obj_t *cy = mk_card(s_menu);
-    menu_item(cy, "about", "", IT_ABOUT);
+    menu_item(cy, tr(S_LANGUAGE), settings_lang() ? "中文" : "English", IT_LANG);
+    mk_divider(cy);
+    menu_item(cy, tr(S_ABOUT), "", IT_ABOUT);
 }
 
 /* ===================== 二级:单控件全屏页 ===================== */
@@ -207,23 +209,34 @@ static void build_switch_detail(const char *title, const char *desc, bool on, lv
     lv_obj_align(d, LV_ALIGN_CENTER, 0, 56);
 }
 
+// 列表页通用:原地刷新选中高亮(不重建 —— 在自身点击回调里 clean 父容器是 LVGL 崩溃隐患)
+static void list_highlight(lv_obj_t *list, int sel) {
+    int n = (int)lv_obj_get_child_count(list);
+    for (int i = 0; i < n; i++) {
+        lv_obj_t *it = lv_obj_get_child(list, i);
+        lv_obj_set_style_bg_color(it, lv_color_hex(i == sel ? 0x2a1216 : CARD_BG), 0);
+        lv_obj_set_style_text_color(lv_obj_get_child(it, 0), lv_color_hex(i == sel ? COL_RED : COL_TXT), 0);
+    }
+}
+
+static void lang_pick(lv_event_t *e) {                   // 语言点选:立即生效(菜单/各页重进即新语言)
+    int idx = (int)(intptr_t)lv_event_get_user_data(e);
+    settings_set_lang((uint8_t)idx);
+    settings_save();
+    list_highlight(lv_obj_get_parent(lv_event_get_target_obj(e)), idx);
+    launcher_set_title(tr_app_name("settings"));
+}
+
 static void face_pick(lv_event_t *e) {                   // 表盘列表点选:立即应用 + 原地刷新高亮
     int idx = (int)(intptr_t)lv_event_get_user_data(e);
     watchface_select(idx);
     settings_set_face((uint8_t)idx);
     settings_save();
-    // 原地改样式,不重建(在自身点击回调里 clean 父容器 = 删正在执行回调的对象,LVGL 崩溃隐患)
-    lv_obj_t *list = lv_obj_get_parent(lv_event_get_target_obj(e));
-    int n = (int)lv_obj_get_child_count(list);
-    for (int i = 0; i < n; i++) {
-        lv_obj_t *it = lv_obj_get_child(list, i);
-        lv_obj_set_style_bg_color(it, lv_color_hex(i == idx ? 0x2a1216 : CARD_BG), 0);
-        lv_obj_set_style_text_color(lv_obj_get_child(it, 0), lv_color_hex(i == idx ? COL_RED : COL_TXT), 0);
-    }
+    list_highlight(lv_obj_get_parent(lv_event_get_target_obj(e)), idx);
 }
 // 表盘页:纵向列表,当前项红色高亮,点即选
 static void build_face_detail(void) {
-    detail_title("face");
+    detail_title(tr(S_FACE));
     lv_obj_t *list = lv_obj_create(s_detail);
     lv_obj_remove_style_all(list);
     lv_obj_set_size(list, 300, 320);
@@ -250,6 +263,39 @@ static void build_face_detail(void) {
         lv_obj_set_style_text_font(l, UI_FONT_L, 0);
         lv_obj_set_style_text_color(l, lv_color_hex(i == cur ? COL_RED : COL_TXT), 0);
         lv_label_set_text(l, watchface_name(i));
+        lv_obj_center(l);
+    }
+}
+
+// 语言页:两项列表(English / 中文),点即切
+static void build_lang_detail(void) {
+    detail_title(tr(S_LANGUAGE));
+    lv_obj_t *list = lv_obj_create(s_detail);
+    lv_obj_remove_style_all(list);
+    lv_obj_set_size(list, 300, 240);
+    lv_obj_align(list, LV_ALIGN_CENTER, 0, 20);
+    lv_obj_set_flex_flow(list, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(list, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_style_pad_row(list, 8, 0);
+    lv_obj_remove_flag(list, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(list, LV_OBJ_FLAG_EVENT_BUBBLE);
+
+    static const char *const LANGS[2] = { "English", "中文" };
+    int cur = settings_lang() ? 1 : 0;
+    for (int i = 0; i < 2; i++) {
+        lv_obj_t *it = lv_obj_create(list);
+        lv_obj_remove_style_all(it);
+        lv_obj_set_size(it, 240, 54);
+        lv_obj_set_style_radius(it, 14, 0);
+        lv_obj_set_style_bg_color(it, lv_color_hex(i == cur ? 0x2a1216 : CARD_BG), 0);
+        lv_obj_set_style_bg_opa(it, LV_OPA_COVER, 0);
+        lv_obj_add_flag(it, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_flag(it, LV_OBJ_FLAG_EVENT_BUBBLE);
+        lv_obj_add_event_cb(it, lang_pick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
+        lv_obj_t *l = lv_label_create(it);
+        lv_obj_set_style_text_font(l, UI_FONT_L, 0);
+        lv_obj_set_style_text_color(l, lv_color_hex(i == cur ? COL_RED : COL_TXT), 0);
+        lv_label_set_text(l, LANGS[i]);
         lv_obj_center(l);
     }
 }
@@ -297,17 +343,18 @@ static void open_detail(int id) {
     lv_obj_clean(s_detail);
     s_dval = NULL;
     switch (id) {
-        case IT_BRIGHT: build_slider_detail("brightness", SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, false); break;
-        case IT_VOL:    build_slider_detail("volume", 0, 100, settings_volume(), vol_changed, true); break;
-        case IT_AOD:    build_switch_detail("always-on", "screen stays dimmed when idle\ninstead of turning off", settings_idle_mode() == IDLE_AOD, aod_changed); break;
-        case IT_SILENT: build_switch_detail("silent", "mute alarms and beeps", settings_silent(), silent_changed); break;
+        case IT_BRIGHT: build_slider_detail(tr(S_BRIGHTNESS), SETTINGS_BRIGHT_MIN, 0xFF, settings_brightness(), br_changed, false); break;
+        case IT_VOL:    build_slider_detail(tr(S_VOLUME), 0, 100, settings_volume(), vol_changed, true); break;
+        case IT_AOD:    build_switch_detail(tr(S_ALWAYS_ON), tr(S_AOD_DESC), settings_idle_mode() == IDLE_AOD, aod_changed); break;
+        case IT_SILENT: build_switch_detail(tr(S_SILENT), tr(S_SILENT_DESC), settings_silent(), silent_changed); break;
         case IT_FACE:   build_face_detail(); break;
+        case IT_LANG:   build_lang_detail(); break;
         case IT_ABOUT:  build_about_detail(); break;
     }
     s_cur = id;
     lv_obj_add_flag(s_menu, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(s_detail, LV_OBJ_FLAG_HIDDEN);
-    launcher_set_title(id == IT_ABOUT ? "about" : "settings");
+    launcher_set_title(id == IT_ABOUT ? tr(S_ABOUT) : tr_app_name("settings"));
 }
 
 // 框架返回回调:在二级 → 退回一级菜单(消费返回);在一级 → 返 false 让框架退出 app
@@ -315,9 +362,9 @@ static bool settings_back(void) {
     if (s_cur < 0) return false;
     s_cur = -1;
     lv_obj_add_flag(s_detail, LV_OBJ_FLAG_HIDDEN);
-    build_menu();                                        // 重建菜单:刷新各行当前值
+    build_menu();                                        // 重建菜单:刷新各行当前值(含语言切换)
     lv_obj_remove_flag(s_menu, LV_OBJ_FLAG_HIDDEN);
-    launcher_set_title("settings");
+    launcher_set_title(tr_app_name("settings"));
     return true;
 }
 

@@ -1,7 +1,10 @@
 name: build-firmware
 
-# 打 v* tag(如 git tag v1.0 && git push --tags)→ 构建 GeekTool.bin → 传到同名 Release。
-# 设备端 OTA_URL 指向 releases/latest/download/GeekTool.bin,点 update 即拉这里最新的 bin。
+# 双通道发版:
+#   正式:git tag v1.6        → Release + R2 两个对象都覆盖(GeekTool.bin + GeekTool-beta.bin)
+#   内测:git tag v1.6-beta.1 → Release(标 prerelease)+ R2 只覆盖 GeekTool-beta.bin
+# 设备端:beta 开关关=拉 GeekTool.bin,开=拉 GeekTool-beta.bin;
+# 正式版也覆盖 beta 对象 → 开着内测也能收到正式更新,且无需设备端比较版本新旧。
 on:
   push:
     tags:
@@ -32,9 +35,11 @@ jobs:
         with:
           files: GeekTool-IDF/build/GeekTool.bin
           fail_on_unmatched_files: true   # bin 没生成就让工作流红掉,别发空 Release
+          prerelease: ${{ contains(github.ref_name, '-beta') }}   # beta tag 标为预发布
 
       # 国内分发:传到 Cloudflare R2(S3 兼容接口),设备从 ota.miaozong.cc 直链拉(GitHub 资产国内常被墙)。
-      # 覆盖同名对象 GeekTool.bin → always-latest;Cache-Control:no-store 让边缘不缓存,永远拉最新(免设缓存规则)。
+      # 覆盖同名对象 → always-latest(旧包被覆盖即"删除",R2 不堆积历史;历史归档在 GitHub Release)。
+      # Cache-Control:no-store 让边缘不缓存,永远拉最新(免设缓存规则)。
       # 只需 2 个 Secret(R2 → Manage R2 API Tokens 建 Object Read & Write 令牌):R2_ACCESS_KEY_ID、R2_SECRET_ACCESS_KEY。
       # account id + 桶名非敏感(本就在 S3 endpoint 里),直接写死。
       - name: Upload firmware to Cloudflare R2
@@ -43,11 +48,19 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: auto
+          EP: https://cd87480e09b939c24f041bc003e5391d.r2.cloudflarestorage.com
         run: |
-          aws s3api put-object \
-            --endpoint-url "https://cd87480e09b939c24f041bc003e5391d.r2.cloudflarestorage.com" \
-            --bucket geektool-fw \
-            --key GeekTool.bin \
-            --body GeekTool-IDF/build/GeekTool.bin \
-            --content-type application/octet-stream \
-            --cache-control "no-store, max-age=0"
+          put() {
+            aws s3api put-object \
+              --endpoint-url "$EP" \
+              --bucket geektool-fw \
+              --key "$1" \
+              --body GeekTool-IDF/build/GeekTool.bin \
+              --content-type application/octet-stream \
+              --cache-control "no-store, max-age=0"
+          }
+          # beta 通道永远更新(正式版对内测用户也是最新);正式通道只在非 beta tag 更新
+          put GeekTool-beta.bin
+          if [[ "${{ github.ref_name }}" != *-beta* ]]; then
+            put GeekTool.bin
+          fi

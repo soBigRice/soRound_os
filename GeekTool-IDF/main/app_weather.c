@@ -136,18 +136,18 @@ static float json_num(const char *body, const char *key, float fb) {
     while (*p == ' ' || *p == '[') p++;
     return (float)atof(p);
 }
-// WMO weather code → 文字
+// WMO weather code → 文字(按当前语言)
 static const char *wmo_desc(int c) {
-    if (c == 0)  return "Clear";
-    if (c <= 2)  return "Partly cloudy";
-    if (c == 3)  return "Overcast";
-    if (c <= 48) return "Fog";
-    if (c <= 57) return "Drizzle";
-    if (c <= 67) return "Rain";
-    if (c <= 77) return "Snow";
-    if (c <= 82) return "Rain showers";
-    if (c <= 86) return "Snow showers";
-    return "Thunderstorm";
+    if (c == 0)  return tr(S_WX_CLEAR);
+    if (c <= 2)  return tr(S_WX_PARTLY);
+    if (c == 3)  return tr(S_WX_OVERCAST);
+    if (c <= 48) return tr(S_WX_FOG);
+    if (c <= 57) return tr(S_WX_DRIZZLE);
+    if (c <= 67) return tr(S_WX_RAIN);
+    if (c <= 77) return tr(S_WX_SNOW);
+    if (c <= 82) return tr(S_WX_SHOWERS);
+    if (c <= 86) return tr(S_WX_SNOW_SHOWERS);
+    return tr(S_WX_THUNDER);
 }
 
 static void wx_task(void *arg) {
@@ -245,7 +245,7 @@ static void weather_enter(lv_obj_t *parent) {
     g_cond   = mklabel(parent, UI_FONT_L, COL_TXT,  312);
     g_range  = mklabel(parent, UI_FONT_M, COL_TXT2, 344);
     g_status = mklabel(parent, UI_FONT_M, COL_TXT2, 376);
-    lv_label_set_text(g_status, "loading...");
+    lv_label_set_text(g_status, tr(S_WX_LOADING));
 
     start_fetch();
 }
@@ -258,13 +258,13 @@ static void weather_tick(void) {
         draw_wicon(s_code);
         draw_temp(s_temp_i);
         lv_label_set_text(g_cond, s_cond);
-        char r[64]; snprintf(r, sizeof r, "%d / %d   hum %d%%", s_lo, s_hi, s_hum_i);
+        char r[64]; snprintf(r, sizeof r, "%d / %d   %s %d%%", s_lo, s_hi, tr(S_WX_HUM), s_hum_i);
         lv_label_set_text(g_range, r);
         lv_label_set_text(g_status, "");
     } else if (s_state == WX_LOADING) {
-        lv_label_set_text(g_status, "loading...");
+        lv_label_set_text(g_status, tr(S_WX_LOADING));
     } else {
-        lv_label_set_text(g_status, "no wifi / fetch failed");
+        lv_label_set_text(g_status, tr(S_WX_FAIL));
         lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
     }
 }

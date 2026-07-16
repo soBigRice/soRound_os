@@ -4,6 +4,7 @@
 //   新固件启动后由 main.c 调 esp_ota_mark_app_valid_cancel_rollback() 确认;若新固件启动即崩,
 //   下次复位 bootloader 自动回退旧分区。dual-OTA 分区(ota_0/ota_1)刷到另一个 slot,失败不毁当前固件。
 #include "app.h"
+#include "settings.h"
 #include "esp_wifi.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
@@ -23,7 +24,10 @@ static const char *TAG = "ota";
 //   直链无跳转、无鉴权、HTTPS(Cloudflare 证书在 FULL crt_bundle 里)。
 //   上传时带 Cache-Control:no-store,边缘不缓存 → 永远拉最新(CI 那步已设,无需后台缓存规则)。
 //   本地测试想用局域网 HTTP,临时改回 http://<你电脑IP>:8000/GeekTool.bin(build 目录起 http.server)。
-#define OTA_URL "https://ota.miaozong.cc/GeekTool.bin"
+// 双通道:stable=正式(v1.6 tag),beta=内测(v1.6-beta.1 tag)。CI 规则:正式 tag 两个对象都覆盖
+// (正式对内测用户也是"最新"),beta tag 只覆盖 beta 对象 → 设备只需按开关二选一,无需比较版本新旧。
+#define OTA_URL_STABLE "https://ota.miaozong.cc/GeekTool.bin"
+#define OTA_URL_BETA   "https://ota.miaozong.cc/GeekTool-beta.bin"
 
 // CHECKING=连上读镜像头比版本;UPTODATE=远端与当前同版本,不刷。
 typedef enum { OTA_IDLE, OTA_CHECKING, OTA_RUNNING, OTA_OK, OTA_FAIL, OTA_UPTODATE } ota_state_t;
@@ -37,7 +41,7 @@ static lv_obj_t *g_status, *g_bar, *g_pctlbl;
 /* 带进度的 OTA:begin → 循环 perform(每次读一块)→ finish。进度 = 已读/总大小。 */
 static void ota_task(void *arg) {
     esp_http_client_config_t http = {
-        .url               = OTA_URL,
+        .url               = settings_beta() ? OTA_URL_BETA : OTA_URL_STABLE,
         .crt_bundle_attach = esp_crt_bundle_attach,   // HTTPS 用;HTTP 时忽略
         .timeout_ms        = 15000,
         .keep_alive_enable = true,
@@ -89,11 +93,17 @@ done:
     vTaskDelete(NULL);
 }
 
+static void beta_changed(lv_event_t *e) {             // 内测通道开关:开=收 beta+正式,关=只收正式
+    bool on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
+    settings_set_beta(on ? 1 : 0);
+    settings_save();
+}
+
 static void start_btn(lv_event_t *e) {
     if (s_task_alive) return;                         // 检查/下载任务在跑 → 忽略重复点
     wifi_ap_record_t ap;
     if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) {    // 没连 WiFi
-        lv_label_set_text(g_status, "connect wifi first");
+        lv_label_set_text(g_status, tr(S_CONNECT_WIFI));
         lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
         return;
     }
@@ -109,7 +119,7 @@ static void ota_enter(lv_obj_t *parent) {
     s_state = OTA_IDLE; s_pct = 0;
 
     lv_obj_t *title = lv_label_create(parent);
-    lv_label_set_text(title, "OTA update");
+    lv_label_set_text(title, tr(S_OTA_TITLE));
     lv_obj_set_style_text_font(title, UI_FONT_L, 0);
     lv_obj_set_style_text_color(title, lv_color_hex(COL_TXT), 0);
     lv_obj_align(title, LV_ALIGN_TOP_MID, 0, 96);
@@ -117,7 +127,7 @@ static void ota_enter(lv_obj_t *parent) {
     // 当前固件版本(esp_app_desc 里的 project_version;默认取 git describe / CMake 版本)
     lv_obj_t *ver = lv_label_create(parent);
     const esp_app_desc_t *d = esp_app_get_description();
-    char vb[48]; snprintf(vb, sizeof vb, "current  %s", d->version);
+    char vb[48]; snprintf(vb, sizeof vb, "%s  %s", tr(S_CURRENT), d->version);
     lv_label_set_text(ver, vb);
     lv_obj_set_style_text_font(ver, UI_FONT_M, 0);
     lv_obj_set_style_text_color(ver, lv_color_hex(COL_TXT2), 0);
@@ -142,7 +152,7 @@ static void ota_enter(lv_obj_t *parent) {
     lv_obj_set_width(g_status, 340);
     lv_obj_set_style_text_align(g_status, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(g_status, UI_FONT_M, 0);
-    lv_label_set_text(g_status, "tap update to flash from server");
+    lv_label_set_text(g_status, tr(S_TAP_UPDATE));
     lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
     lv_obj_align(g_status, LV_ALIGN_CENTER, 0, 52);
 
@@ -150,13 +160,26 @@ static void ota_enter(lv_obj_t *parent) {
     lv_obj_set_size(btn, 180, 56);
     lv_obj_set_style_bg_color(btn, lv_color_hex(COL_RED), 0);   // 红色 CTA(唯一强调色)
     lv_obj_set_style_radius(btn, 28, 0);
-    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -84);
+    lv_obj_align(btn, LV_ALIGN_BOTTOM_MID, 0, -104);
     lv_obj_add_event_cb(btn, start_btn, LV_EVENT_CLICKED, NULL);
     lv_obj_t *bl = lv_label_create(btn);
     lv_label_set_text(bl, "update");
     lv_obj_set_style_text_font(bl, UI_FONT_SYM, 0);
     lv_obj_set_style_text_color(bl, lv_color_hex(COL_TXT), 0);
     lv_obj_center(bl);
+
+    // 内测通道开关(update 按钮下方一行):关=只收正式,开=beta(正式也会推 beta 通道,不漏更新)
+    lv_obj_t *bt = lv_label_create(parent);
+    lv_obj_set_style_text_font(bt, UI_FONT_M, 0);
+    lv_obj_set_style_text_color(bt, lv_color_hex(COL_TXT2), 0);
+    lv_label_set_text(bt, tr(S_BETA_CH));
+    lv_obj_align(bt, LV_ALIGN_BOTTOM_MID, -44, -56);
+    lv_obj_t *sw = lv_switch_create(parent);
+    lv_obj_set_size(sw, 52, 28);
+    lv_obj_align(sw, LV_ALIGN_BOTTOM_MID, 62, -52);
+    lv_obj_remove_flag(sw, LV_OBJ_FLAG_GESTURE_BUBBLE);
+    if (settings_beta()) lv_obj_add_state(sw, LV_STATE_CHECKED);
+    lv_obj_add_event_cb(sw, beta_changed, LV_EVENT_VALUE_CHANGED, NULL);
 }
 
 static void ota_tick(void) {
@@ -172,17 +195,17 @@ static void ota_tick(void) {
     if (s_state == shown) return;
     shown = s_state;
     switch (s_state) {
-        case OTA_CHECKING: lv_label_set_text(g_status, "checking latest version...");
+        case OTA_CHECKING: lv_label_set_text(g_status, tr(S_CHECKING));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0); break;
-        case OTA_RUNNING:  lv_label_set_text(g_status, "updating - do not power off");
+        case OTA_RUNNING:  lv_label_set_text(g_status, tr(S_UPDATING));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
         case OTA_OK:       lv_bar_set_value(g_bar, 100, LV_ANIM_OFF); lv_label_set_text(g_pctlbl, "100%");
-                           lv_label_set_text(g_status, "done - rebooting");
+                           lv_label_set_text(g_status, tr(S_DONE_REBOOT));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); break;
-        case OTA_UPTODATE: { char b[48]; snprintf(b, sizeof b, "already up to date  %s", s_newver);
+        case OTA_UPTODATE: { char b[64]; snprintf(b, sizeof b, "%s  %s", tr(S_UPTODATE), s_newver);
                            lv_label_set_text(g_status, b);
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); } break;
-        case OTA_FAIL:     lv_label_set_text(g_status, "failed - check url / server");
+        case OTA_FAIL:     lv_label_set_text(g_status, tr(S_FAILED));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); break;
         default: break;
     }

@@ -194,7 +194,7 @@ static void draw_icon(int i) {
 static void apply_app(int i) {
     cur = i;
     draw_icon(i);
-    lv_label_set_text(g_name, APPS[i]->name);
+    lv_label_set_text(g_name, tr_app_name(APPS[i]->name));
 }
 
 /* ---- 小面积切换动画:中心图标+名字 半程滑出淡出 → 中点换内容 → 反向滑入淡入。
@@ -287,7 +287,7 @@ static void enter_app(void) {
     lv_obj_set_style_bg_color(app_screen, lv_color_black(), 0);
     lv_obj_remove_flag(app_screen, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_event_cb(app_screen, app_gesture_cb, LV_EVENT_GESTURE, NULL);
-    lv_label_set_text(g_title, cur_app->name);          // 默认标题 = app 名
+    lv_label_set_text(g_title, tr_app_name(cur_app->name));   // 默认标题 = app 名(按语言)
     lv_obj_remove_flag(g_title, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(g_back, LV_OBJ_FLAG_HIDDEN);
     if (cur_app->enter) cur_app->enter(app_screen);     // app 可在 enter 里改标题(天气→城市)

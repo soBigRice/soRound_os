@@ -19,4 +19,8 @@ uint8_t settings_idle_mode(void);         // IDLE_AOD / IDLE_OFF
 void    settings_set_idle_mode(uint8_t v);
 uint8_t settings_silent(void);            // 1=静音:闹钟/提示音关闭
 void    settings_set_silent(uint8_t v);
+uint8_t settings_beta(void);              // 1=接收内测(beta)通道 OTA;0=只收正式版(默认)
+void    settings_set_beta(uint8_t v);
+uint8_t settings_lang(void);              // 界面语言:0=English(默认),1=中文
+void    settings_set_lang(uint8_t v);
 void    settings_save(void);              // 把当前值写 NVS(离散改动或滑块松手时调,避免频繁写 flash)

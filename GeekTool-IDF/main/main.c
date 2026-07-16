@@ -59,6 +59,7 @@ void app_main(void) {
     rtc_sync_to_system();            // RTC → 系统时间(断电/无网也走时;之后 SNTP 会再校准并写回)
     lv_display_t *disp = display_init();
     settings_init();                 // 读 NVS + 应用亮度(需 display 已 init)
+    i18n_init();                     // 语言表 + CJK fallback 字体(需在建主题/launcher 前)
     touch_init(s_i2c_bus, disp);
 
     if (lvgl_port_lock(0)) {

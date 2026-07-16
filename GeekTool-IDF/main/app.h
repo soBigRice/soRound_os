@@ -18,11 +18,13 @@
 #define COL_OK    COL_TXT
 #define COL_WARN  COL_RED
 
-// ---- 字体(集中管理:将来换 Nothing Ndot 点阵字只改这三行)----
-// 正文用内置点阵像素字 unscii;含图标(⚡ / ‹ › / 键盘符号)的标签用带符号的 montserrat
-#define UI_FONT_L    &lv_font_unscii_16        // 正文 / 标题
-#define UI_FONT_M    &lv_font_unscii_16        // 次要文字
-#define UI_FONT_SYM  &lv_font_montserrat_20    // 图标标签 + 默认主题字体
+// ---- 字体(集中管理)----
+// 正文 unscii 点阵、符号 montserrat,都经 i18n 包一层:RAM 副本挂 simsun_16_cjk fallback。
+// 英文/数字全在基底字体命中(零成本);中文自动落到 CJK 字库 → 全部 app 免改支持中文。
+#include "i18n.h"
+#define UI_FONT_L    i18n_font_l()             // 正文 / 标题
+#define UI_FONT_M    i18n_font_m()             // 次要文字
+#define UI_FONT_SYM  i18n_font_sym()           // 图标标签 + 默认主题字体
 
 // App 接口:每个工具实现 enter/tick/exit,并在 APPS[] 注册
 typedef struct {
