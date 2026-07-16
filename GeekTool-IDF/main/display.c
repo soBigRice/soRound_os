@@ -85,25 +85,32 @@ lv_display_t *display_init(void) {
     s_panel = panel;
     ESP_LOGI(TAG, "CO5300 panel ready");
 
-    /* 4) lvgl_port:DMA + 内部 RAM 双缓冲(部分刷新)。先确认 DMA 能跑顺;
-       之后追求"零撕裂"再上全屏 PSRAM 缓冲(见 PORTING_NOTES)。 */
+    /* 4) lvgl_port:DMA + 内部 RAM 双缓冲流水线(部分刷新)。
+       性能三板斧(2026-07 流畅性专项):
+       a) LVGL 任务钉核 1 + 优先级 5:WiFi/BT 栈在核 0,渲染不被网络中断打断,帧间抖动小;
+       b) 双缓冲 2×40 行(总 RAM 与原单缓冲 80 行相同):渲染下一块与 QSPI DMA 推上一块重叠,
+          大面积重绘吞吐 ~×1.5(原单缓冲每块都要等传完才能画下一块);
+       c) RGB565_SWAPPED 直渲 + swap_bytes=false:LVGL 9.5 原生按字节序渲染,
+          省掉 flush 前对每个像素的 CPU 交换遍历(原来每帧多扫全缓冲一遍)。
+          注:LVGL 内部源图(canvas/JPEG 解码 RGB565)由 blend_to_rgb565_swapped 后端转换,无需改动。 */
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    port_cfg.task_priority = 5;
+    port_cfg.task_affinity = 1;          // 钉到核 1(协议栈在核 0)
     ESP_ERROR_CHECK(lvgl_port_init(&port_cfg));
 
     lvgl_port_display_cfg_t disp_cfg = {
         .io_handle    = io,
         .panel_handle = panel,
-        .buffer_size  = LCD_H_RES * 80,   // 单缓冲 80 行(~73KB 内部 DMA RAM)
-                                          // 注:加了音频组件后内部 RAM 吃紧,从 160 行降到 80 行才放得下
-        .double_buffer = false,           // ★单缓冲:消除双缓冲交替造成的闪烁(小智 SPI 屏也用单缓冲)
+        .buffer_size  = LCD_H_RES * 40,   // 40 行/块(~36.5KB × 2 = 与原 80 行单缓冲同量级内部 DMA RAM)
+        .double_buffer = true,            // ★双缓冲流水线:画 A 推 B 交替,渲染与 DMA 重叠
         .hres         = LCD_H_RES,
         .vres         = LCD_V_RES,
         .monochrome   = false,
-        .color_format = LV_COLOR_FORMAT_RGB565,
+        .color_format = LV_COLOR_FORMAT_RGB565_SWAPPED,   // ★直渲面板字节序,免 CPU swap 遍历
         .rotation     = { .swap_xy = false, .mirror_x = false, .mirror_y = false },
         .flags = {
             .buff_dma     = true,    // ★缓冲放内部 DMA RAM(DMA 能直接读,这是关键)
-            .swap_bytes   = true,    // 若颜色偏蓝/反色,改 false
+            .swap_bytes   = false,   // 已由 RGB565_SWAPPED 直渲取代;颜色若反蓝改回 RGB565+true
             .full_refresh = false,
         },
     };

@@ -8,6 +8,7 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
+#include "esp_pm.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <math.h>
@@ -262,10 +263,25 @@ static void render_watchdog(void *arg) {
     }
 }
 
+/* ---- 触摸加速(touch boost):有输入活动就把 CPU 钉到 240MHz,空闲 400ms 释放回 DFS。
+       没有它,滑动/动画起步时 CPU 还在 80MHz,DFS 升频有迟滞 → 前几帧掉帧的"粘滞感"。 ---- */
+static esp_pm_lock_handle_t s_boost;
+static bool s_boosted;
+static void touch_boost_poll(void) {
+    if (!s_boost) return;
+    bool want = lv_display_get_inactive_time(NULL) < 400;
+    if (want != s_boosted) {
+        s_boosted = want;
+        if (want) esp_pm_lock_acquire(s_boost);
+        else      esp_pm_lock_release(s_boost);
+    }
+}
+
 /* ---- App 生命周期 ---- */
 static void app_tick_timer(lv_timer_t *t) {
     (void)t;
     s_lvgl_hb++;                                  // 喂软件看门狗:证明 LVGL 任务还在跑
+    touch_boost_poll();                           // 50ms 粒度足够:DFS 升频本身也就这个量级
     if (cur_app && cur_app->tick) cur_app->tick();
 }
 // 返回:先给当前 app 一次机会消费(如设置的二级子页 → 退回一级);没消费才退出 app 回启动器。
@@ -501,6 +517,7 @@ void launcher_start(void) {
     apply_app(0);
     lv_screen_load(launcher_screen);
 
+    esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "touch", &s_boost);   // 触摸加速锁(touch_boost_poll)
     lv_timer_create(app_tick_timer, 50, NULL);   // 周期跑当前 app 的 tick(兼喂软件看门狗)
     xTaskCreate(render_watchdog, "rwdt", 2560, NULL, configMAX_PRIORITIES - 2, NULL);   // 卡死自恢复
 
