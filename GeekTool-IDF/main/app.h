@@ -31,6 +31,7 @@ typedef struct {
     void (*enter)(lv_obj_t *parent);  // 在 parent(整屏)建 UI
     void (*tick)(void);               // 周期回调(可 NULL),由 lv_timer 调度
     void (*exit)(void);               // 退出清理(可 NULL)
+    bool (*back)(void);               // 返回键/右滑时先调(可 NULL):返 true=已消费(退子页),false=退出 app
 } app_t;
 
 extern const app_t app_wifi;

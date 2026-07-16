@@ -268,10 +268,15 @@ static void app_tick_timer(lv_timer_t *t) {
     s_lvgl_hb++;                                  // 喂软件看门狗:证明 LVGL 任务还在跑
     if (cur_app && cur_app->tick) cur_app->tick();
 }
-static void app_gesture_cb(lv_event_t *e) {
-    if (lv_indev_get_gesture_dir(lv_indev_active()) == LV_DIR_RIGHT) go_home();
+// 返回:先给当前 app 一次机会消费(如设置的二级子页 → 退回一级);没消费才退出 app 回启动器。
+static void app_back(void) {
+    if (cur_app && cur_app->back && cur_app->back()) return;
+    go_home();
 }
-static void back_cb(lv_event_t *e) { go_home(); }
+static void app_gesture_cb(lv_event_t *e) {
+    if (lv_indev_get_gesture_dir(lv_indev_active()) == LV_DIR_RIGHT) app_back();
+}
+static void back_cb(lv_event_t *e) { app_back(); }
 
 static void enter_app(void) {
     cur_app = APPS[cur];

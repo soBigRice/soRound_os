@@ -22,4 +22,6 @@ fatfs_create_rawflash_image(storage ../images FLASH_IN_PROJECT)
 
 # GCC 的 -Wformat-truncation 对 snprintf 的小缓冲过度保守(把 %d 当成最长 11 字符),
 # 我们的温度/时间/地址数值都很小,属误报。对本组件关掉这个告警,免得 watchface/app_sys 也被卡。
-target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-format-truncation)
+# -Wno-missing-field-initializers:app_t 新增可选 back 回调,C 保证省略字段零初始化,
+# 各 app 5 字段写法合法;不压这条 -Wextra+Werror 会逼所有 app 补一个无意义的 NULL。
+target_compile_options(${COMPONENT_LIB} PRIVATE -Wno-format-truncation -Wno-missing-field-initializers)
