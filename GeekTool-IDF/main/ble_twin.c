@@ -1,13 +1,11 @@
-// 数字孪生 BLE 链路实现 —— 见 ble_twin.h。NimBLE 外设,骨架对齐 IDF 官方 bleprph 例子。
+// 数字孪生 BLE 链路实现 —— 见 ble_twin.h。NimBLE 外设;host 生命周期/服务注册在 ble_core.c
+//(与 HID 鼠标共享一个 NimBLE 实例,服务必须在 host 启动前一次注册齐)。
 #include "ble_twin.h"
+#include "ble_core.h"
 #include <string.h>
 #include "esp_log.h"
-#include "nimble/nimble_port.h"
-#include "nimble/nimble_port_freertos.h"
 #include "host/ble_hs.h"
-#include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
-#include "services/gatt/ble_svc_gatt.h"
 
 static const char *TAG = "ble_twin";
 #define DEVICE_NAME "GeekTwin"
@@ -46,7 +44,7 @@ static int gatt_access(uint16_t conn, uint16_t attr, struct ble_gatt_access_ctxt
     return 0;   // 读 TX:无意义,返回空
 }
 
-static const struct ble_gatt_svc_def GATT_SVCS[] = {
+const struct ble_gatt_svc_def BLE_TWIN_SVCS[] = {   // 由 ble_core 在 host 启动前注册
     {
         .type = BLE_GATT_SVC_TYPE_PRIMARY,
         .uuid = &SVC_UUID.u,
@@ -122,53 +120,20 @@ static void start_advertising(void) {
     if (rc != 0 && rc != BLE_HS_EALREADY) ESP_LOGE(TAG, "adv_start rc=%d", rc);
 }
 
-static void on_sync(void) {
-    ble_hs_id_infer_auto(0, &s_addr_type);
+static void twin_sync(uint8_t addr_type) {   // ble_core:host 同步完成(或已同步立即回调)
+    s_addr_type = addr_type;
     s_synced = true;
     start_advertising();
-}
-static void on_reset(int reason) { ESP_LOGW(TAG, "nimble reset, reason=%d", reason); }
-
-static void host_task(void *param) {
-    (void)param;
-    nimble_port_run();                       // 目前按服务常驻使用;仅保留 NimBLE stop 时的标准退出路径
-    nimble_port_freertos_deinit();
 }
 
 /* ---- 对外接口 ---- */
 bool ble_twin_start(void) {
-    if (s_running) {
-        s_stopping = false;
-        s_active = true;
-        start_advertising();
-        return true;
-    }
     s_stopping = false;
     s_active = true;
-    s_synced = false;
-    esp_err_t e = nimble_port_init();
-    if (e != ESP_OK) {
-        s_active = false;
-        ESP_LOGE(TAG, "nimble_port_init: %d", e);
-        return false;
-    }
-
-    ble_svc_gap_init();
-    ble_svc_gatt_init();
-    if (ble_gatts_count_cfg(GATT_SVCS) != 0 || ble_gatts_add_svcs(GATT_SVCS) != 0) {
-        ESP_LOGE(TAG, "gatt register failed");
-        nimble_port_deinit();
-        s_active = false;
-        return false;
-    }
-    ble_svc_gap_device_name_set(DEVICE_NAME);
-
-    ble_hs_cfg.sync_cb  = on_sync;
-    ble_hs_cfg.reset_cb = on_reset;
-
+    ble_svc_gap_device_name_set(DEVICE_NAME);       // 名字随前台 app 走(与 HID 鼠标共享 host)
+    if (!ble_core_start(twin_sync)) { s_active = false; return false; }
     s_running = true;
-    nimble_port_freertos_init(host_task);
-    ESP_LOGI(TAG, "started, advertising as %s", DEVICE_NAME);
+    ESP_LOGI(TAG, "advertising as %s", DEVICE_NAME);
     return true;
 }
 

@@ -377,7 +377,8 @@ static void settings_enter(lv_obj_t *parent) {
     lv_obj_set_size(s_menu, lv_pct(100), lv_pct(100));
     lv_obj_set_flex_flow(s_menu, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(s_menu, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-    lv_obj_set_style_pad_top(s_menu, 62, 0);
+    lv_obj_set_style_pad_top(s_menu, 96, 0);   // 让出顶部返回键(y40+48),第一个分区标题不被压
+
     lv_obj_set_style_pad_bottom(s_menu, 70, 0);
     lv_obj_set_style_pad_row(s_menu, 4, 0);
     lv_obj_set_scroll_dir(s_menu, LV_DIR_VER);
