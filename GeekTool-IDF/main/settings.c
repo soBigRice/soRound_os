@@ -12,6 +12,7 @@ static uint8_t s_idle   = IDLE_AOD;    // 默认低功耗长显
 static uint8_t s_silent = 0;           // 默认不静音
 static uint8_t s_beta   = 0;           // 默认只收正式版 OTA(0=stable,1=beta 通道)
 static uint8_t s_lang   = 0;           // 界面语言:0=English(默认),1=中文
+static uint8_t s_dice   = 1;           // 骰子模式:0/1/2=1/2/3 颗骰子,3=硬币(默认 2 颗)
 
 void settings_init(void) {
     nvs_handle_t h;
@@ -23,6 +24,7 @@ void settings_init(void) {
         nvs_get_u8(h, "silent", &s_silent);
         nvs_get_u8(h, "beta", &s_beta);
         nvs_get_u8(h, "lang", &s_lang);
+        nvs_get_u8(h, "dice", &s_dice);
         nvs_close(h);
     }
     if (s_bright < SETTINGS_BRIGHT_MIN) s_bright = SETTINGS_BRIGHT_MIN;   // 夹住开机亮度,防黑屏
@@ -55,6 +57,9 @@ void settings_set_beta(uint8_t v) { s_beta = v ? 1 : 0; }
 uint8_t settings_lang(void) { return s_lang; }
 void settings_set_lang(uint8_t v) { s_lang = v ? 1 : 0; }
 
+uint8_t settings_dice(void) { return s_dice > 3 ? 1 : s_dice; }
+void settings_set_dice(uint8_t v) { s_dice = v > 3 ? 1 : v; }
+
 void settings_save(void) {
     nvs_handle_t h;
     if (nvs_open(NS, NVS_READWRITE, &h) == ESP_OK) {
@@ -65,6 +70,7 @@ void settings_save(void) {
         nvs_set_u8(h, "silent", s_silent);
         nvs_set_u8(h, "beta", s_beta);
         nvs_set_u8(h, "lang", s_lang);
+        nvs_set_u8(h, "dice", s_dice);
         nvs_commit(h);
         nvs_close(h);
     }

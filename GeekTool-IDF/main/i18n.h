@@ -24,6 +24,9 @@ typedef enum {
     S_DICE_HINT, S_DICE_TAP, S_DICE_DOUBLE, S_NO_SENSOR, S_FLUID_NOIMU,
     // mouse
     S_STARTING, S_CONNECTED, S_MOUSE_PAIR, S_BT_FAIL,
+    // dice modes / coin
+    S_COIN, S_HEADS, S_TAILS,
+    S_DICE_MODE, S_1DIE, S_2DICE, S_3DICE,
     S__COUNT
 } str_id_t;
 

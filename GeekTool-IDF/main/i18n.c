@@ -66,6 +66,14 @@ static const char *const TXT[S__COUNT][2] = {
     [S_CONNECTED]     = { "connected",                  "已连接" },
     [S_MOUSE_PAIR]    = { "pair \"soRound\" on your device", "在设备蓝牙里配对 soRound" },
     [S_BT_FAIL]       = { "bluetooth failed",           "蓝牙启动失败" },
+    /* dice modes / coin */
+    [S_COIN]          = { "coin",                       "硬币" },
+    [S_HEADS]         = { "heads",                      "正" },
+    [S_TAILS]         = { "tails",                      "反" },
+    [S_DICE_MODE]     = { "dice mode",                  "骰子模式" },
+    [S_1DIE]          = { "1 die",                      "1 颗" },
+    [S_2DICE]         = { "2 dice",                     "2 颗" },
+    [S_3DICE]         = { "3 dice",                     "3 颗" },
 };
 
 /* 启动器 app 名(en → zh;不在表里 = 保留英文,如 WiFi/I2C/twin/OTA 专名) */
