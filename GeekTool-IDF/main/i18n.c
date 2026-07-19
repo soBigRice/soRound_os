@@ -23,7 +23,7 @@ static const char *const TXT[S__COUNT][2] = {
     /* ota */
     [S_OTA_TITLE]   = { "OTA update",   "在线更新" },
     [S_CURRENT]     = { "current",      "当前版本" },
-    [S_TAP_UPDATE]  = { "tap update to flash from server", "点更新从云端获取固件" },
+    [S_TAP_UPDATE]  = { "check for update", "检查更新" },
     [S_BETA_CH]     = { "beta channel", "测试通道" },
     [S_CHECKING]    = { "checking latest version...", "正在检查最新版本..." },
     [S_UPDATING]    = { "updating - do not power off", "更新中 - 请勿断电" },
