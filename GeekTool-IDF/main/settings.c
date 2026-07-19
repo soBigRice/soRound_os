@@ -1,4 +1,4 @@
-// 设置状态 + NVS 持久化。亮度直接驱动 CO5300;音量暂时只存值(GeekTool 还没接音频通路)。
+// 设置状态 + NVS 持久化。亮度直接驱动 CO5300;音量由 audio_out 初始化/滑动时应用到 ES8311。
 #include "settings.h"
 #include "display.h"
 #include "nvs.h"

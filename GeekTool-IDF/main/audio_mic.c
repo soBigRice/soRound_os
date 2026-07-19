@@ -24,6 +24,10 @@ static const audio_codec_ctrl_if_t *s_ctrl_if;
 static const audio_codec_if_t      *s_codec_if;
 
 bool audio_mic_start(i2c_master_bus_handle_t i2c_bus) {
+    if (s_dev) return true;
+    // 防上一次中途失败留下半初始化对象;stop 对 NULL 成员幂等。
+    if (s_rx || s_data_if || s_ctrl_if || s_codec_if) audio_mic_stop();
+
     power_audio_on();                    // ES7210 由 AXP2101 ALDO1 供电,先上电
     vTaskDelay(pdMS_TO_TICKS(60));        // 等 codec 上电稳定再配寄存器
 
@@ -40,30 +44,50 @@ bool audio_mic_start(i2c_master_bus_handle_t i2c_bus) {
             .dout = I2S_GPIO_UNUSED, .din = AUDIO_DIN,
         },
     };
-    if (i2s_channel_init_tdm_mode(s_rx, &tdm) != ESP_OK) { ESP_LOGE(TAG, "i2s tdm init"); return false; }
+    if (i2s_channel_init_tdm_mode(s_rx, &tdm) != ESP_OK) {
+        ESP_LOGE(TAG, "i2s tdm init");
+        audio_mic_stop();
+        return false;
+    }
 
     // 2) esp_codec_dev:I2S 数据接口 + ES7210 的 I2C 控制接口
     audio_codec_i2s_cfg_t i2s_if_cfg = { .port = I2S_NUM_0, .rx_handle = s_rx, .tx_handle = NULL };
     s_data_if = audio_codec_new_i2s_data(&i2s_if_cfg);
     audio_codec_i2c_cfg_t i2c_cfg = { .port = 0, .addr = ES7210_ADDR, .bus_handle = i2c_bus };
     s_ctrl_if = audio_codec_new_i2c_ctrl(&i2c_cfg);
-    if (!s_data_if || !s_ctrl_if) { ESP_LOGE(TAG, "codec if"); return false; }
+    if (!s_data_if || !s_ctrl_if) {
+        ESP_LOGE(TAG, "codec if");
+        audio_mic_stop();
+        return false;
+    }
 
     es7210_codec_cfg_t es_cfg = {
         .ctrl_if = s_ctrl_if,
         .mic_selected = ES7210_SEL_MIC1 | ES7210_SEL_MIC2 | ES7210_SEL_MIC3 | ES7210_SEL_MIC4,
     };
     s_codec_if = es7210_codec_new(&es_cfg);
-    if (!s_codec_if) { ESP_LOGE(TAG, "es7210 new"); return false; }
+    if (!s_codec_if) {
+        ESP_LOGE(TAG, "es7210 new");
+        audio_mic_stop();
+        return false;
+    }
 
     esp_codec_dev_cfg_t dev_cfg = {
         .dev_type = ESP_CODEC_DEV_TYPE_IN, .codec_if = s_codec_if, .data_if = s_data_if,
     };
     s_dev = esp_codec_dev_new(&dev_cfg);
-    if (!s_dev) { ESP_LOGE(TAG, "codec_dev_new"); return false; }
+    if (!s_dev) {
+        ESP_LOGE(TAG, "codec_dev_new");
+        audio_mic_stop();
+        return false;
+    }
 
     esp_codec_dev_sample_info_t fs = { .bits_per_sample = 16, .channel = 1, .sample_rate = MIC_RATE };
-    if (esp_codec_dev_open(s_dev, &fs) != ESP_CODEC_DEV_OK) { ESP_LOGE(TAG, "codec_dev_open"); return false; }
+    if (esp_codec_dev_open(s_dev, &fs) != ESP_CODEC_DEV_OK) {
+        ESP_LOGE(TAG, "codec_dev_open");
+        audio_mic_stop();
+        return false;
+    }
     esp_codec_dev_set_in_channel_gain(s_dev, ESP_CODEC_DEV_MAKE_CHANNEL_MASK(0), 40.0f);  // 增益 40dB(更灵敏)
     ESP_LOGI(TAG, "mic started @ %dHz", MIC_RATE);
     return true;

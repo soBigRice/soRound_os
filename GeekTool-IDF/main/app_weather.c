@@ -31,6 +31,7 @@ static const char *TAG = "weather";
 typedef enum { WX_IDLE, WX_LOADING, WX_OK, WX_FAIL } wx_state_t;
 static volatile wx_state_t s_state = WX_IDLE;
 static volatile bool       s_task_alive = false;   // 拉取任务在跑?防反复进 app 起多个 8KB 栈任务堆积爆内存
+static wx_state_t          s_shown = (wx_state_t)-1;
 static int  s_temp_i = 0, s_lo = 0, s_hi = 0, s_hum_i = 0, s_code = -1;
 static char s_cond[40] = "";
 
@@ -158,7 +159,13 @@ static void wx_task(void *arg) {
     char *body = heap_caps_malloc(WX_BUF, MALLOC_CAP_SPIRAM);   // 大缓冲放 PSRAM
     if (!body) body = malloc(WX_BUF);
     int total = 0;
-    if (body && esp_http_client_open(cli, 0) == ESP_OK) {
+    bool opened = false;
+    if (!cli) {
+        ESP_LOGE(TAG, "HTTP client init failed");
+    } else if (!body) {
+        ESP_LOGE(TAG, "weather buffer allocation failed");
+    } else if (esp_http_client_open(cli, 0) == ESP_OK) {
+        opened = true;
         esp_http_client_fetch_headers(cli);
         int nb;
         while ((nb = esp_http_client_read(cli, body + total, WX_BUF - 1 - total)) > 0) {
@@ -166,9 +173,13 @@ static void wx_task(void *arg) {
             if (total >= WX_BUF - 1) break;
         }
         body[total] = 0;
+    } else {
+        ESP_LOGW(TAG, "HTTP open failed");
     }
-    esp_http_client_close(cli);
-    esp_http_client_cleanup(cli);
+    if (cli) {
+        if (opened) esp_http_client_close(cli);
+        esp_http_client_cleanup(cli);
+    }
 
     s_state = WX_FAIL;
     if (total > 0) {
@@ -231,6 +242,7 @@ static lv_obj_t *mklabel(lv_obj_t *parent, const lv_font_t *font, uint32_t color
 
 static void weather_enter(lv_obj_t *parent) {
     launcher_set_title(CITY);                 // 顶部标题显示城市
+    s_shown = (wx_state_t)-1;                 // 新页面必须回放当前状态
 
     g_iconbox = lv_obj_create(parent);
     lv_obj_remove_style_all(g_iconbox);
@@ -251,9 +263,8 @@ static void weather_enter(lv_obj_t *parent) {
 }
 
 static void weather_tick(void) {
-    static wx_state_t shown = WX_IDLE;
-    if (!g_status || s_state == shown) return;
-    shown = s_state;
+    if (!g_status || s_state == s_shown) return;
+    s_shown = s_state;
     if (s_state == WX_OK) {
         draw_wicon(s_code);
         draw_temp(s_temp_i);
@@ -261,8 +272,10 @@ static void weather_tick(void) {
         char r[64]; snprintf(r, sizeof r, "%d / %d   %s %d%%", s_lo, s_hi, tr(S_WX_HUM), s_hum_i);
         lv_label_set_text(g_range, r);
         lv_label_set_text(g_status, "");
+        lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
     } else if (s_state == WX_LOADING) {
         lv_label_set_text(g_status, tr(S_WX_LOADING));
+        lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
     } else {
         lv_label_set_text(g_status, tr(S_WX_FAIL));
         lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);

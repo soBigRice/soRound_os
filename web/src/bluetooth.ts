@@ -60,38 +60,51 @@ export async function connectTwin({ onFrame, onDisconnect }: ConnectOptions): Pr
   });
 
   device.addEventListener('gattserverdisconnected', onDisconnect);
-  const server = await device.gatt?.connect();
-  if (!server) throw new Error('GATT 连接失败');
+  let txChar: BluetoothRemoteGATTCharacteristic | null = null;
+  let handleFrame: ((event: Event) => void) | null = null;
 
-  const service = await server.getPrimaryService(TWIN_SERVICE_UUID);
-  const txChar = await service.getCharacteristic(TWIN_TX_UUID);
-  const rxChar = await service.getCharacteristic(TWIN_RX_UUID);
+  try {
+    const server = await device.gatt?.connect();
+    if (!server) throw new Error('GATT 连接失败');
 
-  const handleFrame = (event: Event) => {
-    const target = event.target as BluetoothRemoteGATTCharacteristic;
-    if (!target.value) return;
-    const frame = parseTwinFrame(target.value);
-    if (frame) onFrame(frame);
-  };
+    const service = await server.getPrimaryService(TWIN_SERVICE_UUID);
+    txChar = await service.getCharacteristic(TWIN_TX_UUID);
+    const rxChar = await service.getCharacteristic(TWIN_RX_UUID);
 
-  await txChar.startNotifications();
-  txChar.addEventListener('characteristicvaluechanged', handleFrame);
+    handleFrame = (event: Event) => {
+      const target = event.target as BluetoothRemoteGATTCharacteristic;
+      if (!target.value) return;
+      const frame = parseTwinFrame(target.value);
+      if (frame) onFrame(frame);
+    };
 
-  return {
-    device,
-    rxChar,
-    disconnect: () => {
-      txChar.removeEventListener('characteristicvaluechanged', handleFrame);
-      device.removeEventListener('gattserverdisconnected', onDisconnect);
-      device.gatt?.disconnect();
-    },
-    ping: async () => {
-      const data = new Uint8Array([0x01]);
-      if ('writeValueWithoutResponse' in rxChar && rxChar.writeValueWithoutResponse) {
-        await rxChar.writeValueWithoutResponse(data);
-      } else {
-        await rxChar.writeValue(data);
-      }
-    },
-  };
+    await txChar.startNotifications();
+    txChar.addEventListener('characteristicvaluechanged', handleFrame);
+    const subscribedTx = txChar;
+    const frameListener = handleFrame;
+
+    return {
+      device,
+      rxChar,
+      disconnect: () => {
+        subscribedTx.removeEventListener('characteristicvaluechanged', frameListener);
+        device.removeEventListener('gattserverdisconnected', onDisconnect);
+        device.gatt?.disconnect();
+      },
+      ping: async () => {
+        const data = new Uint8Array([0x01]);
+        if ('writeValueWithoutResponse' in rxChar && rxChar.writeValueWithoutResponse) {
+          await rxChar.writeValueWithoutResponse(data);
+        } else {
+          await rxChar.writeValue(data);
+        }
+      },
+    };
+  } catch (error) {
+    // 服务发现/订阅可能在 GATT 已连上后失败;统一撤销监听并断开,避免下一次连接命中残留会话。
+    if (txChar && handleFrame) txChar.removeEventListener('characteristicvaluechanged', handleFrame);
+    device.removeEventListener('gattserverdisconnected', onDisconnect);
+    device.gatt?.disconnect();
+    throw error;
+  }
 }

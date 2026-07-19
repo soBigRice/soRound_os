@@ -1,24 +1,26 @@
-import * as THREE from 'three';
+import { MathUtils } from 'three/src/math/MathUtils.js';
+import { Quaternion } from 'three/src/math/Quaternion.js';
+import { Vector3 } from 'three/src/math/Vector3.js';
 import type { TwinFrame } from './bluetooth';
 
 export type CalibrationState = {
-  offset: THREE.Quaternion;
+  offset: Quaternion;
 };
 
 export type OrientationState = {
-  raw: THREE.Quaternion;
-  calibrated: THREE.Quaternion;
+  raw: Quaternion;
+  calibrated: Quaternion;
   yaw: number;
 };
 
 export type OrientationRuntime = {
   yaw: number;
-  filteredUp: THREE.Vector3;
+  filteredUp: Vector3;
   hasFilteredUp: boolean;
 };
 
-const WORLD_UP = new THREE.Vector3(0, 1, 0);
-const LOCAL_Z = new THREE.Vector3(0, 0, 1);
+const WORLD_UP = new Vector3(0, 1, 0);
+const LOCAL_Z = new Vector3(0, 0, 1);
 const DISPLAY_X_SIGN = -1;
 const DISPLAY_Y_SIGN = 1;
 const DISPLAY_Z_SIGN = 1;
@@ -29,8 +31,8 @@ const MAX_FRAME_DT_SECONDS = 0.06;
 // 轴向映射对齐实机手持方向:固件 imu.c 里右边压低会让 ay 变大、下边压低会让 ax 变大。
 // 这些读数表示"哪一侧更低",而模型姿态需要表现屏幕法线的方向,所以屏幕平面两轴要反向:
 // 右边压低时方块右边也压低,下边压低时方块下边也压低。
-function mappedUpVector(frame: TwinFrame): THREE.Vector3 {
-  return new THREE.Vector3(
+function mappedUpVector(frame: TwinFrame): Vector3 {
+  return new Vector3(
     DISPLAY_X_SIGN * frame.ay,
     DISPLAY_Y_SIGN * frame.ax,
     DISPLAY_Z_SIGN * frame.az,
@@ -39,10 +41,10 @@ function mappedUpVector(frame: TwinFrame): THREE.Vector3 {
 
 function normalizeRadians(angle: number): number {
   const twoPi = Math.PI * 2;
-  return THREE.MathUtils.euclideanModulo(angle + Math.PI, twoPi) - Math.PI;
+  return MathUtils.euclideanModulo(angle + Math.PI, twoPi) - Math.PI;
 }
 
-function filteredUpVector(frame: TwinFrame, runtime: OrientationRuntime): THREE.Vector3 {
+function filteredUpVector(frame: TwinFrame, runtime: OrientationRuntime): Vector3 {
   const measured = mappedUpVector(frame);
   if (measured.lengthSq() < 1e-6) {
     return runtime.filteredUp;
@@ -74,13 +76,13 @@ export function computeOrientation(
   runtime: OrientationRuntime,
 ): OrientationState {
   const up = filteredUpVector(frame, runtime);
-  const tilt = new THREE.Quaternion();
+  const tilt = new Quaternion();
   if (up.lengthSq() > 1e-6) {
     tilt.setFromUnitVectors(up, WORLD_UP);
   }
 
   const yaw = integrateYaw(frame, dtSeconds, runtime);
-  const yawQ = new THREE.Quaternion().setFromAxisAngle(LOCAL_Z, yaw);
+  const yawQ = new Quaternion().setFromAxisAngle(LOCAL_Z, yaw);
   const raw = tilt.multiply(yawQ);
   const calibrated = calibration.offset.clone().multiply(raw);
 
@@ -89,20 +91,20 @@ export function computeOrientation(
 
 export function makeDefaultCalibration(): CalibrationState {
   return {
-    offset: new THREE.Quaternion(),
+    offset: new Quaternion(),
   };
 }
 
 export function makeOrientationRuntime(): OrientationRuntime {
   return {
     yaw: 0,
-    filteredUp: new THREE.Vector3(0, 0, 1),
+    filteredUp: new Vector3(0, 0, 1),
     hasFilteredUp: false,
   };
 }
 
 // 把当前实机姿态设为零位:后续展示只应用 offset * raw,不能再额外减 yaw,否则会出现二次校准导致错位。
-export function calibrateCurrentPose(raw: THREE.Quaternion): CalibrationState {
+export function calibrateCurrentPose(raw: Quaternion): CalibrationState {
   return {
     offset: raw.clone().invert(),
   };

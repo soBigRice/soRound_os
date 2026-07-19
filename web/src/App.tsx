@@ -1,13 +1,18 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
 import { Bluetooth, Box, Gauge, PlugZap, RefreshCcw, RotateCcw, Target } from 'lucide-react';
-import * as THREE from 'three';
+import { Quaternion } from 'three/src/math/Quaternion.js';
 import { connectTwin, supportsWebBluetooth, type TwinConnection, type TwinFrame } from './bluetooth';
 import { calibrateCurrentPose, computeOrientation, makeDefaultCalibration, makeOrientationRuntime } from './imu';
-import { CubeScene } from './CubeScene';
+
+// WebGL/Three.js 独立成异步块,先让状态面板和连接按钮可交互,再加载较重的 3D 场景。
+const CubeScene = lazy(async () => {
+  const module = await import('./CubeScene');
+  return { default: module.CubeScene };
+});
 
 type Status = 'idle' | 'connecting' | 'connected' | 'error';
 
-const identity = new THREE.Quaternion();
+const identity = new Quaternion();
 
 export function App() {
   const [status, setStatus] = useState<Status>(supportsWebBluetooth() ? 'idle' : 'error');
@@ -85,7 +90,7 @@ export function App() {
 
   const calibrate = () => {
     calibrationRef.current = calibrateCurrentPose(rawOrientationRef.current);
-    setOrientation(new THREE.Quaternion());
+    setOrientation(new Quaternion());
     setCalibrated(true);
     setMessage('当前姿态已设为零位');
   };
@@ -109,7 +114,9 @@ export function App() {
 
   return (
     <main className="shell">
-      <CubeScene orientation={orientation} connected={connected} />
+      <Suspense fallback={<div className="scene" aria-label="正在加载 3D 场景" />}>
+        <CubeScene orientation={orientation} connected={connected} />
+      </Suspense>
 
       <section className="panel status-panel" aria-label="设备状态">
         <div className="brand">

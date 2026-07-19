@@ -36,6 +36,8 @@ static volatile ota_state_t s_state = OTA_IDLE;
 static volatile int         s_pct = 0;         // 下载进度 0-100
 static volatile bool        s_task_alive = false;
 static char                 s_newver[32];      // 远端固件版本号(读镜像头得到,展示用)
+static int                  s_last_pct = -1;   // 每次进页面重放当前任务进度
+static ota_state_t          s_shown = (ota_state_t)-1;
 
 static lv_obj_t *g_status, *g_ver, *g_ring, *g_icon, *g_pctlbl;
 
@@ -155,6 +157,7 @@ static void start_btn(lv_event_t *e) {
         return;
     }
     s_pct = 0;
+    s_last_pct = -1;
     lv_arc_set_value(g_ring, 0);                      // 重置进度环 + 百分比(尤其重新检查时)
     lv_label_set_text(g_pctlbl, "");
     s_state = OTA_CHECKING;                           // 先连上比版本,再决定刷不刷
@@ -163,7 +166,11 @@ static void start_btn(lv_event_t *e) {
 }
 
 static void ota_enter(lv_obj_t *parent) {
-    s_state = OTA_IDLE; s_pct = 0;
+    // OTA task 可以在离开页面后继续。这里不能重置 s_state/s_pct,否则重进时会显示 idle,
+    // 但 start_btn 又因 s_task_alive 拒绝点击,形成“后台在下、前台像卡住”的假状态。
+    // 只重置 UI 去重缓存,让首个 tick 把当前后台状态完整重放到新控件。
+    s_last_pct = -1;
+    s_shown = (ota_state_t)-1;
 
     // 当前版本(顶部小字)
     g_ver = lv_label_create(parent);
@@ -243,16 +250,14 @@ static void ota_enter(lv_obj_t *parent) {
 
 static void ota_tick(void) {
     if (!g_status) return;
-    static int last_pct = -1;
-    if (s_state == OTA_RUNNING && s_pct != last_pct) {   // 环进度 + 中心大百分比
-        last_pct = s_pct;
+    if (s_state == OTA_RUNNING && s_pct != s_last_pct) {   // 环进度 + 中心大百分比
+        s_last_pct = s_pct;
         lv_arc_set_value(g_ring, s_pct);
         char pb[8]; snprintf(pb, sizeof pb, "%d", s_pct);
         lv_label_set_text(g_pctlbl, pb);
     }
-    static ota_state_t shown = -1;
-    if (s_state == shown) return;
-    shown = s_state;
+    if (s_state == s_shown) return;
+    s_shown = s_state;
     switch (s_state) {
         case OTA_CHECKING: lv_label_set_text(g_status, tr(S_CHECKING));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0); break;
