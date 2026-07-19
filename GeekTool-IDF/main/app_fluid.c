@@ -217,7 +217,7 @@ static void fluid_enter(lv_obj_t *parent) {
     g_hint = lv_label_create(parent);
     lv_obj_set_style_text_font(g_hint, UI_FONT_M, 0);
     lv_obj_set_style_text_color(g_hint, lv_color_hex(COL_TXT2), 0);
-    lv_label_set_text(g_hint, g_has_imu ? "" : "no sensor - gravity down");
+    lv_label_set_text(g_hint, g_has_imu ? "" : tr(S_FLUID_NOIMU));
     lv_obj_align(g_hint, LV_ALIGN_TOP_MID, 0, 90);
 
     if (esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "fluid", &g_pm) == ESP_OK)

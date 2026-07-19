@@ -58,7 +58,7 @@ static void render(void) {
     char b[16]; snprintf(b, sizeof b, "%d", s_val[0] + s_val[1]);
     lv_label_set_text(g_sum, b);
     lv_obj_set_style_text_color(g_sum, lv_color_hex(dbl ? COL_RED : COL_TXT2), 0);
-    lv_label_set_text(g_hint, dbl ? "double!" : "");
+    lv_label_set_text(g_hint, dbl ? tr(S_DICE_DOUBLE) : "");
 }
 
 static void start_roll(void) {
@@ -111,7 +111,7 @@ static void dice_enter(lv_obj_t *parent) {
     lv_obj_add_flag(hit, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_event_cb(hit, tap_cb, LV_EVENT_CLICKED, NULL);
 
-    lv_label_set_text(g_hint, imu_init() ? "shake or tap to roll" : "tap to roll");
+    lv_label_set_text(g_hint, tr(imu_init() ? S_DICE_HINT : S_DICE_TAP));
     lv_obj_set_style_text_color(g_hint, lv_color_hex(COL_TXT2), 0);
     s_roll = 0; s_have_last = false;
     render();

@@ -40,11 +40,16 @@ static lv_obj_t *g_status, *g_bar, *g_pctlbl;
 
 /* 带进度的 OTA:begin → 循环 perform(每次读一块)→ finish。进度 = 已读/总大小。 */
 static void ota_task(void *arg) {
+    // 下载期间关调制解调器睡眠拉满网速(平时 MAX_MODEM 省电但吞吐掉一截,1.8MB 包体感明显);
+    // 任务结束恢复省电档。HTTP 缓冲 512→4KB,减少 TLS 分段读次数。
+    esp_wifi_set_ps(WIFI_PS_NONE);
     esp_http_client_config_t http = {
         .url               = settings_beta() ? OTA_URL_BETA : OTA_URL_STABLE,
         .crt_bundle_attach = esp_crt_bundle_attach,   // HTTPS 用;HTTP 时忽略
         .timeout_ms        = 15000,
         .keep_alive_enable = true,
+        .buffer_size       = 4096,
+        .buffer_size_tx    = 2048,
     };
     esp_https_ota_config_t cfg = { .http_config = &http };
 
@@ -61,6 +66,7 @@ static void ota_task(void *arg) {
         ESP_LOGI(TAG, "remote=%s current=%s", nd.version, cur->version);
         if (strncmp(nd.version, cur->version, sizeof nd.version) == 0) {
             esp_https_ota_abort(h); h = NULL;
+            esp_wifi_set_ps(WIFI_PS_MAX_MODEM);        // 早退路径同样恢复省电档
             s_state = OTA_UPTODATE;                    // 同版本:不刷不重启
             s_task_alive = false;
             vTaskDelete(NULL);
@@ -86,6 +92,7 @@ static void ota_task(void *arg) {
     }
 
 done:
+    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);               // 恢复省电档(成功路径马上重启,无所谓)
     ESP_LOGI(TAG, "OTA -> %s", esp_err_to_name(err));
     s_state = (err == ESP_OK) ? OTA_OK : OTA_FAIL;
     s_task_alive = false;

@@ -100,7 +100,7 @@ static void show_state(cd_state_t st) {
     if (idle) {
         draw_mmss(s_total_s);          // 显示当前选择
     } else {
-        const char *h = (st == ST_RUN) ? "key/tap = pause" : (st == ST_PAUSE) ? "paused - key/tap = resume" : "done - key/tap = reset";
+        const char *h = tr((st == ST_RUN) ? S_CD_PAUSE : (st == ST_PAUSE) ? S_CD_RESUME : S_CD_DONE);
         lv_label_set_text(g_hint, h);
         lv_obj_set_style_text_color(g_hint, lv_color_hex(st == ST_DONE ? COL_RED : COL_TXT2), 0);
     }
@@ -196,7 +196,7 @@ static void countdown_enter(lv_obj_t *parent) {
     lv_obj_add_flag(g_centerbtn, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(g_centerbtn, center_cb, LV_EVENT_CLICKED, NULL);
 
-    g_reset = mk_button(parent, "reset", 120, 46, 0x1c1c22, reset_cb);
+    g_reset = mk_button(parent, tr(S_RESET), 120, 46, 0x1c1c22, reset_cb);
     lv_obj_set_style_text_color(lv_obj_get_child(g_reset, 0), lv_color_hex(COL_RED), 0);   // 红字强调,与全局风格一致
     lv_obj_align(g_reset, LV_ALIGN_TOP_MID, 0, 332);   // 上移到下半圆内,别贴底边
 
@@ -210,7 +210,7 @@ static void countdown_enter(lv_obj_t *parent) {
     lv_obj_t *tip = lv_label_create(g_idle);
     lv_obj_set_style_text_font(tip, UI_FONT_M, 0);
     lv_obj_set_style_text_color(tip, lv_color_hex(COL_TXT2), 0);
-    lv_label_set_text(tip, "tap time to start");
+    lv_label_set_text(tip, tr(S_CD_TAP_START));
     lv_obj_align(tip, LV_ALIGN_TOP_MID, 0, 96);
 
     // 自定义:±1m / ±10s(按住连发)

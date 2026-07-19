@@ -45,7 +45,7 @@ static void level_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(g_axes, UI_FONT_M, 0);
     lv_obj_set_style_text_color(g_axes, lv_color_hex(0x55555a), 0);
     lv_obj_set_style_text_align(g_axes, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(g_axes, imu_init() ? "" : "no sensor");
+    lv_label_set_text(g_axes, imu_init() ? "" : tr(S_NO_SENSOR));
     lv_obj_align(g_axes, LV_ALIGN_CENTER, 0, 24);
 
     g_ball = lv_obj_create(parent);

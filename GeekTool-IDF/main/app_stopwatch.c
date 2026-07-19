@@ -73,7 +73,7 @@ static void set_hint(const char *t, uint32_t col) {
     lv_obj_set_style_text_color(g_hint, lv_color_hex(col), 0);
 }
 static void update_btn(void) {
-    lv_label_set_text(g_btnl, s_run ? "lap" : "reset");
+    lv_label_set_text(g_btnl, tr(s_run ? S_LAP : S_RESET));
     lv_obj_set_style_text_color(g_btnl, lv_color_hex(s_run ? COL_TXT : COL_RED), 0);
 }
 static void update_laps(void) {
@@ -90,15 +90,15 @@ static void update_laps(void) {
 }
 
 static void toggle_run(void) {             // BOOT 键:开始 / 暂停 / 继续
-    if (s_run) { s_base_us += esp_timer_get_time() - s_start_us; s_run = false; set_hint("paused - boot key = resume", COL_TXT2); }
-    else       { s_start_us = esp_timer_get_time(); s_run = true; set_hint("running - btn = lap", COL_TXT2); }
+    if (s_run) { s_base_us += esp_timer_get_time() - s_start_us; s_run = false; set_hint(tr(S_PAUSED_RESUME), COL_TXT2); }
+    else       { s_start_us = esp_timer_get_time(); s_run = true; set_hint(tr(S_RUNNING_LAP), COL_TXT2); }
     update_btn();
 }
 static void btn_cb(lv_event_t *e) {        // 屏上按钮:运行=计圈,停止=归零
     if (s_run) { if (s_nlap < MAXLAP) s_laps[s_nlap++] = elapsed_us(); update_laps(); }
     else {
         s_base_us = 0; s_nlap = 0; s_last_sec = -1; s_last_ring = -1;
-        update_laps(); set_hint("boot key = start", COL_TXT2);
+        update_laps(); set_hint(tr(S_KEY_START), COL_TXT2);
     }
 }
 
@@ -117,7 +117,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(g_hint, UI_FONT_M, 0);
     lv_obj_set_style_text_align(g_hint, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(g_hint, LV_ALIGN_TOP_MID, 0, 86);
-    set_hint("boot key = start", COL_TXT2);
+    set_hint(tr(S_KEY_START), COL_TXT2);
 
     g_lap = lv_label_create(parent);          // 最近圈
     lv_obj_set_style_text_font(g_lap, UI_FONT_M, 0);

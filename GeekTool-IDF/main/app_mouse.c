@@ -95,6 +95,7 @@ static lv_obj_t *mk_btn(lv_obj_t *parent, const char *txt, int x, uint8_t bit) {
     lv_obj_set_style_bg_color(b, lv_color_hex(0x2a2a32), LV_STATE_PRESSED);
     lv_obj_set_style_radius(b, 16, 0);
     lv_obj_align(b, LV_ALIGN_BOTTOM_MID, x, -34);
+    lv_obj_remove_flag(b, LV_OBJ_FLAG_GESTURE_BUBBLE);      // 按住拖拽时的划动不触发返回
     lv_obj_add_event_cb(b, btn_event, LV_EVENT_PRESSED, (void *)(intptr_t)bit);
     lv_obj_add_event_cb(b, btn_event, LV_EVENT_RELEASED, (void *)(intptr_t)bit);
     lv_obj_t *l = lv_label_create(b);
@@ -111,7 +112,9 @@ static void mouse_enter(lv_obj_t *parent) {
     lv_obj_set_size(g_pad, lv_pct(100), lv_pct(100));
     lv_obj_remove_flag(g_pad, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_pad, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(g_pad, LV_OBJ_FLAG_EVENT_BUBBLE);   // 右滑返回手势照常
+    // ★吞掉手势:触控板上快速划动是正常鼠标操作,不能冒泡成"右滑退出 app"。
+    //   退出本 app 只走顶部 ‹ 返回键。
+    lv_obj_remove_flag(g_pad, LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_add_event_cb(g_pad, pad_event, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(g_pad, pad_event, LV_EVENT_PRESSING, NULL);
     lv_obj_add_event_cb(g_pad, pad_event, LV_EVENT_RELEASED, NULL);
@@ -125,7 +128,7 @@ static void mouse_enter(lv_obj_t *parent) {
     lv_obj_set_style_text_font(g_status, UI_FONT_M, 0);
     lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
     lv_obj_align(g_status, LV_ALIGN_TOP_MID, 0, 88);
-    lv_label_set_text(g_status, "starting...");
+    lv_label_set_text(g_status, tr(S_STARTING));
 
     // 右缘滚轮条
     lv_obj_t *wheel = lv_obj_create(parent);
@@ -137,6 +140,7 @@ static void mouse_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(wheel, LV_OPA_COVER, 0);
     lv_obj_remove_flag(wheel, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(wheel, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_remove_flag(wheel, LV_OBJ_FLAG_GESTURE_BUBBLE);   // 滚动条上滑动同样不当返回手势
     lv_obj_add_event_cb(wheel, wheel_event, LV_EVENT_PRESSED, NULL);
     lv_obj_add_event_cb(wheel, wheel_event, LV_EVENT_PRESSING, NULL);
     for (int i = 0; i < 3; i++)
@@ -146,7 +150,7 @@ static void mouse_enter(lv_obj_t *parent) {
     mk_btn(parent, "R", 62, 0x02);
 
     s_btns = 0; s_ax = s_ay = s_wacc = 0;
-    if (!ble_hid_start()) lv_label_set_text(g_status, "bluetooth failed");
+    if (!ble_hid_start()) lv_label_set_text(g_status, tr(S_BT_FAIL));
 }
 
 static void mouse_tick(void) {
@@ -155,7 +159,7 @@ static void mouse_tick(void) {
     bool now = ble_hid_connected();
     if (now != was) {
         was = now;
-        lv_label_set_text(g_status, now ? "connected" : "pair \"soRound\" on your device");
+        lv_label_set_text(g_status, tr(now ? S_CONNECTED : S_MOUSE_PAIR));
         lv_obj_set_style_text_color(g_status, lv_color_hex(now ? COL_CHARGE : COL_TXT2), 0);
     }
 }
