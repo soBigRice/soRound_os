@@ -592,8 +592,8 @@ stateDiagram-v2
 
 ## 2026-10-01 流畅性与动画优化
 
-版本:`v1.7-beta.8`,基于 `50de959` 的流畅性优化;固件/Web 构建、主机回归和 Web 页面渲染通过,
-待真机验收。用户已授权提交及内测 OTA 发布,发布产物和上传结果以对应 Actions/Release 为准。
+版本:`v1.7-beta.8`,基于 `50de959` 的流畅性优化;已提交并发布内测 OTA。
+固件/Web 构建、主机回归和 Web 页面渲染通过,待真机验收;发布核对见本节末尾。
 保持 466×466 分辨率、粒子数量、点阵字模/点距/颜色、
 I2S 参数、迷宫重力/阻尼、BLE 20 字节协议及原始采样节奏。
 
@@ -677,3 +677,28 @@ npm run build
 水平仪/迷宫手感;锁屏下倒计时响铃、OTA 下载继续;BLE 连接/设零位/断连重连。
 检查串口 I2S/codec 错误、看门狗重启、内部 RAM 是否回收,并观察 AMOLED 动画中间帧。
 主机测试不覆盖实际 I2C/I2S/DMA/BLE 时序;未测真机 FPS、功耗或提升百分比。
+
+### 内测发布核对
+
+2026-10-01 用户授权提交、部署和发版。`v1.7-beta.8` 指向优化提交
+`23f0c1486b9179a16adcbe38d109b2a4e5a6e9a3`;
+[Actions 36876458246](https://github.com/soBigRice/soRound_os/actions/runs/36876458246)
+的固件构建、Release 和 R2 上传均成功。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.8) 资产与公开
+`GeekTool-beta.bin` 逐字节一致,包内版本为 `v1.7-beta.8`,大小 1,940,256 字节,
+SHA-256 为 `6052ee7d8c8377a5096531f8870db93ae4eecd2fcbd2abc037bc57ee06fe6147`。
+HTTP 为 200,`Cache-Control: no-store, max-age=0`;正式对象发布前后摘要相同,仍为 `v1.6.1`。
+仅部署固件内测通道;Web 代码已提交,仓库没有 Web 线上部署配置。实际设备升级和交互仍待验证。
+
+发布可复用检查:仓库忽略 `dependencies.lock`,组件清单使用 `^` 范围,因此本地缓存依赖与
+干净 CI 的解析结果可能不同。此次本地为 LVGL 9.5.0 / esp_lvgl_port 2.8.0~1 /
+esp_codec_dev 1.5.10,CI 为 LVGL 9.6.0~1 / esp_lvgl_port 2.9.0 / esp_codec_dev 1.6.2;
+CI 还解析到 CO5300 2.2.0、CST9217 1.0.4、esp_jpeg 1.3.1。
+下次发布先核对 CI 解析版本,不能将本地构建或主机测试直接视为对不同依赖的验证;
+固定依赖及锁文件策略属于另行评审的构建调整。本次保持既有发布配置。
+
+补充验证:从 [官方组件库](https://components.espressif.com/components/lvgl/lvgl/versions/9.6.0~1)
+下载与 CI 一致的 LVGL 9.6.0~1（源码 `60b614c23c816ca5edc5f2840c9945eff7da0ad4`）,在
+临时目录对同一套 `tests/host` 和真实 `main` 源码执行回归,仅调整测试依赖路径。
+80 组像素对照、局部失效化/残影、流体和倒计时用例全部通过;没有更改或替换项目依赖。
+此补测不覆盖 CI 中其他硬件组件的实际时序,仍须用本 Release 的固件做真机验收。
