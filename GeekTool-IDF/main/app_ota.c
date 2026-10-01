@@ -6,6 +6,7 @@
 #include "app.h"
 #include "settings.h"
 #include "glyph.h"
+#include "ui_update.h"
 #include "esp_wifi.h"
 #include "esp_http_client.h"
 #include "esp_https_ota.h"
@@ -67,8 +68,8 @@ static void set_visible(lv_obj_t *o, bool visible) {
 
 static void orbit_dot_style(int i, uint32_t col, lv_opa_t opa) {
     if (!g_orbit[i]) return;
-    lv_obj_set_style_bg_color(g_orbit[i], lv_color_hex(col), 0);
-    lv_obj_set_style_bg_opa(g_orbit[i], opa, 0);
+    ui_bg_color(g_orbit[i], col);
+    ui_bg_opa(g_orbit[i], opa);
 }
 
 // 轨道阅读方向从左上端点走向右上端点;数组坐标的生成方向相反,这里做一次映射。
@@ -79,27 +80,26 @@ static void orbit_dim(void) {
 }
 
 static void orbit_idle(void) {
-    for (int i = 0; i < ORBIT_N; i++) orbit_dot_style(i, COL_TXT, LV_OPA_COVER);
-    for (int step = 0; step < 5; step++)
-        orbit_dot_style(orbit_idx(step), COL_RED, (lv_opa_t)(255 - step * 38));
+    for (int step = 0; step < ORBIT_N; step++)
+        orbit_dot_style(orbit_idx(step), step < 5 ? COL_RED : COL_TXT,
+                        step < 5 ? (lv_opa_t)(255 - step * 38) : LV_OPA_COVER);
 }
 
 static void orbit_progress(int pct) {
-    orbit_dim();
     if (pct < 0) pct = 0;
     if (pct > 100) pct = 100;
     int head = pct * (ORBIT_N - 1) / 100;
-    for (int step = 0; step <= head; step++) orbit_dot_style(orbit_idx(step), COL_TXT, LV_OPA_COVER);
-    orbit_dot_style(orbit_idx(head), COL_RED, LV_OPA_COVER);
+    for (int step = 0; step < ORBIT_N; step++)
+        orbit_dot_style(orbit_idx(step), step == head ? COL_RED : COL_TXT,
+                        step <= head ? LV_OPA_COVER : LV_OPA_20);
 }
 
 static void orbit_check_frame(int phase) {
-    orbit_dim();
-    for (int tail = 5; tail >= 0; tail--) {
-        int step = phase - tail;
-        if (step < 0) continue;
-        uint32_t col = (tail == 0) ? COL_RED : COL_TXT;
-        orbit_dot_style(orbit_idx(step), col, (lv_opa_t)(80 + (5 - tail) * 35));
+    for (int step = 0; step < ORBIT_N; step++) {
+        int tail = phase - step;
+        bool lit = tail >= 0 && tail <= 5;
+        orbit_dot_style(orbit_idx(step), tail == 0 ? COL_RED : COL_TXT,
+                        lit ? (lv_opa_t)(80 + (5 - tail) * 35) : LV_OPA_20);
     }
 }
 
@@ -404,4 +404,12 @@ static void ota_exit(void) {
     memset(g_orbit, 0, sizeof g_orbit);
 }
 
-const app_t app_ota = { "ota", COL_TXT, ota_enter, ota_tick, ota_exit };
+static void ota_visibility(bool visible) {
+    stop_orbit_anim();
+    if (visible) {
+        s_shown = (ota_state_t)-1; s_last_pct = -1;
+        ota_tick();
+    }
+}
+
+const app_t app_ota = { "ota", COL_TXT, ota_enter, ota_tick, ota_exit, NULL, 0, ota_visibility };

@@ -17,6 +17,9 @@
 #include "app.h"
 #include "settings.h"
 #include "rtc.h"
+#include "audio_bus.h"
+#include "img_store.h"
+#include "imu.h"
 
 static const char *TAG = "main";
 
@@ -54,7 +57,9 @@ void app_main(void) {
     esp_pm_config_t pm = { .max_freq_mhz = 240, .min_freq_mhz = 80, .light_sleep_enable = true };
     esp_pm_configure(&pm);
 
+    audio_bus_init();
     s_i2c_bus = init_i2c();
+    imu_init();                     // 锁外预热传感器;稳定期由读取端检查,不阻塞 UI
     rtc_begin();
     rtc_sync_to_system();            // RTC → 系统时间(断电/无网也走时;之后 SNTP 会再校准并写回)
     lv_display_t *disp = display_init();
@@ -72,6 +77,7 @@ void app_main(void) {
         lvgl_port_unlock();
     }
 
+    img_store_face_image();          // 锁外后台预热图片,首次切表盘不阻塞 UI
     wifi_service_start();            // 开机自动起 WiFi + 重连记住的 AP(不碰 LVGL,放锁外)
 
     // OTA 回滚确认:若本次是 OTA 新固件(PENDING_VERIFY),走到这里说明启动成功 → 转 VALID,

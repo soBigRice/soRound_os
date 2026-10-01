@@ -2,7 +2,7 @@
  * 数字孪生(twin)—— 通过 BLE 把 IMU/电量实时推给浏览器(Web Bluetooth),网页同步驱动 3D 模型。
  * 设备做 GATT 外设(ble_twin.c);本 app 负责 UI + 后台采样任务打包帧 + notify。
  *
- * 数据帧:20 字节,小端,须与 web/twin.html 的解析一致 ——
+ * 数据帧:20 字节,小端,须与 web/src/bluetooth.ts 的解析一致 ——
  *   [0]   ver = 0x01
  *   [1]   flags: bit0 充电 / bit1 充满
  *   [2]   soc  电量 0-100
@@ -14,6 +14,7 @@
 #include "app.h"
 #include "ble_twin.h"
 #include "imu.h"
+#include "ui_update.h"
 #include "power.h"
 #include "esp_log.h"
 #include "esp_timer.h"
@@ -27,10 +28,13 @@
 
 static lv_obj_t *g_status, *g_vals, *g_dot;
 static TaskHandle_t   s_task;
+static portMUX_TYPE   s_mux = portMUX_INITIALIZER_UNLOCKED;
+static int            s_shown_link = -1;
+static bool           s_started;
 static volatile bool  s_run;
 static bool           s_wifi_prev;
 
-// 采样任务写、tick 读的共享快照(仅用于屏显,无需严格同步)
+// 采样任务写、tick 读的共享快照;短临界区保证各轴属于同一帧
 static volatile int   s_soc;
 static volatile float s_ax, s_ay, s_az, s_gx, s_gy, s_gz;
 static volatile bool  s_linked;
@@ -51,7 +55,13 @@ static void sampler(void *arg) {
     (void)arg;
     imu_init();
     uint8_t seq = 0;
-    while (s_run) {
+    TickType_t wake = xTaskGetTickCount();
+    for (;;) {
+        portENTER_CRITICAL(&s_mux);
+        bool stop = !s_run;
+        if (stop) s_task = NULL;
+        portEXIT_CRITICAL(&s_mux);
+        if (stop) { vTaskDelete(NULL); return; }
         float ax = 0, ay = 0, az = 0, gx = 0, gy = 0, gz = 0;
         imu_read_accel(&ax, &ay, &az);
         imu_read_gyro(&gx, &gy, &gz);
@@ -59,8 +69,11 @@ static void sampler(void *arg) {
         power_read(&soc, &st);
         if (soc < 0) soc = 0; else if (soc > 100) soc = 100;
 
+        bool linked = ble_twin_connected();
+        portENTER_CRITICAL(&s_mux);
         s_ax = ax; s_ay = ay; s_az = az; s_gx = gx; s_gy = gy; s_gz = gz;
-        s_soc = soc; s_linked = ble_twin_connected();
+        s_soc = soc; s_linked = linked;
+        portEXIT_CRITICAL(&s_mux);
 
         uint8_t f[FRAME_LEN];
         f[0] = 0x01;
@@ -77,10 +90,8 @@ static void sampler(void *arg) {
         f[16] = up; f[17] = up >> 8; f[18] = up >> 16; f[19] = up >> 24;
 
         ble_twin_notify(f, sizeof f);   // 未连/未订阅时静默丢弃
-        vTaskDelay(pdMS_TO_TICKS(SAMPLE_MS));
+        vTaskDelayUntil(&wake, pdMS_TO_TICKS(SAMPLE_MS));
     }
-    s_task = NULL;
-    vTaskDelete(NULL);
 }
 
 static void twin_enter(lv_obj_t *parent) {
@@ -113,36 +124,39 @@ static void twin_enter(lv_obj_t *parent) {
     s_wifi_prev = wifi_service_enabled();
     if (s_wifi_prev) wifi_service_set_enabled(false);
 
-    s_has_rx = false;
+    s_has_rx = false; s_shown_link = -1; s_linked = false; s_started = false;
     ble_twin_set_rx_cb(on_rx);
     if (ble_twin_start()) {
-        s_run = true;
-        if (xTaskCreate(sampler, "twin", 4096, NULL, 5, &s_task) != pdPASS) {
-            s_run = false;
+        portENTER_CRITICAL(&s_mux); s_run = true; portEXIT_CRITICAL(&s_mux);
+        if (!s_task && xTaskCreate(sampler, "twin", 4096, NULL, 5, &s_task) != pdPASS) {
+            portENTER_CRITICAL(&s_mux); s_run = false; portEXIT_CRITICAL(&s_mux);
             lv_label_set_text(g_status, "sampler start fail");
-        }
+        } else { s_started = true; }
     } else {
         lv_label_set_text(g_status, "BLE init fail\n(enable NimBLE in sdkconfig)");
     }
 }
 
 static void twin_tick(void) {
-    if (!g_status) return;
+    if (!g_status || !s_started) return;
+    portENTER_CRITICAL(&s_mux);
     bool linked = s_linked;
-    lv_label_set_text(g_status, linked ? "linked" : "advertising as GeekTwin\nopen web/twin.html");
-    lv_obj_set_style_bg_color(g_dot, lv_color_hex(linked ? COL_CHARGE : COL_TXT2), 0);
-
+    int soc = s_soc;
+    float ax = s_ax, ay = s_ay, az = s_az, gz = s_gz;
+    portEXIT_CRITICAL(&s_mux);
+    if (s_shown_link != (int)linked) {
+        ui_text(g_status, linked ? "linked" : "advertising as GeekTwin\nopen web/twin.html");
+        ui_bg_color(g_dot, linked ? COL_CHARGE : COL_TXT2); s_shown_link = linked;
+    }
     char b[128];
-    snprintf(b, sizeof b,
-             "batt %d%%\nax %+.2f ay %+.2f az %+.2f\ngz %+d dps%s",
-             s_soc, s_ax, s_ay, s_az, (int)s_gz,
-             s_has_rx ? "\nrx ok" : "");
-    lv_label_set_text(g_vals, b);
+    snprintf(b, sizeof b, "batt %d%%\nax %+.2f ay %+.2f az %+.2f\ngz %+d dps%s",
+             soc, ax, ay, az, (int)gz, s_has_rx ? "\nrx ok" : "");
+    ui_text(g_vals, b);
 }
 
 static void twin_exit(void) {
-    s_run = false;
-    for (int i = 0; i < 50 && s_task; i++) vTaskDelay(pdMS_TO_TICKS(10));  // 等采样任务自删(最多约 500ms)
+    portENTER_CRITICAL(&s_mux); s_run = false; portEXIT_CRITICAL(&s_mux);
+
     ble_twin_set_rx_cb(NULL);                         // 退出后不再接收网页指令,避免 BLE 回调写已退出 app 的状态
     ble_twin_stop();
     if (s_wifi_prev) wifi_service_set_enabled(true);   // 恢复 WiFi
@@ -150,4 +164,4 @@ static void twin_exit(void) {
     s_has_rx = false;
 }
 
-const app_t app_twin = { "twin", COL_TXT, twin_enter, twin_tick, twin_exit };
+const app_t app_twin = { "twin", COL_TXT, twin_enter, twin_tick, twin_exit, NULL, 100 };

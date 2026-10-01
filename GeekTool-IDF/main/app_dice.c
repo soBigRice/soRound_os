@@ -3,6 +3,7 @@
 // 设置页右滑/‹ 返回主视图。骰子全同(≥2 颗)→ 豹子变红;硬币 → 正/反 大字。
 #include "app.h"
 #include "imu.h"
+#include "ui_update.h"
 #include "settings.h"
 #include "esp_random.h"
 #include <stdio.h>
@@ -30,6 +31,7 @@ static int   s_view;                     // 0=主视图,1=设置页
 static float s_ax, s_ay, s_az;
 static bool  s_have_last;
 
+static lv_obj_t *g_pip[3][6];
 static lv_obj_t *g_main, *g_set;         // 主视图容器 / 设置页容器
 static lv_obj_t *g_stage, *g_die[3], *g_pips[3], *g_coin, *g_coinlbl, *g_sum, *g_hint;
 
@@ -50,10 +52,14 @@ static lv_obj_t *mkdot(lv_obj_t *p, int x, int y, int r, uint32_t col) {
 }
 
 static void draw_face(int i, int v, uint32_t col) {
-    lv_obj_clean(g_pips[i]);
     int c = s_diesz / 2;
-    for (int k = 0; k < FACE[v].cnt; k++)
-        mkdot(g_pips[i], c + FACE[v].cx[k] * s_pipo, c + FACE[v].cy[k] * s_pipo, s_pipr, col);
+    for (int k = 0; k < 6; k++) {
+        lv_obj_t *dot = g_pip[i][k];
+        if (k >= FACE[v].cnt) { lv_obj_add_flag(dot, LV_OBJ_FLAG_HIDDEN); continue; }
+        lv_obj_set_pos(dot, c + FACE[v].cx[k] * s_pipo - s_pipr,
+                            c + FACE[v].cy[k] * s_pipo - s_pipr);
+        ui_bg_color(dot, col); lv_obj_remove_flag(dot, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 /* 主视图舞台:按模式建骰子群或硬币(切模式/进入时调) */
@@ -104,14 +110,15 @@ static void build_stage(void) {
         lv_obj_remove_style_all(g_pips[i]);
         lv_obj_set_size(g_pips[i], s_diesz, s_diesz);
         lv_obj_add_flag(g_pips[i], LV_OBJ_FLAG_EVENT_BUBBLE);
+        for (int k = 0; k < 6; k++) g_pip[i][k] = mkdot(g_pips[i], s_diesz / 2, s_diesz / 2, s_pipr, COL_TXT);
     }
 }
 
 static void render(void) {
     if (s_mode == M_COIN) {
         if (!g_coinlbl) return;
-        lv_label_set_text(g_coinlbl, tr(s_val[0] ? S_HEADS : S_TAILS));
-        lv_label_set_text(g_sum, "");
+        ui_text(g_coinlbl, tr(s_val[0] ? S_HEADS : S_TAILS));
+        ui_text(g_sum, "");
         lv_label_set_text(g_hint, "");
         return;
     }
@@ -122,9 +129,9 @@ static void render(void) {
     int sum = 0;
     for (int i = 0; i < N; i++) { draw_face(i, s_val[i], col); sum += s_val[i]; }
     char b[16]; snprintf(b, sizeof b, "%d", sum);
-    lv_label_set_text(g_sum, b);
+    ui_text(g_sum, b);
     lv_obj_set_style_text_color(g_sum, lv_color_hex(same ? COL_RED : COL_TXT2), 0);
-    lv_label_set_text(g_hint, same ? tr(S_DICE_DOUBLE) : "");
+    ui_text(g_hint, same ? tr(S_DICE_DOUBLE) : "");
 }
 
 static void roll_once(void) {

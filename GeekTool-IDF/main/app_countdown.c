@@ -3,6 +3,7 @@
 // 归零中心红字闪烁。Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
 #include "app.h"
 #include "glyph.h"
+#include "ui_update.h"
 #include "audio_out.h"
 #include "bootkey.h"
 #include "esp_timer.h"
@@ -26,8 +27,7 @@ static int64_t    s_remain_us;    // PAUSE:剩余
 static int        s_total_s = 300; // 选定总秒(默认 5:00,可 ± 自定义)
 static int        s_last_shown = -1, s_last_remn = -1;
 static bool       s_blink_on;
-static int        s_blink_div;
-static int        s_alarm_div;    // DONE 态每 ~3s 再响一次
+static int64_t    s_done_us, s_next_alarm_us; // 闪烁/重复闹铃均按真实时间推进
 
 static lv_obj_t *g_ringbox, *g_ring[RING_N], *g_center, *g_centerbtn, *g_hint, *g_reset, *g_idle;
 
@@ -53,43 +53,23 @@ static void vis(lv_obj_t *o, bool on) {
     else    lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
 }
 
-static void draw_digit(lv_obj_t *par, char ch, int ox, int oy, uint32_t col) {
-    if (ch < '0' || ch > '9') return;
-    const char *const *g = glyph_font5x7[ch - '0'];
-    for (int r = 0; r < 7; r++)
-        for (int c = 0; c < 5; c++)
-            if (g[r][c] == '1') mkdot(par, ox + c * CP + CP / 2, oy + r * CP + CP / 2, CDR, col, LV_OPA_COVER);
-}
-
 static void draw_mmss(int secs) {
-    lv_obj_clean(g_center);
-    char b[5]; snprintf(b, sizeof b, "%02d%02d", secs / 60, secs % 60);
-    uint32_t col = (s_state == ST_DONE) ? (s_blink_on ? COL_RED : COL_BG) : COL_TXT;
-    int dw = 5 * CP, g = CP, colw = CP;
-    int total = 4 * dw + 4 * g + colw;
-    int x0 = CX - total / 2, oy = CY - (7 * CP) / 2 - 24, ox = x0;
-    draw_digit(g_center, b[0], ox, oy, col); ox += dw + g;
-    draw_digit(g_center, b[1], ox, oy, col); ox += dw + g;
-    int ccx = ox + colw / 2; ox += colw + g;
-    draw_digit(g_center, b[2], ox, oy, col); ox += dw + g;
-    draw_digit(g_center, b[3], ox, oy, col);
-    mkdot(g_center, ccx, oy + 2 * CP + CP / 2, CDR, col, LV_OPA_COVER);   // 冒号
-    mkdot(g_center, ccx, oy + 4 * CP + CP / 2, CDR, col, LV_OPA_COVER);
+    char b[6]; snprintf(b, sizeof b, "%02d:%02d", (secs / 60) % 100, secs % 60);
+    uint32_t col = s_state == ST_DONE ? (s_blink_on ? COL_RED : COL_BG) : COL_TXT;
+    glyph_digits_set(g_center, b, col, col);
 }
 
-// remainN:剩余点数。已耗的点从 12 点顺时针变暗,前沿一个红点
 static void draw_ring(int remainN) {
     int elapsed = RING_N - remainN;
     for (int i = 0; i < RING_N; i++) {
-        bool gone = (i < elapsed);
-        lv_obj_set_style_bg_color(g_ring[i], lv_color_hex(COL_TXT), 0);
-        lv_obj_set_style_bg_opa(g_ring[i], gone ? LV_OPA_20 : LV_OPA_COVER, 0);
+        ui_bg_color(g_ring[i], i == elapsed ? COL_RED : COL_TXT);
+        ui_bg_opa(g_ring[i], i < elapsed ? LV_OPA_20 : LV_OPA_COVER);
     }
-    if (elapsed < RING_N) lv_obj_set_style_bg_color(g_ring[elapsed], lv_color_hex(COL_RED), 0);   // 前沿红点
 }
 
 static void show_state(cd_state_t st) {
     s_state = st;
+    if (!launcher_app_visible()) return;
     bool idle = (st == ST_IDLE);
     vis(g_idle, idle);                 // 设定面板(±/预设/提示)仅 IDLE
     vis(g_ringbox, !idle);             // 递减环仅运行态
@@ -175,11 +155,8 @@ static void countdown_enter(lv_obj_t *parent) {
     }
 
     // 中心 MM:SS 容器
-    g_center = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_center);
-    lv_obj_set_size(g_center, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(g_center, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_center, LV_OBJ_FLAG_EVENT_BUBBLE);
+    g_center = glyph_digits_create(parent, CP, CDR);
+    lv_obj_set_pos(g_center, CX - (25 * CP) / 2, CY - (7 * CP) / 2 - 24);
 
     g_hint = lv_label_create(parent);
     lv_obj_set_style_text_font(g_hint, UI_FONT_M, 0);
@@ -240,25 +217,30 @@ static void countdown_enter(lv_obj_t *parent) {
 
 static void countdown_tick(void) {
     if (!g_center) return;
-    if (bootkey_pressed()) cd_toggle();
+    bool visible = launcher_app_visible();
+    if (visible && bootkey_pressed()) cd_toggle();
+    int64_t now = esp_timer_get_time();
     if (s_state == ST_RUN) {
-        int64_t us = s_end_us - esp_timer_get_time();
+        int64_t us = s_end_us - now;
         if (us <= 0) {
-            s_blink_on = true; s_blink_div = 0; s_alarm_div = 0;
+            s_blink_on = true; s_done_us = now; s_next_alarm_us = now + 3000000;
             show_state(ST_DONE);
-            draw_ring(0);
-            s_last_shown = 0; draw_mmss(0);
+            if (visible) { draw_ring(0); s_last_shown = 0; draw_mmss(0); }
             audio_out_alarm();                                   // 时间到 → 闹铃(静音模式不响)
             return;
         }
         int left = (int)((us + 999999) / 1000000);            // 向上取整
-        if (left != s_last_shown) { draw_mmss(left); s_last_shown = left; }
+        if (visible && left != s_last_shown) { draw_mmss(left); s_last_shown = left; }
         int remn = (int)ceilf((float)us / 1e6f / s_total_s * RING_N);
         if (remn > RING_N) remn = RING_N;
-        if (remn != s_last_remn) { draw_ring(remn); s_last_remn = remn; }
+        if (visible && remn != s_last_remn) { draw_ring(remn); s_last_remn = remn; }
     } else if (s_state == ST_DONE) {
-        if (++s_blink_div >= 10) { s_blink_div = 0; s_blink_on = !s_blink_on; draw_mmss(0); }   // ~2Hz 闪
-        if (++s_alarm_div >= 60) { s_alarm_div = 0; audio_out_alarm(); }                        // ~3s 再响
+        bool blink = ((now - s_done_us) / 500000 % 2) == 0;
+        if (blink != s_blink_on) { s_blink_on = blink; if (visible) draw_mmss(0); }
+        if (now >= s_next_alarm_us) {
+            s_next_alarm_us += ((now - s_next_alarm_us) / 3000000 + 1) * 3000000;
+            audio_out_alarm(); // 忙帧跳过积压,保持每 3 秒提醒且不集中补响
+        }
     }
 }
 
@@ -268,4 +250,12 @@ static void countdown_exit(void) {
     s_last_shown = s_last_remn = -1;
 }
 
-const app_t app_countdown = { "countdown", COL_TXT, countdown_enter, countdown_tick, countdown_exit };
+static void countdown_visibility(bool visible) {
+    if (!visible) return;
+    s_last_shown = s_last_remn = -1;
+    show_state(s_state);
+    if (s_state == ST_PAUSE) draw_mmss((int)((s_remain_us + 999999) / 1000000));
+    if (s_state == ST_DONE) { draw_ring(0); draw_mmss(0); }
+}
+
+const app_t app_countdown = { "countdown", COL_TXT, countdown_enter, countdown_tick, countdown_exit, NULL, 0, countdown_visibility, true };

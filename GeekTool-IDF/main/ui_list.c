@@ -23,15 +23,16 @@ static void curve_scroll_cb(lv_event_t *e) {
         int32_t diff = LV_ABS(ry - cy);
 
         int32_t dc = diff > CURVE_R ? CURVE_R : diff;
-        int32_t x  = CURVE_R - (int32_t)sqrtf((float)(CURVE_R * CURVE_R - dc * dc));
-        lv_obj_set_style_translate_x(row, x, 0);
+        int32_t x  = dc == CURVE_R ? CURVE_R : CURVE_R - (int32_t)sqrtf((float)(CURVE_R * CURVE_R - dc * dc));
+        if (lv_obj_get_style_translate_x(row, 0) != x) lv_obj_set_style_translate_x(row, x, 0);
 
         int32_t  df  = diff > FADE_R ? FADE_R : diff;
         lv_opa_t opa = lv_map(df, 0, FADE_R, LV_OPA_COVER, LV_OPA_TRANSP);
-        lv_obj_set_style_opa(row, opa, 0);
+        if (lv_obj_get_style_opa(row, 0) != opa) lv_obj_set_style_opa(row, opa, 0);
 
         bool focus = diff < ROW_H * 0.6;
-        lv_obj_set_style_bg_opa(row, focus ? LV_OPA_10 : LV_OPA_TRANSP, 0);
+        lv_opa_t bg = focus ? LV_OPA_10 : LV_OPA_TRANSP;
+        if (lv_obj_get_style_bg_opa(row, 0) != bg) lv_obj_set_style_bg_opa(row, bg, 0);
     }
 }
 

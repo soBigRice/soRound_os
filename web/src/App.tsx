@@ -1,8 +1,8 @@
-import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { Bluetooth, Box, Gauge, PlugZap, RefreshCcw, RotateCcw, Target } from 'lucide-react';
 import { Quaternion } from 'three/src/math/Quaternion.js';
 import { connectTwin, supportsWebBluetooth, type TwinConnection, type TwinFrame } from './bluetooth';
-import { calibrateCurrentPose, computeOrientation, makeDefaultCalibration, makeOrientationRuntime } from './imu';
+import { calibrateCurrentPose, computeOrientation, deviceFrameTiming, makeDefaultCalibration, makeOrientationRuntime } from './imu';
 
 // WebGL/Three.js 独立成异步块,先让状态面板和连接按钮可交互,再加载较重的 3D 场景。
 const CubeScene = lazy(async () => {
@@ -18,7 +18,11 @@ export function App() {
   const [status, setStatus] = useState<Status>(supportsWebBluetooth() ? 'idle' : 'error');
   const [message, setMessage] = useState(supportsWebBluetooth() ? '未连接' : '当前浏览器不支持 Web Bluetooth');
   const [frame, setFrame] = useState<TwinFrame | null>(null);
-  const [orientation, setOrientation] = useState(identity);
+  const orientationRef = useRef(identity.clone());
+  const requestRenderRef = useRef<(() => void) | null>(null);
+  const lastPanelUpdateRef = useRef(-Infinity);
+  const mountedRef = useRef(true);
+  const connectEpochRef = useRef(0);
   const [calibrated, setCalibrated] = useState(false);
   const [frameRate, setFrameRate] = useState(0);
 
@@ -31,16 +35,30 @@ export function App() {
 
   const connected = status === 'connected';
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false; connectEpochRef.current++;
+      connectionRef.current?.disconnect(); connectionRef.current = null;
+    };
+  }, []);
+
   const handleFrame = useCallback((next: TwinFrame) => {
     const now = performance.now();
     const lastUptime = lastDeviceUptimeRef.current;
-    const dtSeconds = lastUptime === null ? 0 : (next.uptimeMs - lastUptime) / 1000;
+    if (!mountedRef.current) return;
+    // uint32 uptime 正常回绕;设备重启或长时间停流不积分成一次巨大的旋转。
+    const { dtSeconds, restarted } = deviceFrameTiming(next.uptimeMs, lastUptime);
+    if (restarted) orientationRuntimeRef.current = makeOrientationRuntime();
     lastDeviceUptimeRef.current = next.uptimeMs;
 
     const pose = computeOrientation(next, dtSeconds, calibrationRef.current, orientationRuntimeRef.current);
     rawOrientationRef.current = pose.raw;
-    setOrientation(pose.calibrated.clone());
-    setFrame(next);
+    orientationRef.current.copy(pose.calibrated);
+    requestRenderRef.current?.();
+    if (now - lastPanelUpdateRef.current >= 100) {
+      setFrame(next); lastPanelUpdateRef.current = now;
+    }
 
     const counter = frameCounterRef.current;
     counter.count += 1;
@@ -54,6 +72,8 @@ export function App() {
     connectionRef.current = null;
     lastDeviceUptimeRef.current = null;
     orientationRuntimeRef.current = makeOrientationRuntime();
+    if (!mountedRef.current) return;
+    setFrameRate(0); frameCounterRef.current = { count: 0, startedAt: performance.now() };
     setStatus('idle');
     setMessage('已断开');
   }, []);
@@ -65,13 +85,18 @@ export function App() {
       return;
     }
 
+    const epoch = ++connectEpochRef.current;
     try {
       setStatus('connecting');
       setMessage('正在连接 GeekTwin');
-      connectionRef.current = await connectTwin({ onFrame: handleFrame, onDisconnect: handleDisconnect });
+      const connection = await connectTwin({ onFrame: handleFrame, onDisconnect: handleDisconnect });
+      if (!mountedRef.current || epoch !== connectEpochRef.current) { connection.disconnect(); return; }
+      connectionRef.current = connection;
+      frameCounterRef.current = { count: 0, startedAt: performance.now() };
       setStatus('connected');
       setMessage('已连接');
     } catch (error) {
+      if (!mountedRef.current) return;
       setStatus('error');
       setMessage(error instanceof Error ? error.message : String(error));
     }
@@ -81,16 +106,16 @@ export function App() {
     if (!connectionRef.current) return;
     try {
       await connectionRef.current.ping();
-      setMessage('Ping 已发送');
+      if (mountedRef.current) setMessage('Ping 已发送');
     } catch (error) {
-      setStatus('error');
+      if (!mountedRef.current) return;
       setMessage(error instanceof Error ? error.message : String(error));
     }
   };
 
   const calibrate = () => {
     calibrationRef.current = calibrateCurrentPose(rawOrientationRef.current);
-    setOrientation(new Quaternion());
+    orientationRef.current.identity(); requestRenderRef.current?.();
     setCalibrated(true);
     setMessage('当前姿态已设为零位');
   };
@@ -100,7 +125,7 @@ export function App() {
     orientationRuntimeRef.current = makeOrientationRuntime();
     lastDeviceUptimeRef.current = null;
     rawOrientationRef.current = identity.clone();
-    setOrientation(identity.clone());
+    orientationRef.current.identity(); requestRenderRef.current?.();
     setCalibrated(false);
     setMessage('校准已重置');
   };
@@ -115,7 +140,7 @@ export function App() {
   return (
     <main className="shell">
       <Suspense fallback={<div className="scene" aria-label="正在加载 3D 场景" />}>
-        <CubeScene orientation={orientation} connected={connected} />
+        <CubeScene orientationRef={orientationRef} requestRenderRef={requestRenderRef} connected={connected} />
       </Suspense>
 
       <section className="panel status-panel" aria-label="设备状态">
@@ -130,7 +155,7 @@ export function App() {
 
         <div className="metrics">
           <Metric icon={<PlugZap size={16} />} label="电量" value={batteryLabel} />
-          <Metric icon={<Gauge size={16} />} label="帧率" value={`${frameRate || '--'} Hz`} />
+          <Metric icon={<Gauge size={16} />} label="数据频率" value={`${frameRate || '--'} Hz`} />
           <Metric icon={<Target size={16} />} label="校准" value={calibrated ? '已设零位' : '原始姿态'} />
         </div>
 

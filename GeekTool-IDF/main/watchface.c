@@ -8,6 +8,7 @@
 #include "settings.h"
 #include "img_store.h"
 #include "glyph.h"
+#include "ui_update.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
 #include <stdio.h>
@@ -55,18 +56,14 @@ static void draw_digit_at(lv_obj_t *par, char ch, int ox, int oy, int pitch, int
 }
 
 // 居中画 HH:MM 的 4 个数字(不含冒号),返回冒号中心 x;冒号由调用方画(便于闪烁/着色)
-static int draw_time_digits(lv_obj_t *par, const struct tm *t, int cx, int cy, int pitch, int r, uint32_t col, lv_opa_t opa) {
-    char b[5];
-    snprintf(b, sizeof b, "%02d%02d", t->tm_hour, t->tm_min);
-    int dw = 5 * pitch, g = pitch, colw = pitch;
-    int total = 4 * dw + 4 * g + colw;
-    int x0 = cx - total / 2, oy = cy - (7 * pitch) / 2, ox = x0;
-    draw_digit_at(par, b[0], ox, oy, pitch, r, col, opa); ox += dw + g;
-    draw_digit_at(par, b[1], ox, oy, pitch, r, col, opa); ox += dw + g;
-    int colon_cx = ox + colw / 2; ox += colw + g;
-    draw_digit_at(par, b[2], ox, oy, pitch, r, col, opa); ox += dw + g;
-    draw_digit_at(par, b[3], ox, oy, pitch, r, col, opa);
-    return colon_cx;
+static lv_obj_t *time_digits(lv_obj_t *root, int cx, int cy, int pitch, int r) {
+    lv_obj_t *o = glyph_digits_create(root, pitch, r);
+    lv_obj_set_pos(o, cx - 25 * pitch / 2, cy - 7 * pitch / 2);
+    return o;
+}
+static void update_time(lv_obj_t *o, const struct tm *t, bool colon) {
+    char b[6]; snprintf(b, sizeof b, colon ? "%02d:%02d" : "%02d %02d", t->tm_hour, t->tm_min);
+    glyph_digits_set(o, b, COL_TXT, COL_RED);
 }
 
 static lv_obj_t *mklabel(lv_obj_t *par, const lv_font_t *font, uint32_t color, int y) {
@@ -124,11 +121,7 @@ static void dots_build(lv_obj_t *root) {
         mkdot(root, WF_CX + (int)(cosf(a) * RING_R), WF_CY + (int)(sinf(a) * RING_R),
               big ? 3 : 2, COL_TXT, big ? LV_OPA_60 : LV_OPA_30);
     }
-    d_time = lv_obj_create(root);
-    lv_obj_remove_style_all(d_time);
-    lv_obj_set_size(d_time, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(d_time, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(d_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+    d_time = time_digits(root, WF_CX, D_Y0 + (7 * D_P) / 2, D_P, D_R);
 
     int oy = D_Y0;
     d_colon[0] = mkdot(root, WF_CX, oy + 2 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
@@ -143,8 +136,7 @@ static void dots_build(lv_obj_t *root) {
 
 static void dots_update(const struct tm *t, bool aod, bool mc) {
     if (mc) {
-        lv_obj_clean(d_time);
-        draw_time_digits(d_time, t, WF_CX, D_Y0 + (7 * D_P) / 2, D_P, D_R, COL_TXT, LV_OPA_COVER);
+        update_time(d_time, t, false);
         dots_date(t);
         dots_netbat();
     }
@@ -172,15 +164,12 @@ static void dots_destroy(void) { d_time = d_colon[0] = d_colon[1] = d_sec = d_da
 #define B_X1  244
 #define B_YH  64
 #define B_YM  248
-static lv_obj_t *b_time, *b_dot, *b_date;
+static lv_obj_t *b_time, *b_minutes, *b_dot, *b_date;
 static bool      b_on;
 
 static void bold_build(lv_obj_t *root) {
-    b_time = lv_obj_create(root);
-    lv_obj_remove_style_all(b_time);
-    lv_obj_set_size(b_time, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(b_time, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(b_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+    b_time = glyph_digits_create(root, B_P, B_R); lv_obj_set_pos(b_time, B_X0, B_YH);
+    b_minutes = glyph_digits_create(root, B_P, B_R); lv_obj_set_pos(b_minutes, B_X0, B_YM);
 
     b_dot = mkdot(root, WF_CX, WF_CY, 7, COL_RED, LV_OPA_COVER);   // 两行之间居中的红心跳点
     b_date = mklabel(root, UI_FONT_M, COL_TXT2, 0);
@@ -190,14 +179,11 @@ static void bold_build(lv_obj_t *root) {
 
 static void bold_update(const struct tm *t, bool aod, bool mc) {
     if (mc) {
-        lv_obj_clean(b_time);
         char hh[3], mm[3];
         snprintf(hh, sizeof hh, "%02d", t->tm_hour);
         snprintf(mm, sizeof mm, "%02d", t->tm_min);
-        draw_digit_at(b_time, hh[0], B_X0, B_YH, B_P, B_R, COL_TXT, LV_OPA_COVER);
-        draw_digit_at(b_time, hh[1], B_X1, B_YH, B_P, B_R, COL_TXT, LV_OPA_COVER);
-        draw_digit_at(b_time, mm[0], B_X0, B_YM, B_P, B_R, COL_TXT, LV_OPA_COVER);
-        draw_digit_at(b_time, mm[1], B_X1, B_YM, B_P, B_R, COL_TXT, LV_OPA_COVER);
+        glyph_digits_set(b_time, hh, COL_TXT, COL_RED);
+        glyph_digits_set(b_minutes, mm, COL_TXT, COL_RED);
         static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
         static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
         char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
@@ -209,101 +195,84 @@ static void bold_update(const struct tm *t, bool aod, bool mc) {
     lv_obj_set_style_bg_opa(b_dot, opa, 0);
 }
 
-static void bold_destroy(void) { b_time = b_dot = b_date = NULL; }
+static void bold_destroy(void) { b_time = b_minutes = b_dot = b_date = NULL; }
 
 /* ============================================================ Rings 表盘(同心点环:外=分钟,内=小时,中心数字) ============================================================ */
 #define RG_RO 205
 #define RG_RI 150
-static lv_obj_t *r_ring, *r_center;
-
+static lv_obj_t *r_ring, *r_center, *r_minutes[60], *r_hours[12];
 static void rings_build(lv_obj_t *root) {
-    r_ring = lv_obj_create(root);
-    lv_obj_remove_style_all(r_ring);
+    r_ring = lv_obj_create(root); lv_obj_remove_style_all(r_ring);
     lv_obj_set_size(r_ring, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(r_ring, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(r_ring, LV_OBJ_FLAG_EVENT_BUBBLE);
-    r_center = lv_obj_create(root);
-    lv_obj_remove_style_all(r_center);
-    lv_obj_set_size(r_center, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(r_center, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(r_center, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_remove_flag(r_ring, LV_OBJ_FLAG_SCROLLABLE); lv_obj_add_flag(r_ring, LV_OBJ_FLAG_EVENT_BUBBLE);
+    for (int i = 0; i < 60; i++) {
+        float a = i / 60.0f * 6.2832f - 1.5708f;
+        r_minutes[i] = mkdot(r_ring, WF_CX + (int)(cosf(a) * RG_RO), WF_CY + (int)(sinf(a) * RG_RO), 2, COL_TXT, LV_OPA_30);
+    }
+    for (int h = 0; h < 12; h++) {
+        float a = h / 12.0f * 6.2832f - 1.5708f;
+        r_hours[h] = mkdot(r_ring, WF_CX + (int)(cosf(a) * RG_RI), WF_CY + (int)(sinf(a) * RG_RI), 3, COL_TXT, LV_OPA_30);
+    }
+    r_center = time_digits(root, WF_CX, WF_CY, 9, 3);
 }
-
 static void rings_update(const struct tm *t, bool aod, bool mc) {
     (void)aod;
-    if (!mc) return;                          // 同心环天然平静:仅按分钟重建
-    lv_obj_clean(r_ring);
+    if (!mc) return;
     int mn = t->tm_min, hr = t->tm_hour % 12;
-    for (int i = 0; i < 60; i++) {            // 外环:分钟进度
-        float a = i / 60.0f * 6.2832f - 1.5708f;
-        int x = WF_CX + (int)(cosf(a) * RG_RO), y = WF_CY + (int)(sinf(a) * RG_RO);
-        if (i < mn)       mkdot(r_ring, x, y, 3, COL_TXT, LV_OPA_COVER);
-        else if (i == mn) mkdot(r_ring, x, y, 4, COL_RED, LV_OPA_COVER);   // 当前分钟:红色引导点
-        else              mkdot(r_ring, x, y, 2, COL_TXT, LV_OPA_30);
+    for (int i = 0; i < 72; i++) {
+        bool minute = i < 60;
+        int index = minute ? i : i - 60, progress = minute ? mn : hr;
+        int radius = minute ? (index < progress ? 3 : index == progress ? 4 : 2)
+                            : (index < progress ? 4 : index == progress ? 5 : 3);
+        lv_obj_t *o = minute ? r_minutes[index] : r_hours[index];
+        float a = index / (minute ? 60.0f : 12.0f) * 6.2832f - 1.5708f;
+        int ring_r = minute ? RG_RO : RG_RI;
+        lv_obj_set_size(o, radius * 2, radius * 2);
+        lv_obj_set_pos(o, WF_CX + (int)(cosf(a) * ring_r) - radius, WF_CY + (int)(sinf(a) * ring_r) - radius);
+        ui_bg_color(o, minute && index == progress ? COL_RED : COL_TXT);
+        ui_bg_opa(o, index <= progress ? LV_OPA_COVER : LV_OPA_30);
     }
-    for (int h = 0; h < 12; h++) {            // 内环:小时进度
-        float a = h / 12.0f * 6.2832f - 1.5708f;
-        int x = WF_CX + (int)(cosf(a) * RG_RI), y = WF_CY + (int)(sinf(a) * RG_RI);
-        if (h < hr)       mkdot(r_ring, x, y, 4, COL_TXT, LV_OPA_COVER);
-        else if (h == hr) mkdot(r_ring, x, y, 5, COL_TXT, LV_OPA_COVER);
-        else              mkdot(r_ring, x, y, 3, COL_TXT, LV_OPA_30);
-    }
-    lv_obj_clean(r_center);                    // 中心小号数字 HH:MM
-    int cc = draw_time_digits(r_center, t, WF_CX, WF_CY, 9, 3, COL_TXT, LV_OPA_COVER);
-    int oy = WF_CY - (7 * 9) / 2;
-    mkdot(r_center, cc, oy + 2 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
-    mkdot(r_center, cc, oy + 4 * 9 + 4, 3, COL_RED, LV_OPA_COVER);
+    update_time(r_center, t, true);
 }
-
 static void rings_destroy(void) { r_ring = r_center = NULL; }
 
 /* ============================================================ Image 表盘(全屏 JPEG 背景 + 时间叠加) ============================================================ */
 #define IM_CY 392
-static lv_obj_t *im_time, *im_msg;
+static lv_obj_t *im_time, *im_msg, *im_image, *im_scrim;
+static bool im_waiting;
 
-static void image_build(lv_obj_t *root) {
+static void image_background(void) {
     const lv_image_dsc_t *dsc = img_store_face_image();
+    im_waiting = img_store_loading();
+    // 解码可能在两次查询之间完成;再读一次已完成缓存,避免永久停留在“no image”。
+    if (!dsc && !im_waiting) dsc = img_store_face_image();
     if (dsc) {
-        lv_obj_t *img = lv_image_create(root);
-        lv_image_set_src(img, dsc);
-        lv_obj_center(img);
-        lv_obj_add_flag(img, LV_OBJ_FLAG_EVENT_BUBBLE);
-        lv_obj_t *scrim = lv_obj_create(root);   // 时间区半透明深色衬底,保证可读
-        lv_obj_remove_style_all(scrim);
-        lv_obj_set_size(scrim, 320, 96);
-        lv_obj_align(scrim, LV_ALIGN_BOTTOM_MID, 0, -28);
-        lv_obj_set_style_radius(scrim, 16, 0);
-        lv_obj_set_style_bg_color(scrim, lv_color_black(), 0);
-        lv_obj_set_style_bg_opa(scrim, LV_OPA_60, 0);
-        lv_obj_remove_flag(scrim, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_add_flag(scrim, LV_OBJ_FLAG_EVENT_BUBBLE);
-    } else {
-        im_msg = lv_label_create(root);
-        lv_obj_set_style_text_font(im_msg, UI_FONT_M, 0);
-        lv_obj_set_style_text_color(im_msg, lv_color_hex(COL_TXT2), 0);
-        lv_obj_set_style_text_align(im_msg, LV_TEXT_ALIGN_CENTER, 0);
-        lv_label_set_text(im_msg, "no image\nput a 466x466\nbg.jpg in images/");
-        lv_obj_center(im_msg);
-        lv_obj_add_flag(im_msg, LV_OBJ_FLAG_EVENT_BUBBLE);
-    }
-    im_time = lv_obj_create(root);
-    lv_obj_remove_style_all(im_time);
-    lv_obj_set_size(im_time, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(im_time, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(im_time, LV_OBJ_FLAG_EVENT_BUBBLE);
+        lv_image_set_src(im_image, dsc); lv_obj_center(im_image);
+        lv_obj_remove_flag(im_image, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(im_scrim, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(im_msg, LV_OBJ_FLAG_HIDDEN);
+    } else ui_text(im_msg, im_waiting ? "loading image..." : "no image\nput a 466x466\nbg.jpg in images/");
 }
-
+static void image_build(lv_obj_t *root) {
+    im_image = lv_image_create(root);
+    lv_obj_add_flag(im_image, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
+    im_scrim = lv_obj_create(root); lv_obj_remove_style_all(im_scrim);
+    lv_obj_set_size(im_scrim, 320, 96); lv_obj_align(im_scrim, LV_ALIGN_BOTTOM_MID, 0, -28);
+    lv_obj_set_style_radius(im_scrim, 16, 0); lv_obj_set_style_bg_color(im_scrim, lv_color_black(), 0);
+    lv_obj_set_style_bg_opa(im_scrim, LV_OPA_60, 0);
+    lv_obj_remove_flag(im_scrim, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(im_scrim, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
+    im_msg = mklabel(root, UI_FONT_M, COL_TXT2, 0);
+    lv_obj_set_style_text_align(im_msg, LV_TEXT_ALIGN_CENTER, 0); lv_obj_center(im_msg);
+    image_background();
+    im_time = time_digits(root, WF_CX, IM_CY, 10, 4);
+}
 static void image_update(const struct tm *t, bool aod, bool mc) {
     (void)aod;
-    if (!mc) return;                          // 图片表盘平静:冒号常亮、无秒点,仅按分钟刷新
-    lv_obj_clean(im_time);
-    int cc = draw_time_digits(im_time, t, WF_CX, IM_CY, 10, 4, COL_TXT, LV_OPA_COVER);
-    int oy = IM_CY - (7 * 10) / 2;
-    mkdot(im_time, cc, oy + 2 * 10 + 5, 4, COL_RED, LV_OPA_COVER);
-    mkdot(im_time, cc, oy + 4 * 10 + 5, 4, COL_RED, LV_OPA_COVER);
+    if (im_waiting && !img_store_loading()) image_background();
+    if (mc) update_time(im_time, t, true);
 }
-
-static void image_destroy(void) { im_time = im_msg = NULL; }
+static void image_destroy(void) { im_time = im_msg = im_image = im_scrim = NULL; im_waiting = false; }
 
 /* ============================================================ Weather 表盘(时间 + 实时天气,数据来自 app_weather) ============================================================ */
 // 以【时间为主】:大字 HH:MM 居中,天气退成顶部一个小组件(图标+温度+湿度)。
@@ -356,7 +325,7 @@ static lv_obj_t *wx_full(lv_obj_t *root) {
 
 static void weather_build(lv_obj_t *root) {
     wx_top  = wx_full(root);                               // 顶部天气组件(图标+温度,按需重画)
-    wx_time = wx_full(root);                               // 中心大时间(每分钟重画)
+    wx_time = time_digits(root, WF_CX, WX_TIME_CY, D_P, D_R);                               // 中心大时间(每分钟重画)
     wx_hum   = mklabel(root, UI_FONT_M, COL_TXT2, 140);    // 湿度(组在天气下方)
     wx_date  = mklabel(root, UI_FONT_M, COL_TXT2, 316);    // 日期
     wx_range = mklabel(root, UI_FONT_M, COL_TXT2, 348);    // 当日低/高
@@ -366,11 +335,7 @@ static void weather_build(lv_obj_t *root) {
 static void weather_update(const struct tm *t, bool aod, bool mc) {
     (void)aod;
     if (mc) {                                              // 中心大 HH:MM(主角)+ 日期,每分钟重画
-        lv_obj_clean(wx_time);
-        int cc = draw_time_digits(wx_time, t, WF_CX, WX_TIME_CY, D_P, D_R, COL_TXT, LV_OPA_COVER);
-        int oy = WX_TIME_CY - (7 * D_P) / 2;
-        mkdot(wx_time, cc, oy + 2 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
-        mkdot(wx_time, cc, oy + 4 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
+        update_time(wx_time, t, true);
         static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
         static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
         char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);

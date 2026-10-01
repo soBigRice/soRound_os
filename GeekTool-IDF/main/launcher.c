@@ -23,9 +23,14 @@ const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
 static lv_obj_t *g_icon, *g_iconart, *g_name, *g_title, *g_back, *g_batt, *g_bolt;
+static lv_obj_t *g_nextart;
 static const app_t *cur_app;
 static int cur, pending_app;
 static pwr_state_t s_last_pwr = PWR_UNKNOWN;
+static uint32_t s_last_batt_color = UINT32_MAX;
+static bool s_app_visible;
+static uint32_t s_tick_at;
+static void battery_visibility(bool covered);
 
 /* ---- App 点描图标:沿轮廓撒小圆点(glyph_* 通用画法),容器 IB×IB,中心 IC_C ---- */
 #define IB     132
@@ -210,6 +215,8 @@ static void apply_app(int i) {
 /* ---- 小面积切换动画:中心图标+名字 半程滑出淡出 → 中点换内容 → 反向滑入淡入。
        黑底全程不动,只重绘中心一小块,从设计上避开整屏滑的撕裂。 ---- */
 static int  swap_exit_x;     // 本次滑出的半程目标 x(正负取决于左右滑)
+static int queued_dir;
+static void nav(int dir);
 static bool swapped;         // 本次动画是否已在中点换过内容
 
 static void swap_exec(void *var, int32_t v) {        // v: 0..256
@@ -219,7 +226,14 @@ static void swap_exec(void *var, int32_t v) {        // v: 0..256
         x   = swap_exit_x * v / 128;
         opa = LV_OPA_COVER - LV_OPA_COVER * v / 128;
     } else {                                         // 后半:新内容从反向滑入 + 淡入
-        if (!swapped) { apply_app(pending_app); swapped = true; }
+        if (!swapped) {
+            cur = pending_app;
+            lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_remove_flag(g_nextart, LV_OBJ_FLAG_HIDDEN);
+            lv_obj_t *old = g_iconart; g_iconart = g_nextart; g_nextart = old;
+            lv_label_set_text(g_name, tr_app_name(APPS[cur]->name));
+            swapped = true;
+        }
         int32_t w = v - 128;                         // 0..128
         x   = -swap_exit_x * (128 - w) / 128;
         opa = LV_OPA_COVER * w / 128;
@@ -230,9 +244,16 @@ static void swap_exec(void *var, int32_t v) {        // v: 0..256
     lv_obj_set_style_opa(g_name, opa, 0);
 }
 
+static void swap_completed(lv_anim_t *a) {
+    (void)a;
+    int dir = queued_dir; queued_dir = 0;
+    if (dir) nav(dir);
+}
 static void nav(int dir) {
-    if (lv_anim_get(&swap_exit_x, swap_exec)) return;  // 动画进行中,忽略连击
+    if (lv_anim_get(&swap_exit_x, swap_exec)) { queued_dir = dir; return; }  // 最多缓存一个后续方向,快速连击也有响应
     pending_app = (cur + dir + APP_COUNT) % APP_COUNT;
+    // 准备下一图标发生在动画开始前;中间帧只交换已建好的对象。
+    lv_obj_clean(g_nextart); ICON_FN[pending_app](g_nextart);
     swap_exit_x = -SWAP_SLIDE * dir;                   // 左滑(下一个)向左出,右滑反之
     swapped     = false;
 
@@ -242,6 +263,7 @@ static void nav(int dir) {
     lv_anim_set_exec_cb(&a, swap_exec);
     lv_anim_set_values(&a, 0, 256);
     lv_anim_set_duration(&a, SWAP_MS);
+    lv_anim_set_completed_cb(&a, swap_completed);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
     lv_anim_start(&a);
 }
@@ -256,7 +278,7 @@ static void arrow_next_cb(lv_event_t *e) { nav(+1); }
 
 /* ---- 软件看门狗:盯 LVGL/渲染任务是否还在调度。卡死(LVGL 断言 halt、DMA 信号量永等、死循环等)
        ≥5s 就重启自恢复。硬件 panic 已配置成重启,但"纯卡死"不触发硬件看门狗,故补一个软的。 ---- */
-static volatile uint32_t s_lvgl_hb;             // 心跳:由 app_tick_timer(LVGL 任务,50ms)累加
+static volatile uint32_t s_lvgl_hb;             // 心跳:由 app_tick_timer(LVGL 任务,20ms)累加
 static void render_watchdog(void *arg) {
     (void)arg;
     uint32_t last = 0;
@@ -287,11 +309,28 @@ static void touch_boost_poll(void) {
 }
 
 /* ---- App 生命周期 ---- */
+bool launcher_app_visible(void) {
+    return cur_app && !lock_is_locked() && !quickpanel_is_open();
+}
 static void app_tick_timer(lv_timer_t *t) {
     (void)t;
-    s_lvgl_hb++;                                  // 喂软件看门狗:证明 LVGL 任务还在跑
-    touch_boost_poll();                           // 50ms 粒度足够:DFS 升频本身也就这个量级
-    if (cur_app && cur_app->tick) cur_app->tick();
+    s_lvgl_hb++;
+    touch_boost_poll();
+    battery_visibility(lock_is_locked());
+    if (!cur_app) return;
+    bool visible = launcher_app_visible();
+    uint32_t now = lv_tick_get();
+    if (visible != s_app_visible) {
+        s_app_visible = visible;
+        s_tick_at = now;
+        if (cur_app->visibility) cur_app->visibility(visible);
+    }
+    if (!cur_app->tick || (!visible && !cur_app->tick_in_background)) return;
+    uint32_t period = cur_app->tick_period_ms ? cur_app->tick_period_ms : 50;
+    if (now - s_tick_at < period) return;
+    // 保留平均 50ms 的旧节拍,忙时不连跑补帧;动态页独立使用 20ms。
+    s_tick_at += ((now - s_tick_at) / period) * period;
+    cur_app->tick();
 }
 // 返回:先给当前 app 一次机会消费(如设置的二级子页 → 退回一级);没消费才退出 app 回启动器。
 static void app_back(void) {
@@ -305,6 +344,7 @@ static void back_cb(lv_event_t *e) { app_back(); }
 
 static void enter_app(void) {
     cur_app = APPS[cur];
+    s_app_visible = true; s_tick_at = lv_tick_get();
     ESP_LOGI("app", "enter %s | free internal=%u psram=%u", cur_app->name,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM));   // 盯住内部 RAM:依次开 app 应保持平稳,不再逐次掉
@@ -443,6 +483,22 @@ static void bolt_breath(bool on) {
     lv_anim_start(&a);
 }
 
+static void battery_visibility(bool covered) {
+    static bool was_covered;
+    if (covered == was_covered) return;
+    was_covered = covered;
+    if (covered) {
+        lv_obj_add_flag(g_batt, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
+        bolt_breath(false);
+    } else {
+        lv_obj_remove_flag(g_batt, LV_OBJ_FLAG_HIDDEN);
+        if (s_last_pwr == PWR_CHARGING || s_last_pwr == PWR_FULL)
+            lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
+        bolt_breath(s_last_pwr == PWR_CHARGING);
+    }
+}
+
 static void battery_timer_cb(lv_timer_t *t) {
     int soc; pwr_state_t st;
     if (!power_read(&soc, &st)) return;          // 读失败:保持上次显示
@@ -457,15 +513,18 @@ static void battery_timer_cb(lv_timer_t *t) {
         default:           col = (soc > 20) ? COL_TXT             // 放电:白;低电(≤20%)红
                                  : COL_WARN;
     }
-    lv_obj_set_style_arc_color(g_batt, lv_color_hex(col), LV_PART_INDICATOR);
+    if (col != s_last_batt_color) {
+        lv_obj_set_style_arc_color(g_batt, lv_color_hex(col), LV_PART_INDICATOR);
+        lv_obj_set_style_text_color(g_bolt, lv_color_hex(col), 0);
+        s_last_batt_color = col;
+    }
 
     bool plugged = (st == PWR_CHARGING || st == PWR_FULL);
-    lv_obj_set_style_text_color(g_bolt, lv_color_hex(col), 0);
-    if (plugged) lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
+    if (plugged && !lock_is_locked()) lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
     else         lv_obj_add_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
 
     if (st != s_last_pwr) {
-        bolt_breath(st == PWR_CHARGING);         // 仅充电时呼吸,充满则常亮
+        bolt_breath(st == PWR_CHARGING && !lock_is_locked());         // 仅充电时呼吸,充满则常亮
         s_last_pwr = st;
     }
 
@@ -500,6 +559,12 @@ void launcher_start(void) {
     lv_obj_remove_flag(g_iconart, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_EVENT_BUBBLE);
 
+    g_nextart = lv_obj_create(g_icon);
+    lv_obj_remove_style_all(g_nextart);
+    lv_obj_set_size(g_nextart, IB, IB); lv_obj_center(g_nextart);
+    lv_obj_remove_flag(g_nextart, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(g_nextart, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
+
     g_name = lv_label_create(launcher_screen);
     lv_obj_set_style_text_color(g_name, lv_color_hex(COL_TXT), 0);
     lv_obj_set_style_text_font(g_name, UI_FONT_L, 0);
@@ -530,7 +595,7 @@ void launcher_start(void) {
     lv_screen_load(launcher_screen);
 
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "touch", &s_boost);   // 触摸加速锁(touch_boost_poll)
-    lv_timer_create(app_tick_timer, 50, NULL);   // 周期跑当前 app 的 tick(兼喂软件看门狗)
+    lv_timer_create(app_tick_timer, 20, NULL);   // 20ms 调度,app 各自节拍(兼喂软件看门狗)
     xTaskCreate(render_watchdog, "rwdt", 2560, NULL, configMAX_PRIORITIES - 2, NULL);   // 卡死自恢复
 
     power_init();

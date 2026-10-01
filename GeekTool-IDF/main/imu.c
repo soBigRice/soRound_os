@@ -9,7 +9,9 @@
 
 static const char *TAG = "imu";
 static i2c_master_dev_handle_t s_dev;
-static bool s_ok;
+static bool s_ok, s_initializing;
+static portMUX_TYPE s_init_mux = portMUX_INITIALIZER_UNLOCKED;
+static int64_t s_ready_at_us;
 static int64_t s_last_try_us;
 
 #define IMU_RETRY_US (5LL * 1000 * 1000)
@@ -42,8 +44,7 @@ static bool try_addr(uint8_t addr) {
     return false;
 }
 
-bool imu_init(void) {
-    if (s_ok) return true;
+static bool init_device(void) {
     int64_t now = esp_timer_get_time();
     if (s_last_try_us > 0 && now - s_last_try_us < IMU_RETRY_US) return false;
     s_last_try_us = now;
@@ -59,14 +60,25 @@ bool imu_init(void) {
         drop_device();
         return false;
     }
-    vTaskDelay(pdMS_TO_TICKS(20));
-    s_ok = true;
+    s_ready_at_us = esp_timer_get_time() + 20000;
     ESP_LOGI(TAG, "QMI8658 ready");
     return true;
 }
 
+bool imu_init(void) {
+    portENTER_CRITICAL(&s_init_mux);
+    bool ready = s_ok, busy = s_initializing;
+    if (!ready && !busy) s_initializing = true;
+    portEXIT_CRITICAL(&s_init_mux);
+    if (ready || busy) return ready;
+    bool ok = init_device();
+    portENTER_CRITICAL(&s_init_mux); s_ok = ok; s_initializing = false; portEXIT_CRITICAL(&s_init_mux);
+    return ok;
+}
+
 bool imu_read_accel(float *x, float *y, float *z) {
-    if (!s_ok && !imu_init()) return false;
+    if (!imu_init()) return false;
+    if (esp_timer_get_time() < s_ready_at_us) return false;
     uint8_t b[6];
     if (!rd(0x35, b, 6)) return false;
     int16_t ax = (int16_t)((b[1] << 8) | b[0]);
@@ -79,7 +91,8 @@ bool imu_read_accel(float *x, float *y, float *z) {
 }
 
 bool imu_read_gyro(float *x, float *y, float *z) {
-    if (!s_ok && !imu_init()) return false;
+    if (!imu_init()) return false;
+    if (esp_timer_get_time() < s_ready_at_us) return false;
     uint8_t b[6];
     if (!rd(0x3B, b, 6)) return false;            // Gx_L..Gz_H,小端 16bit
     int16_t gx = (int16_t)((b[1] << 8) | b[0]);
@@ -96,5 +109,12 @@ bool imu_read_tilt(float *tx, float *ty) {
     if (!imu_read_accel(&ax, &ay, &az)) return false;
     *tx = MAP_TX(ax, ay, az);
     *ty = MAP_TY(ax, ay, az);
+    return true;
+}
+
+bool imu_read_tilt_z(float *tx, float *ty, float *z) {
+    float ax, ay, az;
+    if (!imu_read_accel(&ax, &ay, &az)) return false;
+    *tx = MAP_TX(ax, ay, az); *ty = MAP_TY(ax, ay, az); *z = az;
     return true;
 }

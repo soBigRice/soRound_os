@@ -140,7 +140,7 @@ void quickpanel_close(void) {
     lv_anim_start(&a);
 }
 
-bool quickpanel_is_open(void) { return qp_open; }
+bool quickpanel_is_open(void) { return qp_panel && !lv_obj_has_flag(qp_panel, LV_OBJ_FLAG_HIDDEN); }
 
 void quickpanel_hide(void) {
     if (!qp_panel) return;

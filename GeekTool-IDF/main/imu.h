@@ -7,3 +7,5 @@ bool imu_read_accel(float *x, float *y, float *z); // 读原始加速度(单位 
 bool imu_read_gyro(float *x, float *y, float *z);  // 读角速度(单位 °/s);失败/无芯片返回 false(数字孪生用)
 bool imu_read_tilt(float *tx, float *ty);          // 屏幕平面倾斜(右为 +tx,下为 +ty),平放≈0
                                                    // 映射在 imu.c 顶部的 MAP_TX/MAP_TY,方向不对改那里
+
+bool imu_read_tilt_z(float *tx, float *ty, float *z); // 同一帧取得屏幕两轴与垂直分量

@@ -2,6 +2,7 @@
 // 屏上按钮:运行=计圈(lap),停止=归零(reset)。秒环每分钟扫一圈;中心 MM:SS + 百分秒;顶部最近 3 圈。
 #include "app.h"
 #include "glyph.h"
+#include "ui_update.h"
 #include "bootkey.h"
 #include "esp_timer.h"
 #include <stdio.h>
@@ -40,31 +41,15 @@ static lv_obj_t *mkdot(lv_obj_t *p, int x, int y, int r, uint32_t color, lv_opa_
     return d;
 }
 
-static void draw_digit(lv_obj_t *par, char ch, int ox, int oy) {
-    if (ch < '0' || ch > '9') return;
-    const char *const *g = glyph_font5x7[ch - '0'];
-    for (int r = 0; r < 7; r++)
-        for (int c = 0; c < 5; c++)
-            if (g[r][c] == '1') mkdot(par, ox + c * CP + CP / 2, oy + r * CP + CP / 2, CDR, COL_TXT, LV_OPA_COVER);
-}
-
 static void draw_mmss(int secs) {
-    lv_obj_clean(g_center);
-    char b[5]; snprintf(b, sizeof b, "%02d%02d", (secs / 60) % 100, secs % 60);
-    int dw = 5 * CP, g = CP, colw = CP, x0 = CX - (4 * dw + 4 * g + colw) / 2, ox = x0;
-    draw_digit(g_center, b[0], ox, SW_OY); ox += dw + g;
-    draw_digit(g_center, b[1], ox, SW_OY); ox += dw + g;
-    int ccx = ox + colw / 2; ox += colw + g;
-    draw_digit(g_center, b[2], ox, SW_OY); ox += dw + g;
-    draw_digit(g_center, b[3], ox, SW_OY);
-    mkdot(g_center, ccx, SW_OY + 2 * CP + CP / 2, CDR, COL_RED, LV_OPA_COVER);
-    mkdot(g_center, ccx, SW_OY + 4 * CP + CP / 2, CDR, COL_RED, LV_OPA_COVER);
+    char b[6]; snprintf(b, sizeof b, "%02d:%02d", (secs / 60) % 100, secs % 60);
+    glyph_digits_set(g_center, b, COL_TXT, COL_RED);
 }
 
 static void draw_ring(int sec) {
     for (int i = 0; i < RING_N; i++) {
-        lv_obj_set_style_bg_color(g_ring[i], lv_color_hex(i == sec ? COL_RED : COL_TXT), 0);
-        lv_obj_set_style_bg_opa(g_ring[i], i <= sec ? LV_OPA_COVER : LV_OPA_20, 0);
+        ui_bg_color(g_ring[i], i == sec ? COL_RED : COL_TXT);
+        ui_bg_opa(g_ring[i], i <= sec ? LV_OPA_COVER : LV_OPA_20);
     }
 }
 
@@ -126,11 +111,8 @@ static void stopwatch_enter(lv_obj_t *parent) {
     lv_label_set_text(g_lap, "");
     lv_obj_align(g_lap, LV_ALIGN_TOP_MID, 0, 110);
 
-    g_center = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_center);
-    lv_obj_set_size(g_center, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(g_center, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_center, LV_OBJ_FLAG_EVENT_BUBBLE);
+    g_center = glyph_digits_create(parent, CP, CDR);
+    lv_obj_set_pos(g_center, CX - (25 * CP) / 2, SW_OY);
 
     g_cs = lv_label_create(parent);           // 百分秒
     lv_obj_set_style_text_font(g_cs, UI_FONT_L, 0);
@@ -161,7 +143,7 @@ static void stopwatch_tick(void) {
     int rs = sec % 60;
     if (rs != s_last_ring) { draw_ring(rs); s_last_ring = rs; }
     char b[8]; snprintf(b, sizeof b, ".%02d", (int)((e / 10000) % 100));
-    lv_label_set_text(g_cs, b);
+    ui_text(g_cs, b);
 }
 
 static void stopwatch_exit(void) {
@@ -169,4 +151,4 @@ static void stopwatch_exit(void) {
     s_last_sec = s_last_ring = -1;
 }
 
-const app_t app_stopwatch = { "stopwatch", COL_TXT, stopwatch_enter, stopwatch_tick, stopwatch_exit };
+const app_t app_stopwatch = { "stopwatch", COL_TXT, stopwatch_enter, stopwatch_tick, stopwatch_exit, NULL, 20 };

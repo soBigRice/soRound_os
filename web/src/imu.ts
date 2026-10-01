@@ -1,3 +1,4 @@
+import { smoothingAlpha } from './motion';
 import { MathUtils } from 'three/src/math/MathUtils.js';
 import { Quaternion } from 'three/src/math/Quaternion.js';
 import { Vector3 } from 'three/src/math/Vector3.js';
@@ -24,7 +25,7 @@ const LOCAL_Z = new Vector3(0, 0, 1);
 const DISPLAY_X_SIGN = -1;
 const DISPLAY_Y_SIGN = 1;
 const DISPLAY_Z_SIGN = 1;
-const ACCEL_ALPHA = 0.18;
+const ACCEL_TIME_CONSTANT = -(33 / 1000) / Math.log(1 - 0.18);
 const YAW_DEADBAND_DPS = 1.2;
 const MAX_FRAME_DT_SECONDS = 0.06;
 
@@ -44,7 +45,7 @@ function normalizeRadians(angle: number): number {
   return MathUtils.euclideanModulo(angle + Math.PI, twoPi) - Math.PI;
 }
 
-function filteredUpVector(frame: TwinFrame, runtime: OrientationRuntime): Vector3 {
+function filteredUpVector(frame: TwinFrame, runtime: OrientationRuntime, dtSeconds: number): Vector3 {
   const measured = mappedUpVector(frame);
   if (measured.lengthSq() < 1e-6) {
     return runtime.filteredUp;
@@ -55,7 +56,8 @@ function filteredUpVector(frame: TwinFrame, runtime: OrientationRuntime): Vector
     runtime.filteredUp.copy(measured);
     runtime.hasFilteredUp = true;
   } else {
-    runtime.filteredUp.lerp(measured, ACCEL_ALPHA).normalize();
+    const dt = Math.min(Math.max(dtSeconds, 0), MAX_FRAME_DT_SECONDS);
+    runtime.filteredUp.lerp(measured, smoothingAlpha(dt, ACCEL_TIME_CONSTANT)).normalize();
   }
   return runtime.filteredUp;
 }
@@ -75,7 +77,7 @@ export function computeOrientation(
   calibration: CalibrationState,
   runtime: OrientationRuntime,
 ): OrientationState {
-  const up = filteredUpVector(frame, runtime);
+  const up = filteredUpVector(frame, runtime, dtSeconds);
   const tilt = new Quaternion();
   if (up.lengthSq() > 1e-6) {
     tilt.setFromUnitVectors(up, WORLD_UP);
@@ -108,4 +110,11 @@ export function calibrateCurrentPose(raw: Quaternion): CalibrationState {
   return {
     offset: raw.clone().invert(),
   };
+}
+
+// 设备 uptime 是 uint32 毫秒;正常回绕继续积分,重启/长间断重新建立滤波基线。
+export function deviceFrameTiming(nextUptime: number, previousUptime: number | null) {
+  const elapsedMs = previousUptime === null ? 0 : (nextUptime - previousUptime) >>> 0;
+  const restarted = elapsedMs > 1000;
+  return { dtSeconds: restarted ? 0 : elapsedMs / 1000, restarted };
 }

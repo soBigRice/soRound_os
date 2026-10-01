@@ -59,7 +59,15 @@ export async function connectTwin({ onFrame, onDisconnect }: ConnectOptions): Pr
     optionalServices: [TWIN_SERVICE_UUID],
   });
 
-  device.addEventListener('gattserverdisconnected', onDisconnect);
+  let closed = false;
+  const cleanup = () => {
+    if (closed) return;
+    closed = true;
+    if (txChar && handleFrame) txChar.removeEventListener('characteristicvaluechanged', handleFrame);
+    device.removeEventListener('gattserverdisconnected', disconnected);
+  };
+  const disconnected = () => { cleanup(); onDisconnect(); };
+  device.addEventListener('gattserverdisconnected', disconnected);
   let txChar: BluetoothRemoteGATTCharacteristic | null = null;
   let handleFrame: ((event: Event) => void) | null = null;
 
@@ -75,20 +83,18 @@ export async function connectTwin({ onFrame, onDisconnect }: ConnectOptions): Pr
       const target = event.target as BluetoothRemoteGATTCharacteristic;
       if (!target.value) return;
       const frame = parseTwinFrame(target.value);
-      if (frame) onFrame(frame);
+      if (frame && !closed) onFrame(frame);
     };
 
-    await txChar.startNotifications();
     txChar.addEventListener('characteristicvaluechanged', handleFrame);
-    const subscribedTx = txChar;
-    const frameListener = handleFrame;
+    await txChar.startNotifications();
+    if (closed || !device.gatt?.connected) throw new Error('订阅期间设备已断开');
 
     return {
       device,
       rxChar,
       disconnect: () => {
-        subscribedTx.removeEventListener('characteristicvaluechanged', frameListener);
-        device.removeEventListener('gattserverdisconnected', onDisconnect);
+        cleanup();
         device.gatt?.disconnect();
       },
       ping: async () => {
@@ -102,8 +108,7 @@ export async function connectTwin({ onFrame, onDisconnect }: ConnectOptions): Pr
     };
   } catch (error) {
     // 服务发现/订阅可能在 GATT 已连上后失败;统一撤销监听并断开,避免下一次连接命中残留会话。
-    if (txChar && handleFrame) txChar.removeEventListener('characteristicvaluechanged', handleFrame);
-    device.removeEventListener('gattserverdisconnected', onDisconnect);
+    cleanup();
     device.gatt?.disconnect();
     throw error;
   }

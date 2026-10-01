@@ -1,10 +1,12 @@
 // 粒子重力流体 —— 连续坐标 Verlet 粒子物理 + QMI8658 重力方向(倾斜手表,液体往低处流)。
 // v3(前两版是 4px 元胞自动机,格子跳变颗粒感重):240 颗半径 4-6px 圆粒,浮点位置逐帧积分,
-// 位置式软碰撞(粒-粒分离 + 圆壁约束,Verlet 隐式速度天然稳定),30fps 专属定时器 —— 丝滑水珠感。
-// 渲染:464x464 RGB565 画布(PSRAM),预算圆盘行宽表增量擦/画,每帧只无效化脏矩形;
+// 位置式软碰撞(粒-粒分离 + 圆壁约束,Verlet 隐式速度天然稳定),独立渲染定时器 —— 丝滑水珠感。
+// 渲染:464x464 RGB565 画布(PSRAM),预计算圆盘行宽表增量擦/画,每帧只无效化最多 8 条脏带;
 // 全部静止或放平 → 零模拟零推屏(配合 light sleep)。无 IMU 时重力朝下。
 #include "app.h"
 #include "imu.h"
+#include "motion.h"
+#include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "esp_pm.h"
 #include <stdlib.h>
@@ -20,8 +22,7 @@
 #define R_MAX   6
 #define GRAV    0.72f           // 满倾斜加速度(px/子步²):抬高 → 起步更猛、跟手
 #define DRAG    0.996f          // 速度阻尼(每子步;越接近 1 越"稀"越活):放松 → 惯性更足、更灵活
-#define V_MAX   6.0f            // 每子步限速 ≈ 粒径 → 不穿透;×SUBSTEP 得每帧有效速度
-#define SUBSTEP 4               // 每渲染帧跑几个物理小步:速度×4 又不穿墙不穿粒,这是"流畅+灵活"的关键
+#define V_MAX   6.0f            // 每 8.25ms 子步限速 ≈ 粒径,防穿透
 #define ITERS   2               // 每子步约束求解迭代
 #define HCELL   13              // 空间哈希格边长(≥最大直径)
 #define HW      (BW / HCELL + 1)
@@ -40,9 +41,15 @@ static lv_obj_t *g_canvas, *g_hint;
 static uint16_t  g_lut[3];      // 0=黑 1=白 2=红
 static int8_t    g_span[R_MAX + 1][2 * R_MAX + 1];   // 圆盘每行半宽(擦/画零 sqrt)
 static bool      g_has_imu, g_asleep;
-static int       g_calm;                             // 连续静止帧计数
-static float     g_ltx, g_lty;                       // 上次倾斜(唤醒判断)
+static uint32_t  g_calm;                             // 累计静止微秒
+static float     g_ltx, g_lty;                       // 入睡倾斜(累计唤醒判断)
 static int       g_dx1, g_dy1, g_dx2, g_dy2;         // 本帧脏矩形(像素)
+#define DIRTY_BANDS 8
+#define BAND_H (BW / DIRTY_BANDS)
+static lv_area_t g_dirty[DIRTY_BANDS];
+static uint32_t g_remainder;
+static int64_t g_last_us;
+static bool g_pm_held;
 static lv_timer_t *g_timer;
 static esp_pm_lock_handle_t g_pm;                    // 钉住 CPU 240MHz:物理+渲染吃满算力才丝滑(DFS 空闲会掉到 80)
 
@@ -52,11 +59,25 @@ static uint32_t rnd(void) {
     return s;
 }
 
+static void pm_hold(bool held) {
+    if (!g_pm || held == g_pm_held) return;
+    if (held) esp_pm_lock_acquire(g_pm); else esp_pm_lock_release(g_pm);
+    g_pm_held = held;
+}
 static inline void mark_dirty(int x1, int y1, int x2, int y2) {
     if (x1 < g_dx1) g_dx1 = x1;
     if (y1 < g_dy1) g_dy1 = y1;
     if (x2 > g_dx2) g_dx2 = x2;
     if (y2 > g_dy2) g_dy2 = y2;
+    for (int b = y1 / BAND_H; b <= y2 / BAND_H && b < DIRTY_BANDS; b++) {
+        lv_area_t *a = &g_dirty[b];
+        int top = y1 > b * BAND_H ? y1 : b * BAND_H;
+        int bottom = y2 < (b + 1) * BAND_H - 1 ? y2 : (b + 1) * BAND_H - 1;
+        if (x1 < a->x1) a->x1 = x1;
+        if (top < a->y1) a->y1 = top;
+        if (x2 > a->x2) a->x2 = x2;
+        if (bottom > a->y2) a->y2 = bottom;
+    }
 }
 
 static void draw_disc(int cx, int cy, int r, uint16_t c) {
@@ -68,25 +89,32 @@ static void draw_disc(int cx, int cy, int r, uint16_t c) {
     mark_dirty(cx - r, cy - r, cx + r, cy + r);
 }
 
-/* 一帧:子步进物理(积分 + 分离 + 圆壁)×SUBSTEP → 只擦/画移动过的粒子 → 无效化流动带 */
+/* 一帧:按经过时间跑固定物理小步 → 增量擦/画 → 最多 8 条脏带 */
 static void fluid_frame(lv_timer_t *t) {
     (void)t;
     float tx = 0, ty = 1.0f;
     if (g_has_imu && !imu_read_tilt(&tx, &ty)) return;
 
-    // 睡/醒:全员静止且倾斜没变 → 整帧跳过(零 CPU 零推屏);倾斜一动立即醒
-    if (fabsf(tx - g_ltx) + fabsf(ty - g_lty) > 0.05f) { g_asleep = false; g_calm = 0; }
-    g_ltx = tx; g_lty = ty;
-    if (g_asleep) return;
+    int64_t now = esp_timer_get_time();
+    uint32_t elapsed = (uint32_t)(now - g_last_us);
+    g_last_us = now;
+    if (g_asleep) {
+        if (!motion_wake(tx, ty, g_ltx, g_lty)) return;
+        g_asleep = false; g_calm = 0; g_remainder = 0;
+        elapsed = FLUID_STEP_US;
+        lv_timer_set_period(g_timer, 20);
+        pm_hold(true);
+    }
+    unsigned steps = motion_steps(&g_remainder, elapsed);
+    if (!steps) return;
 
     float mag = sqrtf(tx * tx + ty * ty);
     float ax = (mag < 0.04f) ? 0 : tx * GRAV;   // 放平:无平面重力,靠阻尼自然停住
     float ay = (mag < 0.04f) ? 0 : ty * GRAV;
 
-    // === 物理:每渲染帧跑 SUBSTEP 个小步。每步位移 ≤ V_MAX(≈粒径)不穿透,
-    //     叠起来每帧有效速度 ×SUBSTEP → 真流体的快速涌动,却仍稳定。渲染只在最后做一次。===
+    // 固定 8.25ms 物理小步保留重力/阻尼和限速;渲染只在最后做一次。
     float maxd2 = 0;
-    for (int s = 0; s < SUBSTEP; s++) {
+    for (unsigned s = 0; s < steps; s++) {
         for (int i = 0; i < NPART; i++) {                           // Verlet 积分
             part_t *p = &g_p[i];
             float vx = (p->x - p->px) * DRAG, vy = (p->y - p->py) * DRAG;
@@ -136,6 +164,7 @@ static void fluid_frame(lv_timer_t *t) {
     // === 增量渲染:只擦/画本帧真正移动的粒子。躺平的水保留在缓冲里不动,
     //     脏矩形只覆盖流动带 → 静止/半沉降时推屏面积暴跌,延迟随之消失。===
     g_dx1 = BW; g_dy1 = BW; g_dx2 = -1; g_dy2 = -1;
+    for (int b = 0; b < DIRTY_BANDS; b++) g_dirty[b] = (lv_area_t){BW, BW, -1, -1};
     for (int i = 0; i < NPART; i++) {
         part_t *p = &g_p[i];
         p->nix = (int16_t)(p->x + 0.5f); p->niy = (int16_t)(p->y + 0.5f);
@@ -150,24 +179,33 @@ static void fluid_frame(lv_timer_t *t) {
         }
 
     if (g_dx2 >= g_dx1) {                                           // 有粒子动过才推屏
-        int rx1 = g_dx1, ry1 = g_dy1, rx2 = g_dx2, ry2 = g_dy2;     // 冻结流动带边界(仅此区域推屏)
+        int rx1 = g_dx1, ry1 = g_dy1, rx2 = g_dx2, ry2 = g_dy2;     // 移动粒子边界(用来查找需要修补的静止粒子)
         int ex1 = rx1 - 2 * R_MAX, ey1 = ry1 - 2 * R_MAX, ex2 = rx2 + 2 * R_MAX, ey2 = ry2 + 2 * R_MAX;
         for (int i = 0; i < NPART; i++) {                           // 修补:与流动带重叠的静止粒子被擦掉一角 → 重画补回
             part_t *p = &g_p[i];
             if (!p->mv && p->ix >= ex1 && p->ix <= ex2 && p->iy >= ey1 && p->iy <= ey2)
                 draw_disc(p->ix, p->iy, p->r, g_lut[p->col]);
         }
-        lv_area_t oc, a;
+        lv_area_t oc;
         lv_obj_get_coords(g_canvas, &oc);
-        a.x1 = oc.x1 + rx1; a.y1 = oc.y1 + ry1;                    // 只无效化流动带(静止水零推屏)
-        a.x2 = oc.x1 + rx2; a.y2 = oc.y1 + ry2;
-        lv_obj_invalidate_area(g_canvas, &a);
+        // 最多 8 个区域;不把分散移动的水滴之间大片黑底合成一个推屏矩形。
+        for (int b = 0; b < DIRTY_BANDS; b++) {
+            lv_area_t a = g_dirty[b];
+            if (a.x1 > a.x2) continue;
+            a.x1 += oc.x1; a.x2 += oc.x1;
+            a.y1 += oc.y1; a.y2 += oc.y1;
+            lv_obj_invalidate_area(g_canvas, &a);
+        }
     }
 
-    if (maxd2 < 0.004f) { if (++g_calm > 20) g_asleep = true; }     // 持续静止 → 睡
+    if (maxd2 < 0.004f) g_calm += steps * FLUID_STEP_US;
     else g_calm = 0;
-    if (g_asleep)
-        for (int i = 0; i < NPART; i++) { g_p[i].px = g_p[i].x; g_p[i].py = g_p[i].y; }   // 清残余速度,醒来不漂
+    if (g_calm >= 693000) {
+        g_asleep = true; g_ltx = tx; g_lty = ty;
+        for (int i = 0; i < NPART; i++) { g_p[i].px = g_p[i].x; g_p[i].py = g_p[i].y; }
+        lv_timer_set_period(g_timer, 33);
+        pm_hold(false);
+    }
 }
 
 static void buf_deleted(lv_event_t *e)  { heap_caps_free(lv_event_get_user_data(e)); }   // 删屏是 async 的,
@@ -191,7 +229,7 @@ static void fluid_enter(lv_obj_t *parent) {
     g_lut[1] = lv_color_to_u16(lv_color_hex(COL_TXT));
     g_lut[2] = lv_color_to_u16(lv_color_hex(COL_RED));
 
-    for (int r = R_MIN; r <= R_MAX; r++)        // 预算圆盘行宽表(渲染零 sqrt)
+    for (int r = R_MIN; r <= R_MAX; r++)        // 预计算圆盘行宽表(渲染零 sqrt)
         for (int dy = -r; dy <= r; dy++)
             g_span[r][dy + r] = (int8_t)sqrtf((float)(r * r - dy * dy));
 
@@ -221,17 +259,28 @@ static void fluid_enter(lv_obj_t *parent) {
     lv_obj_align(g_hint, LV_ALIGN_TOP_MID, 0, 90);
 
     if (esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "fluid", &g_pm) == ESP_OK)
-        esp_pm_lock_acquire(g_pm);                               // 本 app 期间 CPU 常 240MHz(退出释放,恢复 DFS+浅睡)
+        pm_hold(true);                               // 仅流动时锁 240MHz;入睡/遮挡释放
 
     g_asleep = false; g_calm = 0; g_ltx = g_lty = 0;
-    g_timer = lv_timer_create(fluid_frame, 33, NULL);             // 30fps 专属节拍(launcher tick 只有 20fps)
+    g_last_us = esp_timer_get_time(); g_remainder = 0;
+    g_timer = lv_timer_create(fluid_frame, 20, NULL);             // 50Hz 渲染,固定时间物理步进
 }
 
 static void fluid_exit(void) {
     if (g_timer) { lv_timer_delete(g_timer); g_timer = NULL; }    // 先停定时器,再由删屏回调释放缓冲
-    if (g_pm) { esp_pm_lock_release(g_pm); esp_pm_lock_delete(g_pm); g_pm = NULL; }
+    if (g_pm) { pm_hold(false); esp_pm_lock_delete(g_pm); g_pm = NULL; }
     g_canvas = g_hint = NULL;
     g_p = NULL; g_head = g_next = NULL; g_buf = NULL;
 }
 
-const app_t app_fluid = { "fluid", COL_TXT, fluid_enter, NULL, fluid_exit };
+static void fluid_visibility(bool visible) {
+    if (!g_timer) return;
+    if (visible) {
+        g_last_us = esp_timer_get_time(); g_remainder = 0;
+        pm_hold(!g_asleep); lv_timer_resume(g_timer);
+    } else {
+        lv_timer_pause(g_timer); pm_hold(false);
+    }
+}
+
+const app_t app_fluid = { "fluid", COL_TXT, fluid_enter, NULL, fluid_exit, NULL, 0, fluid_visibility };

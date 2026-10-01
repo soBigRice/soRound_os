@@ -1,23 +1,21 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
+import { smoothingAlpha } from './motion';
 import * as THREE from 'three';
 
 type CubeSceneProps = {
-  orientation: THREE.Quaternion;
+  orientationRef: MutableRefObject<THREE.Quaternion>;
+  requestRenderRef: MutableRefObject<(() => void) | null>;
   connected: boolean;
 };
 
-export function CubeScene({ orientation, connected }: CubeSceneProps) {
+export function CubeScene({ orientationRef, requestRenderRef, connected }: CubeSceneProps) {
   const mountRef = useRef<HTMLDivElement | null>(null);
-  const orientationRef = useRef(orientation);
   const connectedRef = useRef(connected);
 
   useEffect(() => {
-    orientationRef.current = orientation;
-  }, [orientation]);
-
-  useEffect(() => {
     connectedRef.current = connected;
-  }, [connected]);
+    requestRenderRef.current?.();
+  }, [connected, requestRenderRef]);
 
   useEffect(() => {
     if (!mountRef.current) return undefined;
@@ -69,41 +67,72 @@ export function CubeScene({ orientation, connected }: CubeSceneProps) {
     scene.add(cube);
 
     let raf = 0;
+    let lastTime = 0;
+    let disposed = false;
     const target = new THREE.Quaternion();
 
+    const render = (now: number) => {
+      raf = 0;
+      if (disposed || document.hidden) return;
+      const dt = lastTime ? Math.min((now - lastTime) / 1000, 0.1) : 1 / 60;
+      lastTime = now;
+      target.copy(orientationRef.current);
+      cube.quaternion.slerp(target, smoothingAlpha(dt, 0.05));
+      const moving = cube.quaternion.angleTo(target) > 0.001;
+      if (!moving) cube.quaternion.copy(target);
+      body.material.color.setHex(connectedRef.current ? 0x20242b : 0x141418);
+      renderer.render(scene, camera);
+      if (moving) raf = requestAnimationFrame(render);
+    };
+    const invalidate = () => {
+      if (!disposed && !document.hidden && !raf) {
+        lastTime = 0; raf = requestAnimationFrame(render);
+      }
+    };
+    requestRenderRef.current = invalidate;
+    const visibility = () => {
+      if (document.hidden) { cancelAnimationFrame(raf); raf = 0; lastTime = 0; }
+      else invalidate();
+    };
     const resize = () => {
       const width = mount.clientWidth || 1;
       const height = mount.clientHeight || 1;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
+      invalidate();
     };
-
-    const render = () => {
-      target.copy(orientationRef.current);
-      cube.quaternion.slerp(target, 0.16);
-      body.material.color.setHex(connectedRef.current ? 0x20242b : 0x141418);
-      renderer.render(scene, camera);
-      raf = requestAnimationFrame(render);
-    };
+    const observer = new ResizeObserver(resize);
+    observer.observe(mount);
+    document.addEventListener('visibilitychange', visibility);
 
     window.addEventListener('resize', resize);
     resize();
-    render();
+    invalidate();
 
     return () => {
+      disposed = true;
       cancelAnimationFrame(raf);
+      if (requestRenderRef.current === invalidate) requestRenderRef.current = null;
       window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', visibility);
+      observer.disconnect();
       mount.removeChild(renderer.domElement);
+      // 包括边框与 ArrowHelper,共享 geometry/material 只释放一次。
+      const geometries = new Set<THREE.BufferGeometry>();
+      const materials = new Set<THREE.Material>();
+      scene.traverse((object) => {
+        if (object instanceof THREE.Mesh || object instanceof THREE.Line) {
+          geometries.add(object.geometry);
+          const list = Array.isArray(object.material) ? object.material : [object.material];
+          list.forEach((material) => materials.add(material));
+        }
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
       renderer.dispose();
-      body.geometry.dispose();
-      body.material.dispose();
-      faceMark.geometry.dispose();
-      faceMark.material.dispose();
-      grid.geometry.dispose();
-      grid.material.dispose();
     };
-  }, []);
+  }, [orientationRef, requestRenderRef]);
 
   return <div className="scene" ref={mountRef} />;
 }

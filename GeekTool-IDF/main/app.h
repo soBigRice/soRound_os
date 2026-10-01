@@ -34,6 +34,9 @@ typedef struct {
     void (*tick)(void);               // 周期回调(可 NULL),由 lv_timer 调度
     void (*exit)(void);               // 退出清理(可 NULL)
     bool (*back)(void);               // 返回键/右滑时先调(可 NULL):返 true=已消费(退子页),false=退出 app
+    uint16_t tick_period_ms;          // 0=原有 50ms;动态页面可独立选择节拍
+    void (*visibility)(bool visible); // 遮挡/恢复时暂停纯视觉任务
+    bool tick_in_background;         // 仅有到期/提醒等业务的页面继续 tick
 } app_t;
 
 extern const app_t app_wifi;
@@ -66,3 +69,5 @@ bool weather_cached(int *temp, int *lo, int *hi, int *code, int *hum);     // �
 void launcher_start(void);   // 创建启动器并加载(需在 lvgl_port 锁内调用)
 void go_home(void);          // app 内返回启动器
 void launcher_set_title(const char *t);   // app 可在 enter 里改顶部标题(如天气→城市)
+
+bool launcher_app_visible(void);    // 当前 app 没被锁屏/快捷面板遮挡

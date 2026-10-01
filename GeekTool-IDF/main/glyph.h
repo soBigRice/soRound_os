@@ -10,3 +10,7 @@ void glyph_circle(lv_obj_t *par, int cx, int cy, int r, int step, int dotr, uint
 
 // 5×7 点阵数字字模 0-9('1'=亮点),各表盘/计时 app 共用。glyph_font5x7[d][row] 是 5 字符串。
 extern const char *const glyph_font5x7[10][7];
+
+// 固定点距的数字控件(0-9、冒号、空格);保留点阵外观,更新不再创建/删除每个圆点。
+lv_obj_t *glyph_digits_create(lv_obj_t *parent, int pitch, int radius);
+void glyph_digits_set(lv_obj_t *obj, const char *text, uint32_t color, uint32_t colon_color);

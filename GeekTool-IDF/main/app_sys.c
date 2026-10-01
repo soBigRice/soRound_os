@@ -1,5 +1,6 @@
 // 系统信息 —— 芯片 / 内存 / 运行时长(运行时长与空闲内存实时刷新)。IDF 原生 API。
 #include "app.h"
+#include "ui_update.h"
 #include "ui_list.h"
 #include <stdio.h>
 #include "esp_chip_info.h"
@@ -63,15 +64,15 @@ static void sys_tick(void) {
     char buf[32];
     if (g_heap_row) {
         lv_obj_t *r = ui_list_row_right(g_heap_row);
-        if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(esp_get_free_heap_size() / 1024)); lv_label_set_text(r, buf); }
+        if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(esp_get_free_heap_size() / 1024)); ui_text(r, buf); }
     }
     if (g_int_row) {
         lv_obj_t *r = ui_list_row_right(g_int_row);
-        if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024)); lv_label_set_text(r, buf); }
+        if (r) { snprintf(buf, sizeof(buf), "%lu KB", (unsigned long)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024)); ui_text(r, buf); }
     }
     if (g_up_row) {
         lv_obj_t *r = ui_list_row_right(g_up_row);
-        if (r) { fmt_uptime(buf, sizeof(buf), now_ms()); lv_label_set_text(r, buf); }
+        if (r) { fmt_uptime(buf, sizeof(buf), now_ms()); ui_text(r, buf); }
     }
 }
 

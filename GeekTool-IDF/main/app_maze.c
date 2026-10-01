@@ -3,6 +3,8 @@
 #include "app.h"
 #include "glyph.h"
 #include "imu.h"
+#include "esp_timer.h"
+#include "ui_update.h"
 #include "esp_random.h"
 #include <math.h>
 
@@ -30,7 +32,7 @@ static rect_t   s_walls[MAXW];
 static int      s_nwall;
 static lv_obj_t *g_wallbox, *g_ball, *g_msg;
 static float    bx, by, vx, vy;
-static int      s_win;
+static int64_t  s_win_until, s_last_us;
 
 static float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
 
@@ -115,25 +117,29 @@ static void maze_enter(lv_obj_t *parent) {
     lv_label_set_text(g_msg, imu_init() ? "" : "no sensor");
     lv_obj_align(g_msg, LV_ALIGN_TOP_MID, 0, 40);
 
-    s_win = 0;
+    s_win_until = 0; s_last_us = esp_timer_get_time();
     new_maze();
 }
 
 static void maze_tick(void) {
     if (!g_ball) return;
-    if (s_win > 0) {                              // 过关闪烁,结束后换新迷宫
-        s_win--;
-        lv_obj_set_style_bg_opa(g_ball, ((s_win / 3) & 1) ? LV_OPA_COVER : LV_OPA_40, 0);
-        if (s_win == 0) { lv_label_set_text(g_msg, ""); new_maze(); }
+    int64_t now = esp_timer_get_time();
+    float dt = fminf((now - s_last_us) / 1000000.0f, 0.1f);
+    s_last_us = now;
+    if (s_win_until) {
+        if (now >= s_win_until) { s_win_until = 0; lv_label_set_text(g_msg, ""); new_maze(); }
+        else ui_bg_opa(g_ball, (((s_win_until - now) / 150000) & 1) ? LV_OPA_COVER : LV_OPA_40);
         return;
     }
     float tx, ty;
     if (!imu_read_tilt(&tx, &ty)) return;
     float ax = tx * G_MS2 * PPM, ay = ty * G_MS2 * PPM;   // 真实重力加速度(px/s^2)
-    float sdt = DT_S / SUBS;
-    for (int s = 0; s < SUBS; s++) {                       // 按时间分子步积分(球可跑很快也不穿墙)
+    int steps = (int)ceilf(dt / (DT_S / SUBS));
+    if (steps < 1) return;
+    float sdt = dt / steps, damping = powf(BDAMP, sdt / (DT_S / SUBS));
+    for (int s = 0; s < steps; s++) {                       // 按时间分子步积分(球可跑很快也不穿墙)
         vx += ax * sdt; vy += ay * sdt;                    // vx/vy 单位:px/s
-        vx *= BDAMP; vy *= BDAMP;
+        vx *= damping; vy *= damping;
         float sp = sqrtf(vx * vx + vy * vy);
         if (sp > VMAX) { vx = vx * VMAX / sp; vy = vy * VMAX / sp; }
         float nx = bx + vx * sdt, ny = by + vy * sdt;
@@ -159,9 +165,11 @@ static void maze_tick(void) {
 
     int gx = OX + (N - 1) * CELL + CELL / 2, gy = OY + (N - 1) * CELL + CELL / 2;
     float ggx = bx - gx, ggy = by - gy;
-    if (sqrtf(ggx * ggx + ggy * ggy) < 16) { lv_label_set_text(g_msg, "nice!"); s_win = 18; }
+    if (sqrtf(ggx * ggx + ggy * ggy) < 16) { lv_label_set_text(g_msg, "nice!"); s_win_until = now + 900000; }
 }
 
 static void maze_exit(void) { g_wallbox = g_ball = g_msg = NULL; }
 
-const app_t app_maze = { "maze", COL_TXT, maze_enter, maze_tick, maze_exit };
+static void maze_visibility(bool visible) { (void)visible; s_last_us = esp_timer_get_time(); }
+
+const app_t app_maze = { "maze", COL_TXT, maze_enter, maze_tick, maze_exit, NULL, 20, maze_visibility };

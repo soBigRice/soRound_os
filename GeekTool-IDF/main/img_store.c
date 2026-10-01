@@ -6,6 +6,8 @@
 #include "esp_log.h"
 #include "jpeg_decoder.h"
 #include <stdio.h>
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 static const char *TAG = "img";
 
@@ -18,7 +20,8 @@ static const char *TAG = "img";
 #define IMG_SWAP  0
 
 static lv_image_dsc_t s_dsc;
-static bool s_done, s_ok;              // 只解码一次,之后返回缓存
+static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
+static bool s_started, s_done, s_ok;              // 只解码一次,之后返回缓存
 
 static bool mount_fat(void) {
     static bool mounted = false;
@@ -30,9 +33,7 @@ static bool mount_fat(void) {
     return true;
 }
 
-const lv_image_dsc_t *img_store_face_image(void) {
-    if (s_done) return s_ok ? &s_dsc : NULL;
-    s_done = true;
+static const lv_image_dsc_t *decode_image(void) {
     if (!mount_fat()) return NULL;
 
     FILE *f = fopen(IMG_PATH, "rb");
@@ -78,6 +79,27 @@ const lv_image_dsc_t *img_store_face_image(void) {
     s_dsc.header.stride = s_dsc.header.w * 2;
     s_dsc.data          = out;
     s_dsc.data_size     = outsz;
-    s_ok = true;
     return &s_dsc;
+}
+
+static void decode_task(void *arg) {
+    (void)arg;
+    bool ok = decode_image() != NULL;
+    portENTER_CRITICAL(&s_mux); s_ok = ok; s_done = true; portEXIT_CRITICAL(&s_mux);
+    vTaskDelete(NULL);
+}
+const lv_image_dsc_t *img_store_face_image(void) {
+    portENTER_CRITICAL(&s_mux);
+    bool done = s_done, ok = s_ok, start = !s_started;
+    s_started = true;
+    portEXIT_CRITICAL(&s_mux);
+    if (start && xTaskCreate(decode_task, "image_decode", 4096, NULL, 2, NULL) != pdPASS) {
+        ESP_LOGW(TAG, "image decode task allocation failed");
+        portENTER_CRITICAL(&s_mux); s_done = true; s_ok = false; portEXIT_CRITICAL(&s_mux);
+    }
+    return done && ok ? &s_dsc : NULL;
+}
+bool img_store_loading(void) {
+    portENTER_CRITICAL(&s_mux); bool loading = s_started && !s_done; portEXIT_CRITICAL(&s_mux);
+    return loading;
 }

@@ -13,6 +13,7 @@
 #include "app.h"
 #include "glyph.h"
 #include "imu.h"
+#include "ui_update.h"
 #include <math.h>
 #include <stdio.h>
 
@@ -26,6 +27,7 @@
 
 static lv_obj_t *g_ball, *g_big, *g_axes;
 static float ox, oy;
+static uint32_t s_last_ms;
 
 static void level_enter(lv_obj_t *parent) {
     glyph_circle(parent, LCX, LCY, DISH, 16, 2, COL_TXT2);   // 碗沿
@@ -57,39 +59,40 @@ static void level_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(g_ball, LV_OPA_COVER, 0);
     lv_obj_add_flag(g_ball, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    ox = oy = 0;
+    ox = oy = 0; s_last_ms = lv_tick_get();
 }
 
 static void level_tick(void) {
     if (!g_ball) return;
+    uint32_t now = lv_tick_get();
+    float dt = fminf((float)(now - s_last_ms), 100.0f); s_last_ms = now;
+    float alpha = 1.0f - powf(1.0f - SMOOTH, dt / 50.0f);
     float tx, ty, az;
-    {   // 取倾斜分量 + z(算总倾角用)
-        float a3x, a3y;
-        if (!imu_read_tilt(&tx, &ty)) return;
-        imu_read_accel(&a3x, &a3y, &az);
-    }
+    if (!imu_read_tilt_z(&tx, &ty, &az)) return;
     // 标准水平仪:倾角【直接】映射气泡位置(无加速/惯性/摩擦),只做轻度消抖
     float gx = tx * GAIN, gy = ty * GAIN;
     float d = sqrtf(gx * gx + gy * gy);
     if (d > MAXR) { gx = gx * MAXR / d; gy = gy * MAXR / d; }   // 夹到碗沿
-    ox += (gx - ox) * SMOOTH;
-    oy += (gy - oy) * SMOOTH;
+    ox += (gx - ox) * alpha;
+    oy += (gy - oy) * alpha;
     lv_obj_set_pos(g_ball, LCX + (int)ox - BALL_R, LCY + (int)oy - BALL_R);
 
     float tilt = sqrtf(tx * tx + ty * ty);
     uint32_t col = tilt < 0.018f ? 0x36e0c0 : (tilt < 0.12f ? COL_TXT : COL_RED);   // <~1° 绿(水平)/ <~7° 白 / 更大红
-    lv_obj_set_style_bg_color(g_ball, lv_color_hex(col), 0);
+    ui_bg_color(g_ball, col);
 
     // 参数:总倾角 + 两轴角(度)
     float azc = fabsf(az) < 0.05f ? 0.05f : fabsf(az);
     int total = (int)(asinf(tilt > 1.0f ? 1.0f : tilt) * 57.2958f + 0.5f);
     char b[16]; snprintf(b, sizeof b, "%d", total);
-    lv_label_set_text(g_big, b);
+    ui_text(g_big, b);
     char a[24]; snprintf(a, sizeof a, "x %+d  y %+d",
                          (int)(atan2f(tx, azc) * 57.2958f), (int)(atan2f(ty, azc) * 57.2958f));
-    lv_label_set_text(g_axes, a);
+    ui_text(g_axes, a);
 }
 
 static void level_exit(void) { g_ball = g_big = g_axes = NULL; }
 
-const app_t app_level = { "level", COL_TXT, level_enter, level_tick, level_exit };
+static void level_visibility(bool visible) { (void)visible; s_last_ms = lv_tick_get(); }
+
+const app_t app_level = { "level", COL_TXT, level_enter, level_tick, level_exit, NULL, 20, level_visibility };
