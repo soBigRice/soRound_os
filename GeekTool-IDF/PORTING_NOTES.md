@@ -7,7 +7,8 @@
 esp_codec_dev 1.5.10。下文早期版本表和设计目标为历史记录;当前调用链和验证见
 [流畅性与动画优化](#2026-10-01-流畅性与动画优化)及
 [OTA 失败恢复修复](#2026-10-02-ota-失败恢复修复)及
-[实体按键功能对调](#2026-10-02-实体按键功能对调)。CI 依赖差异见流畅性发布核对。
+[实体按键功能对调](#2026-10-02-实体按键功能对调)及
+[遥控台扩展](#遥控台扩展鼠标--演示--媒体)。CI 依赖差异见流畅性发布核对。
 
 > 参考:`78/xiaozhi-esp32` → `main/boards/waveshare/esp32-s3-touch-amoled-1.75/`
 > 该板同时支持 `1.75` 和 `1.75C`,我们用 **1.75C** 的引脚。
@@ -849,4 +850,83 @@ SHA256 `2493047df10bc85e3340a776ba485bd40c12424e3330a86c1077a67a6100794e`。
 本轮未实际操作实体按键。真机最小验收:BOOT 短按锁/解及熄屏解锁;BOOT 长按关机后松手不锁屏;
 PWR 控制两个计时 App,锁屏/快捷面板内按 PWR 后恢复不改变计时;原有 PWR 上电和 BOOT 烧录入口正常。
 用户已明确要求提交全部代码,本次保存全部相关代码、测试及说明;实体按键待验收状态不变。
+
+## 遥控台扩展(鼠标 / 演示 / 媒体)
+
+核对日期:2026-10-03。ESP-IDF 6.0.1、LVGL 9.5.0;固件与主机测试通过,遥控台未烧录开发板。
+
+### 目标与保留项
+
+将现有 `app_mouse` 扩展成同一连接内的三模式遥控台。保留内部 `mouse` 标识、启动器图标、
+设备名 `soRound`、鼠标 Report ID1 的四字节格式、Just Works 绑定和共享 NimBLE host。
+顶栏返回、全局电量环、实体按键映射及 twin 的 20 字节协议保持不变。
+沿用现有 NimBLE GATT 服务扩展,避免为键盘/媒体控制同时重写绑定与 twin 的 host 生命周期;
+未新增依赖、改变分区或自动推送固件。
+
+| 模式 | 真实输入 / 输出 | 状态边界 |
+|---|---|---|
+| 鼠标 | 触控位移、轻点、左右键、滚轮;新增左键拖拽锁定 | `PRESS_LOST` 释放瞬时按键;单指拖拽用独立锁定按钮 |
+| 演示 | USB Keyboard PageUp `0x4b` / PageDown `0x4e` | 幻灯片 / 文档须在主机获得焦点;不发送 F5 或伪装跨软件通用的开始演示命令 |
+| 媒体 | Consumer Previous `0xb6`、Next `0xb5`、Play/Pause `0xcd`、Mute `0xe2`、Volume +/- `0xe9/0xea` | 不推断曲名、播放状态或主机音量;具体响应由主机应用决定 |
+| 演示计时 | `esp_timer_get_time()` 累计经过时间,点按暂停/继续,归零停止 | 无需连接;切换模式、锁屏时继续计时,退出页面结束本次计时 |
+
+### 调用链与可靠释放
+
+- `app_mouse.mouse_enter → ble_hid_start → ble_core_start`:三种 Input Report 在共享 host 首次启动时
+  一起注册,模式切换只重建当前页面,不重启 host、不重新配对。
+- 鼠标 `pad_event / mouse_button_event / wheel_event → ble_hid_mouse`:原 ID1 负载为
+  `[buttons, dx, dy, wheel]`,带符号的相对位移保持原语义。
+- 演示 / 媒体 `remote_action → ble_hid_key_tap / ble_hid_media_tap`:最多排队 8 次完整点击,
+  队列满时页面明确显示繁忙并要求重试。ID2 是 8 字节键盘输入,ID3 是小端 16 位 Consumer Usage。
+  BLE Report 特征不再次前缀 Report ID;通过 Report Reference 描述符关联 1/2/3。
+- `mouse_tick → ble_hid_tick`:20ms 调度,按下与释放之间至少 35ms;每次 tick 最多发送一帧。
+  发送失败保留待处理状态,持续失败达到 1 秒时断开,由主机清除持有输入状态。
+- `clear_input → ble_hid_release_all`:模式切换或 `mouse_visibility(false)` 取消未发送点击,
+  已提交给 NimBLE 的按住状态优先排队释放。`tick_in_background=true` 仅确保遮挡期间也能完成释放;
+  隐藏时不更新页面。鼠标任意按键释放失败也会进入零状态恢复,包括同时按住左右键后
+  只松开其中一个;不丢弃释放报文。恢复期间清理页面按住状态,避免后续位移再次按下旧按键。
+- `gap_event`:连接代次隔离断连后的旧动作;加密和通知订阅按连接句柄验证。
+  `ble_hid_ready(report)` 同时检查连接、加密、该 Report 的通知和 suspend 状态;
+  配对成功不能直接视为全部控制可用。通知撤销后无法完成释放同样有超时断开防线。
+  主机 suspend 时取消队列,恢复后释放;只支持 Report Protocol。
+- GAP 可能在 notify 期间取消队列:连接代次与队列代次分别核对,仍记录 NimBLE 接受的按键并释放,
+  不推进已清空队列、不把旧报文记到新连接。notify 成功仅说明 NimBLE 接受,不是主机执行验收。
+
+### 验证与版本兼容
+
+`tests/hid/hid_tests.c` 编译真实 `ble_hid.c`,只替换无线传输与 GAP 事件。
+覆盖 Report Map 解析与 4/8/2 字节契约、通知就绪、同键连续点击、六种媒体 Usage、队列容量、
+取消和释放重试、组合鼠标按键的部分释放失败、内存失败、持续失败断开、通知撤销、
+suspend 与发送期间取消/重连竞态。
+
+`tests/hid/remote_ui_tests.c` 使用真实页面、真实 LVGL 和真实 HID 实现,模拟触摸及主机事件。
+覆盖原鼠标位移/轻点/滚轮、拖拽锁定、`PRESS_LOST`、遮挡释放、三模式无重连切换、全部媒体键、
+离线计时暂停/恢复/跨模式/小时边界、繁忙和启动失败、中英文文字边界及圆屏模式按钮位置。
+可传输出目录生成实际 LVGL 渲染;预览中的顶栏/电量环是测试框架重建,不是设备截图。
+新增测试与原有性能、OTA 页面、实体按键三组回归共 5 组通过,已分别在本地 LVGL 9.5.0
+与上游 LVGL 9.6.0 补测;18 组 OTA 恢复边界及最终固件构建通过。
+
+旧主机可能缓存原鼠标的 Report Map;升级后新增模式不可用时需在主机删除旧配对再重新连接。
+最小实机验收:新配对 → 鼠标轻点/左右键/滚轮/拖拽 → 演示前后翻页及计时 → 播放器六种媒体键 →
+切换模式不中断连接 → 拖拽/按键中锁屏或离开页面 → 断连重连不重放输入 → twin 仍可连接。
+当前无开发板串口,上述主机/设备兼容性、真实触摸及 AMOLED 观感未验收。
+
+### 本次可复用检查
+
+圆屏字体不能只按字号估算英文宽度:本项目 `unscii_16` 的字符宽度为 16px,初次布局测试发现
+78px 模式按钮中的英文 `mouse` 越界。窄模式按钮改用既有 Montserrat 20 + 中文 fallback,
+正文按钮按容器明确居中/换行,音量标签使用完整可见的短文案;真实中英文渲染检查防止回归。
+LVGL `lv_refr_now` 不推进选中颜色的动画;截图前需运行真实定时器至动画结束,否则会显示上一模式
+仍处于选中色,不能据此反复改 UI 数值。中文字体生成保留既有字集,新增文案后生成并核对缺字。
+发布前复核发现释放恢复只覆盖全松开的零报文,遗漏组合按键只松开一个的情况。
+新增用例在修复前失败、修复后通过;恢复判断按“此前按住的任意位是否被清除”,不能只判断新位图为零。
+LVGL 9.6 已弃用 `lv_obj_add_flag/remove_flag/set_flag`,遥控台严格编译因此暴露兼容问题。
+`lvgl_compat.h` 对四种实际用到的标志在 9.6 选择独立 setter、9.5 保留原位操作;
+遥控台与 `glyph.c` 点描控件共同使用,没有改变标志或关闭告警。测试显式指定 RGB565,
+保留 9.5 的 16 位配置;两版本的五组回归均通过,无需升级本地组件或重构其他页面。
+
+来源:[ESP-IDF 6.0.1 HID 示例](https://github.com/espressif/esp-idf/blob/v6.0.1/examples/bluetooth/esp_hid_device/main/esp_hid_device_main.c)、
+[Bluetooth HID Service](https://www.bluetooth.com/specifications/specs/human-interface-device-service-1-0/)、
+[USB-IF HID Usage Tables](https://www.usb.org/hid)。本次复核标准 Usage 和独立 Input Report 结构,
+没有套用示例的蓝牙栈来替换项目已有 NimBLE。
 发包按明确发布授权执行,不覆盖已发布 beta9 Tag。

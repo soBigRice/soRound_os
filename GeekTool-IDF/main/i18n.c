@@ -73,6 +73,22 @@ static const char *const TXT[S__COUNT][2] = {
     [S_CONNECTED]     = { "connected",                  "已连接" },
     [S_MOUSE_PAIR]    = { "pair \"soRound\" on your device", "在设备蓝牙里配对 soRound" },
     [S_BT_FAIL]       = { "bluetooth failed",           "蓝牙启动失败" },
+    [S_REMOTE_TITLE]  = { "remote",                     "遥控台" },
+    [S_REMOTE_MOUSE]  = { "mouse",                      "鼠标" },
+    [S_REMOTE_SLIDES] = { "slides",                     "演示" },
+    [S_REMOTE_MEDIA]  = { "media",                      "媒体" },
+    [S_REMOTE_DRAG]   = { "drag",                       "拖拽" },
+    [S_REMOTE_PREPARING] = { "waiting for host controls...", "等待设备启用控制..." },
+    [S_REMOTE_BUSY]   = { "busy - try again",           "繁忙 - 请重试" },
+    [S_REMOTE_PREV_PAGE] = { "prev",                    "上一页" },
+    [S_REMOTE_NEXT_PAGE] = { "next",                    "下一页" },
+    [S_REMOTE_PREV_TRACK] = { "prev",                   "上一首" },
+    [S_REMOTE_NEXT_TRACK] = { "next",                   "下一首" },
+    [S_REMOTE_PLAY_PAUSE] = { "play\npause",            "播放/暂停" },
+    [S_REMOTE_MUTE]   = { "mute",                       "静音" },
+    [S_REMOTE_TIMER_HINT] = { "tap time: start / pause", "点时间开始/暂停" },
+    [S_REMOTE_VOLUME_UP] = { "VOL+",                    "音量 +" },
+    [S_REMOTE_VOLUME_DOWN] = { "VOL-",                  "音量 -" },
     /* dice modes / coin */
     [S_COIN]          = { "coin",                       "硬币" },
     [S_HEADS]         = { "heads",                      "正" },
@@ -96,7 +112,6 @@ static const char *const APP_ZH[][2] = {
     { "maze",      "迷宫" },
     { "fluid",     "流体" },
     { "dice",      "色子" },
-    { "mouse",     "鼠标" },
 };
 
 const char *tr(str_id_t id) {
@@ -105,6 +120,8 @@ const char *tr(str_id_t id) {
 }
 
 const char *tr_app_name(const char *en_name) {
+    // 保留内部 mouse 标识及现有启动器图标,对用户呈现扩展后的遥控台。
+    if (strcmp(en_name, "mouse") == 0) return tr(S_REMOTE_TITLE);
     if (!settings_lang()) return en_name;
     for (unsigned i = 0; i < sizeof(APP_ZH) / sizeof(APP_ZH[0]); i++)
         if (strcmp(APP_ZH[i][0], en_name) == 0) return APP_ZH[i][1];

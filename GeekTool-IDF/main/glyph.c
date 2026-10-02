@@ -26,8 +26,8 @@ lv_obj_t *glyph_dot(lv_obj_t *par, int x, int y, int r, uint32_t color) {
     lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(d, lv_color_hex(color), 0);
     lv_obj_set_style_bg_opa(d, LV_OPA_COVER, 0);   // 关键:remove_style_all 后 bg_opa 默认透明,必须显式置满
-    lv_obj_remove_flag(d, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);   // 手势冒泡到父屏
+    ui_obj_set_scrollable(d, false);
+    ui_obj_set_event_bubble(d, true);   // 手势冒泡到父屏
     return d;
 }
 
@@ -122,8 +122,9 @@ lv_obj_t *glyph_digits_create(lv_obj_t *parent, int pitch, int radius) {
     if (!o) return NULL;
     lv_obj_class_init_obj(o);
     lv_obj_remove_style_all(o);
-    lv_obj_remove_flag(o, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(o, LV_OBJ_FLAG_EVENT_BUBBLE);
+    ui_obj_set_scrollable(o, false);
+    ui_obj_set_clickable(o, false);
+    ui_obj_set_event_bubble(o, true);
     lv_obj_set_style_radius(o, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
     digits_t *d = (digits_t *)o;
