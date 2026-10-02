@@ -19,6 +19,19 @@ for f in srcFiles {
     }
     for ch in s where ("\u{4E00}"..."\u{9FFF}").contains(ch) { set.insert(ch) }
 }
+// 文案索引不覆盖所有页面和历史字符。新增文案时保留已交付字集,
+// 不能因扫描范围变窄,让其他页面或动态名称里的中文突然缺字。
+if let previous = try? String(contentsOfFile: outPath, encoding: .utf8) {
+    let regex = try NSRegularExpression(pattern: #"U\+([0-9A-Fa-f]{4,6})"#)
+    let range = NSRange(previous.startIndex..<previous.endIndex, in: previous)
+    for match in regex.matches(in: previous, range: range) {
+        if let hex = Range(match.range(at: 1), in: previous),
+           let value = UInt32(previous[hex], radix: 16), (0x4E00...0x9FFF).contains(value),
+           let scalar = UnicodeScalar(value) {
+            set.insert(Character(String(scalar)))
+        }
+    }
+}
 let chars = set.sorted { $0.unicodeScalars.first!.value < $1.unicodeScalars.first!.value }
 guard !chars.isEmpty else { print("no CJK found"); exit(1) }
 
@@ -120,5 +133,6 @@ const lv_font_t font_cn16 = {
     .dsc = &font_dsc,
 };
 """
-try! out.write(toFile: outPath, atomically: true, encoding: .utf8)
+let cleanOutput = out.replacingOccurrences(of: #"(?m)^[ \t]+$"#, with: "", options: .regularExpression)
+try! cleanOutput.write(toFile: outPath, atomically: true, encoding: .utf8)
 print("OK: \(outPath)  \(chars.count) glyphs, bitmap \(bitmap.count) bytes")

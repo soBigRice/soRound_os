@@ -85,8 +85,9 @@ void app_main(void) {
     esp_ota_img_states_t st;
     const esp_partition_t *run = esp_ota_get_running_partition();
     if (esp_ota_get_state_partition(run, &st) == ESP_OK && st == ESP_OTA_IMG_PENDING_VERIFY) {
-        esp_ota_mark_app_valid_cancel_rollback();
-        ESP_LOGW(TAG, "OTA image confirmed valid (rollback canceled)");
+        esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
+        if (err == ESP_OK) ESP_LOGW(TAG, "OTA image confirmed valid (rollback canceled)");
+        else ESP_LOGE(TAG, "OTA image confirmation failed: %s", esp_err_to_name(err));
     }
 
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");

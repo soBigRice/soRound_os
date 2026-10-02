@@ -49,6 +49,8 @@ BLE 数字孪生以及双分区云 OTA。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
+OTA 下载恢复、状态同步和故障排查见
+[OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
 
 ## 系统关系
 
@@ -160,7 +162,7 @@ npm --prefix web run preview
 | 正式 `v1.6` | `GeekTool.bin` **和** `GeekTool-beta.bin` | 所有设备 |
 | 内测 `v1.6-beta.1` | 仅 `GeekTool-beta.bin` | 仅开了 beta 开关的设备 |
 
-设备端在 OTA 页有 `beta channel` 开关（存 NVS，默认关）：
+设备端在 OTA 页有 `beta` / `测试通道` 开关（存 NVS，默认关）：
 
 - 关 → 拉 `https://ota.miaozong.cc/GeekTool.bin`，只收正式版。
 - 开 → 拉 `https://ota.miaozong.cc/GeekTool-beta.bin`，收内测版；因正式版同时覆盖
@@ -168,6 +170,11 @@ npm --prefix web run preview
 
 设备上的"旧固件"位于另一个 OTA 分区（A/B 双分区），是启动回滚的保险，
 下次 OTA 自动覆盖，**不需要也不应该手动删除**。
+
+当前客户端对临时连接失败和断流最多尝试 3 次；有强 ETag 时在同一次任务内从已写入位置续传，
+没有可靠对象身份则重新下载。镜像头、项目、大小和完整镜像验证通过后才切换启动分区。
+页面显示重连次数、校验阶段和失败阶段/错误码；离开页面后下载继续。
+这些客户端修复需要先安装修复后的固件才会生效，旧版若无法完成 OTA，需要一次 USB 更新。
 
 仓库需要配置以下 GitHub Actions Secrets：
 
@@ -197,6 +204,16 @@ Tag 应指向已经完成本地构建与真机验证的干净提交。OTA 完成
 # 固件编译
 idf.py -C GeekTool-IDF build
 
+# OTA 下载恢复（真实业务代码，替换传输与 Flash 接口）
+cmake -S GeekTool-IDF/tests/ota -B /tmp/geektool-ota-tests
+cmake --build /tmp/geektool-ota-tests
+ctest --test-dir /tmp/geektool-ota-tests --output-on-failure
+
+# LVGL 性能回归与 OTA 中英文状态渲染
+cmake -S GeekTool-IDF/tests/host -B /tmp/geektool-host-tests
+cmake --build /tmp/geektool-host-tests -j 8
+ctest --test-dir /tmp/geektool-host-tests --output-on-failure
+
 # Web 类型检查 + 生产构建
 npm --prefix web run build
 
@@ -207,9 +224,9 @@ git diff --check
 涉及硬件交互的改动至少还应验证屏幕、触摸、启动器导航、PWR/BOOT 键、Wi-Fi、音频、IMU、
 锁屏/省电和 OTA 中直接受影响的项目。仅通过编译不等于真机功能已验收。
 
-最近一次本地验证（2026-10-01）：流畅性优化后的固件完整构建、80 组数字像素对照、
-流体/倒计时主机回归及 Web 11 组回归、类型检查和生产构建通过。
-该结果不代表本轮 OTA、音频、BLE 或屏幕交互已经在真机复验；详见性能实现记录。
+最近一次本地验证（2026-10-02）：OTA 修复后的固件完整构建、18 组下载恢复/错误边界、
+8 个中英文 OTA 状态渲染及原有 LVGL 性能回归通过；实际设备下载、断线恢复和重启仍待验证。
+Web 11 组回归、类型检查和生产构建为 2026-10-01 流畅性发布时的结果，本次未改 Web。
 
 ## 已知边界
 

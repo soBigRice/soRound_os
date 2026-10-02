@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.20)
+project(geektool_ota_tests LANGUAGES C)
+add_executable(ota_tests ota_tests.c ../../main/ota_update.c)
+target_include_directories(ota_tests PRIVATE stubs ../../main)
+target_compile_options(ota_tests PRIVATE -Wall -Wextra)
+enable_testing()
+add_test(NAME ota_recovery COMMAND ota_tests)

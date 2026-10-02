@@ -1,5 +1,5 @@
-// OTA 升级 —— esp_https_ota 从固定 URL 拉固件刷写,带进度%;成功后重启。需先连 WiFi。
-// 线程:OTA 在独立任务里跑(阻塞、联网),只写 s_state/s_pct;UI 在 ota_tick(LVGL 任务)里读。
+// OTA 升级 —— ota_update.c 负责 HTTPS 下载/续传/校验,本页负责 worker 与圆屏状态。
+// 线程:后台只发布加锁快照,UI 在 ota_tick(LVGL 任务)里读;离开页面仍继续更新。
 // 安全:开了 bootloader 回滚(sdkconfig CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)——
 //   新固件启动后由 main.c 调 esp_ota_mark_app_valid_cancel_rollback() 确认;若新固件启动即崩,
 //   下次复位 bootloader 自动回退旧分区。dual-OTA 分区(ota_0/ota_1)刷到另一个 slot,失败不毁当前固件。
@@ -7,12 +7,10 @@
 #include "settings.h"
 #include "glyph.h"
 #include "ui_update.h"
+#include "ota_update.h"
 #include "esp_wifi.h"
-#include "esp_http_client.h"
-#include "esp_https_ota.h"
-#include "esp_crt_bundle.h"
-#include "esp_ota_ops.h"
 #include "esp_app_desc.h"
+#include "esp_system.h"
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -32,18 +30,29 @@ static const char *TAG = "ota";
 #define OTA_URL_STABLE "https://ota.miaozong.cc/GeekTool.bin"
 #define OTA_URL_BETA   "https://ota.miaozong.cc/GeekTool-beta.bin"
 
-// CHECKING=连上读镜像头比版本;UPTODATE=远端与当前同版本,不刷。
-typedef enum { OTA_IDLE, OTA_CHECKING, OTA_RUNNING, OTA_OK, OTA_FAIL, OTA_UPTODATE } ota_state_t;
-static volatile ota_state_t s_state = OTA_IDLE;
-static volatile int         s_pct = 0;         // 下载进度 0-100
-static volatile bool        s_task_alive = false;
-static char                 s_newver[32];      // 远端固件版本号(读镜像头得到,展示用)
+static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
+static ota_status_t         s_status = { .state = OTA_IDLE };
+static bool                 s_task_alive;
 static int                  s_last_pct = -1;   // 每次进页面重放当前任务进度
+static int                  s_last_attempt = -1;
 static ota_state_t          s_shown = (ota_state_t)-1;
 
 static lv_obj_t *g_status, *g_ver, *g_icon, *g_pctlbl, *g_action;
 static lv_obj_t *g_orbitbox, *g_hit, *g_switch, *g_channelbox;
 static void ota_tick(void);
+
+static ota_status_t status_snapshot(void) {
+    portENTER_CRITICAL(&s_mux);
+    ota_status_t result = s_status;
+    portEXIT_CRITICAL(&s_mux);
+    return result;
+}
+static void status_publish(const ota_status_t *status, void *user) {
+    (void)user;
+    portENTER_CRITICAL(&s_mux);
+    s_status = *status;
+    portEXIT_CRITICAL(&s_mux);
+}
 
 /* ===== Orbit Console:开放点阵轨道 + 中央状态 + 底部通道胶囊 =====
    全局 layer_top 已有 458px 电量环,OTA 页不能再画完整内环,否则真机会形成双重“靶心”。 */
@@ -105,7 +114,7 @@ static void orbit_check_frame(int phase) {
 
 static void orbit_anim_exec(void *o, int32_t v) {
     (void)o;
-    if (g_orbitbox && s_state == OTA_CHECKING) orbit_check_frame(v);
+    if (g_orbitbox && (s_shown == OTA_CHECKING || s_shown == OTA_HEADER || s_shown == OTA_RETRYING)) orbit_check_frame(v);
 }
 
 static void stop_orbit_anim(void) {
@@ -144,69 +153,27 @@ static void set_icon(int kind, uint32_t col) {     // 0=箭头 1=对勾 2=叉 3=
     else if (kind == 2) draw_cross(col);
 }
 
-/* 带进度的 OTA:begin → 循环 perform(每次读一块)→ finish。进度 = 已读/总大小。 */
 static void ota_task(void *arg) {
-    // 下载期间关调制解调器睡眠拉满网速(平时 MAX_MODEM 省电但吞吐掉一截,1.8MB 包体感明显);
-    // 任务结束恢复省电档。HTTP 缓冲 512→4KB,减少 TLS 分段读次数。
-    esp_wifi_set_ps(WIFI_PS_NONE);
-    esp_http_client_config_t http = {
-        .url               = settings_beta() ? OTA_URL_BETA : OTA_URL_STABLE,
-        .crt_bundle_attach = esp_crt_bundle_attach,   // HTTPS 用;HTTP 时忽略
-        .timeout_ms        = 15000,
-        .keep_alive_enable = true,
-        .buffer_size       = 4096,
-        .buffer_size_tx    = 2048,
-    };
-    esp_https_ota_config_t cfg = { .http_config = &http };
-
-    esp_https_ota_handle_t h = NULL;
-    esp_err_t err = esp_https_ota_begin(&cfg, &h);
-    if (err != ESP_OK) { ESP_LOGE(TAG, "begin: %s", esp_err_to_name(err)); goto done; }
-
-    // 版本比对:只读镜像头拿到新固件版本号(不下载整包),与当前运行版本比。
-    // 相同 → abort 不刷,提示"已是最新";不同才继续下载。get_img_desc 失败则跳过检查照常刷(安全兜底)。
-    esp_app_desc_t nd;
-    if (esp_https_ota_get_img_desc(h, &nd) == ESP_OK) {
-        strncpy(s_newver, nd.version, sizeof s_newver - 1); s_newver[sizeof s_newver - 1] = 0;
-        const esp_app_desc_t *cur = esp_app_get_description();
-        ESP_LOGI(TAG, "remote=%s current=%s", nd.version, cur->version);
-        if (strncmp(nd.version, cur->version, sizeof nd.version) == 0) {
-            esp_https_ota_abort(h); h = NULL;
-            esp_wifi_set_ps(WIFI_PS_MAX_MODEM);        // 早退路径同样恢复省电档
-            s_state = OTA_UPTODATE;                    // 同版本:不刷不重启
-            s_task_alive = false;
-            vTaskDelete(NULL);
-            return;
-        }
+    wifi_ps_type_t previous;
+    bool restore = esp_wifi_get_ps(&previous) == ESP_OK && esp_wifi_set_ps(WIFI_PS_NONE) == ESP_OK;
+    ota_status_t result = ota_update_run(arg, status_publish, NULL);
+    if (restore) {
+        esp_err_t err = esp_wifi_set_ps(previous);
+        if (err != ESP_OK) ESP_LOGW(TAG, "restore WiFi power save: %s", esp_err_to_name(err));
     }
-    s_state = OTA_RUNNING;                             // 有新版 → 进入下载态(tick 显示进度)
-
-    int total = esp_https_ota_get_image_size(h);      // Content-Length;可能为 -1(chunked)
-    while ((err = esp_https_ota_perform(h)) == ESP_ERR_HTTPS_OTA_IN_PROGRESS) {
-        int rd = esp_https_ota_get_image_len_read(h);
-        s_pct = (total > 0) ? (rd * 100 / total) : 0;
-    }
-    if (err == ESP_OK && esp_https_ota_is_complete_data_received(h)) {
-        s_pct = 100;
-        err = esp_https_ota_finish(h);                // 校验 + 切 boot 分区
-        h = NULL;                                     // finish 已释放句柄
-    } else {
-        ESP_LOGE(TAG, "perform: %s", esp_err_to_name(err));
-        if (h) esp_https_ota_abort(h);
-        h = NULL;
-        if (err == ESP_OK) err = ESP_FAIL;            // 数据没收全也算失败
-    }
-
-done:
-    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);               // 恢复省电档(成功路径马上重启,无所谓)
-    ESP_LOGI(TAG, "OTA -> %s", esp_err_to_name(err));
-    s_state = (err == ESP_OK) ? OTA_OK : OTA_FAIL;
+    // 成功后仍占有任务直到重启,不能在这 1.2 秒再次启动下载。
+    if (result.state == OTA_OK) { vTaskDelay(pdMS_TO_TICKS(1200)); esp_restart(); }
+    portENTER_CRITICAL(&s_mux);
     s_task_alive = false;
-    if (err == ESP_OK) { vTaskDelay(pdMS_TO_TICKS(1200)); esp_restart(); }
+    portEXIT_CRITICAL(&s_mux);
     vTaskDelete(NULL);
 }
 
 static void beta_changed(lv_event_t *e) {             // 内测通道开关:开=收 beta+正式,关=只收正式
+    portENTER_CRITICAL(&s_mux);
+    bool busy = s_task_alive;
+    portEXIT_CRITICAL(&s_mux);
+    if (busy) return;
     bool on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
     settings_set_beta(on ? 1 : 0);
     settings_save();
@@ -214,27 +181,36 @@ static void beta_changed(lv_event_t *e) {             // 内测通道开关:开=
 
 static void start_btn(lv_event_t *e) {
     (void)e;
-    if (s_task_alive) return;                         // 检查/下载任务在跑 → 忽略重复点
     wifi_ap_record_t ap;
     if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) {    // 没连 WiFi
         lv_label_set_text(g_status, tr(S_CONNECT_WIFI));
         lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
         return;
     }
-    s_pct = 0;
+    portENTER_CRITICAL(&s_mux);
+    if (s_task_alive) { portEXIT_CRITICAL(&s_mux); return; }
+    s_task_alive = true;
+    s_status = (ota_status_t){ .state = OTA_CHECKING, .attempt = 1 };
+    portEXIT_CRITICAL(&s_mux);
     s_last_pct = -1;
     lv_label_set_text(g_pctlbl, "");
     orbit_idle();                                      // 重新检查时清掉上一轮终态
-    s_state = OTA_CHECKING;                           // 先连上比版本,再决定刷不刷
-    s_task_alive = true;                              // 置位在 create 前,杜绝竞态重入
-    if (xTaskCreate(ota_task, "ota", 8192, NULL, 5, NULL) != pdPASS) { s_task_alive = false; s_state = OTA_FAIL; }
+    ota_tick();                                      // 先禁用操作,并让快速失败也能重新渲染错误
+    const char *url = settings_beta() ? OTA_URL_BETA : OTA_URL_STABLE;
+    if (xTaskCreate(ota_task, "ota", 8192, (void *)url, 5, NULL) != pdPASS) {
+        ota_status_t failed = { .state = OTA_FAIL, .failed_at = OTA_CHECKING, .error = ESP_ERR_NO_MEM };
+        portENTER_CRITICAL(&s_mux);
+        s_task_alive = false; s_status = failed;
+        portEXIT_CRITICAL(&s_mux);
+    }
 }
 
 static void ota_enter(lv_obj_t *parent) {
-    // OTA task 可以在离开页面后继续。这里不能重置 s_state/s_pct,否则重进时会显示 idle,
+    // OTA task 可以在离开页面后继续。这里不能重置后台快照,否则重进时会显示 idle,
     // 但 start_btn 又因 s_task_alive 拒绝点击,形成“后台在下、前台像卡住”的假状态。
     // 只重置 UI 去重缓存,让首个 tick 把当前后台状态完整重放到新控件。
     s_last_pct = -1;
+    s_last_attempt = -1;
     s_shown = (ota_state_t)-1;
     launcher_set_title(tr(S_OTA_TITLE));
 
@@ -341,16 +317,18 @@ static void ota_enter(lv_obj_t *parent) {
 
 static void ota_tick(void) {
     if (!g_status) return;
-    if (s_state == OTA_RUNNING && s_pct != s_last_pct) {   // 点阵轨道 + 中心百分比
-        s_last_pct = s_pct;
-        orbit_progress(s_pct);
-        char pb[8]; snprintf(pb, sizeof pb, "%d%%", s_pct);
+    ota_status_t status = status_snapshot();
+    if ((status.state == OTA_RUNNING || status.state == OTA_VERIFYING) && status.pct != s_last_pct) {
+        s_last_pct = status.pct;
+        orbit_progress(status.pct);
+        char pb[8]; snprintf(pb, sizeof pb, "%d%%", status.pct);
         lv_label_set_text(g_pctlbl, pb);
     }
-    if (s_state == s_shown) return;
-    s_shown = s_state;
+    if (status.state == s_shown && status.attempt == s_last_attempt) return;
+    s_shown = status.state; s_last_attempt = status.attempt;
     stop_orbit_anim();
-    bool busy = (s_state == OTA_CHECKING || s_state == OTA_RUNNING || s_state == OTA_OK);
+    bool busy = status.state == OTA_CHECKING || status.state == OTA_HEADER || status.state == OTA_RUNNING ||
+                status.state == OTA_RETRYING || status.state == OTA_VERIFYING || status.state == OTA_OK;
     if (busy) {
         lv_obj_remove_flag(g_hit, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_state(g_switch, LV_STATE_DISABLED);
@@ -358,20 +336,33 @@ static void ota_tick(void) {
         lv_obj_add_flag(g_hit, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_remove_state(g_switch, LV_STATE_DISABLED);
     }
-    switch (s_state) {
+    switch (status.state) {
         case OTA_IDLE:     orbit_idle(); set_icon(0, COL_TXT);
                            set_visible(g_icon, true); set_visible(g_pctlbl, false);
                            lv_label_set_text(g_action, tr(S_TAP_UPDATE));
                            lv_label_set_text(g_status, ""); break;
+        case OTA_HEADER:
         case OTA_CHECKING: set_icon(0, COL_TXT);
                            set_visible(g_icon, true); set_visible(g_pctlbl, false);
                            lv_label_set_text(g_action, tr(S_CHECKING));
                            lv_label_set_text(g_status, "");
                            start_orbit_anim(); break;
+        case OTA_RETRYING: { set_icon(0, COL_TXT);
+                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
+                           lv_label_set_text(g_action, tr(S_OTA_RETRY));
+                           char b[40]; snprintf(b, sizeof b, "%d/%d  %d%%", status.attempt + 1,
+                                                OTA_UPDATE_ATTEMPTS, status.pct);
+                           lv_label_set_text(g_status, b);
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
+                           start_orbit_anim(); } break;
         case OTA_RUNNING:  set_icon(3, 0);                            // 下载:图标让位给中心大数字
                            set_visible(g_icon, false); set_visible(g_pctlbl, true);
                            lv_label_set_text(g_action, "");
                            lv_label_set_text(g_status, tr(S_UPDATING));
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
+        case OTA_VERIFYING: set_visible(g_icon, false); set_visible(g_pctlbl, true);
+                           lv_label_set_text(g_action, "");
+                           lv_label_set_text(g_status, tr(S_OTA_VERIFY));
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
         case OTA_OK:       orbit_dim(); orbit_dot_style(0, COL_CHARGE, LV_OPA_COVER);
                            set_icon(1, COL_CHARGE);
@@ -383,22 +374,32 @@ static void ota_tick(void) {
                            set_icon(1, COL_CHARGE);
                            set_visible(g_icon, true); set_visible(g_pctlbl, false);
                            lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-                           char b[64]; snprintf(b, sizeof b, "%s  %s", tr(S_UPTODATE), s_newver);
+                           char b[96]; snprintf(b, sizeof b, "%s  %s", tr(S_UPTODATE), status.version);
                            lv_label_set_text(g_status, b);
                            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); } break;
-        case OTA_FAIL:     orbit_dim();
+        case OTA_FAIL: {   orbit_dim();
                            for (int step = 0; step < 4; step++)
                                orbit_dot_style(orbit_idx(step), COL_RED, (lv_opa_t)(255 - step * 42));
                            set_icon(2, COL_RED);
                            set_visible(g_icon, true); set_visible(g_pctlbl, false);
                            lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-                           lv_label_set_text(g_status, tr(S_FAILED));
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); break;
+                           str_id_t message = status.failed_at == OTA_HEADER ? S_OTA_HEADER_FAIL :
+                               status.failed_at == OTA_RUNNING ? S_OTA_DOWNLOAD_FAIL :
+                               status.failed_at == OTA_VERIFYING ? S_OTA_VERIFY_FAIL : S_OTA_CONNECT_FAIL;
+                           if (status.tls_flags) message = S_OTA_TLS_FAIL;
+                           char b[128];
+                           if (status.http_status >= 400)
+                               snprintf(b, sizeof b, "%s\nHTTP %d", tr(message), status.http_status);
+                           else if (status.tls_code)
+                               snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), 0u - (unsigned)status.tls_code);
+                           else snprintf(b, sizeof b, "%s\n0x%04x", tr(message), (unsigned)status.error);
+                           lv_label_set_text(g_status, b);
+                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); } break;
     }
 }
 
 static void ota_exit(void) {
-    stop_orbit_anim();                                   // 停动画再清指针;后台任务只碰 s_state/s_pct
+    stop_orbit_anim();                                   // 停动画再清指针;后台任务只发布快照
     g_status = g_ver = g_icon = g_pctlbl = g_action = NULL;
     g_orbitbox = g_hit = g_switch = g_channelbox = NULL;
     memset(g_orbit, 0, sizeof g_orbit);
