@@ -3,7 +3,7 @@
 早期移植目标:把 GeekTool 从 Arduino 迁到 **ESP-IDF + esp_lcd + esp_lvgl_port**,
 用硬件 DMA 和缓冲流水线改善显示吞吐。配方来自小智(xiaozhi-esp32)官方对本板的支持。
 
-**本地核对基线(2026-10-02)**:ESP-IDF 6.0.1、LVGL 9.5.0、esp_lvgl_port 2.8.0~1、
+**本地核对基线(2026-10-03)**:ESP-IDF 6.0.1、LVGL 9.5.0、esp_lvgl_port 2.8.0~1、
 esp_codec_dev 1.5.10。下文早期版本表和设计目标为历史记录;当前调用链和验证见
 [流畅性与动画优化](#2026-10-01-流畅性与动画优化)及
 [OTA 失败恢复修复](#2026-10-02-ota-失败恢复修复)及
@@ -930,3 +930,25 @@ LVGL 9.6 已弃用 `lv_obj_add_flag/remove_flag/set_flag`,遥控台严格编译�
 [USB-IF HID Usage Tables](https://www.usb.org/hid)。本次复核标准 Usage 和独立 Input Report 结构,
 没有套用示例的蓝牙栈来替换项目已有 NimBLE。
 发包按明确发布授权执行,不覆盖已发布 beta9 Tag。
+
+### 内测发布核对
+
+2026-10-03 用户授权继续修复、提交和发版。`v1.7-beta.10` 指向代码提交
+`b634602469d99a02c4033e9a8546fa7ab810aab8`,同时包含此前 `203c496` 的实体按键对调。
+[Actions 37034677052](https://github.com/soBigRice/soRound_os/actions/runs/37034677052)
+的固件构建、GitHub Release 和 R2 上传全部成功;
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.10) 明确标记 prerelease。
+
+GitHub `GeekTool.bin` 与公开 `GeekTool-beta.bin` 逐字节一致,大小 1,957,904 字节,
+SHA-256 `2bb6a83d7a825fd2edf35df3dc839d54aa9d6fc7fff7d1bc3a4e73d5983eb902`。
+包内版本 `v1.7-beta.10`,项目 `GeekTool`,ESP-IDF `v6.0.1`,镜像 checksum/validation hash 有效。
+公开下载返回 200、`Cache-Control: no-store, max-age=0`;带匹配 If-Match 的 Range
+`3072-4095` 返回 206,ETag、Content-Range 和 1024 字节分段与完整镜像一致。
+正式对象发布前后逐字节一致,SHA-256 仍为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+
+CI 解析 LVGL 9.6.0~1 / esp_lvgl_port 2.9.0 / esp_codec_dev 1.6.2;
+发布镜像 `0x1de010`,3 MiB 应用分区剩余 `0x121ff0`(38%)。
+已补测上游 LVGL 9.6.0 的五组主机回归,本地仍保留原组件及依赖策略。
+本地干净 Tag 构建的包内版本、镜像校验也通过;公开发布资产以 CI 包及上述摘要为准。
+遥控台真机输入、主机兼容性和设备 OTA 下载/重启仍待验收,不能以资产核对替代。
