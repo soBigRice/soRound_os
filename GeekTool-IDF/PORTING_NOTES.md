@@ -706,7 +706,7 @@ CI 还解析到 CO5300 2.2.0、CST9217 1.0.4、esp_jpeg 1.3.1。
 
 ## 2026-10-02 OTA 失败恢复修复
 
-基于 `7c8712a` 的修复,拟随 `v1.7-beta.9` 发布。用户最初报告设备为 beta7、OTA 经常失败;
+基于 `7c8712a` 的修复,已随 `v1.7-beta.9` 提交并发布内测 OTA。用户最初报告设备为 beta7、OTA 经常失败;
 没有失败百分比或串口记录,因此未确认该设备的具体根因。已确认旧实现单次下载遇到断流立即失败,
 读取镜像描述失败仍继续刷写,界面不区分连接/读取头/下载/校验错误,跨任务共享状态没有一致快照。
 本次修正这些直接缺口,不改变通道地址、NVS 格式、分区表、HTTPS 证书验证或启动回滚策略。
@@ -767,3 +767,25 @@ beta7 的下载器不会因服务器上传新包而自动获得本次恢复能�
 离开/重进 OTA 页面状态连续,失败页有阶段/错误码,同版本检查不重刷,Wi-Fi 省电档恢复。
 2026-10-02 用户说明昨天已更新,并授权继续发布新包;此前 beta8 发布不包含本节修复。
 沿用既有 Tag → Actions → GitHub prerelease / R2 beta 对象发布流程,设备端下载、断线恢复与重启仍待验收。
+
+### 内测发布核对
+
+`v1.7-beta.9` 指向修复提交 `f6de169fd9385e77c995e5197199dca1be300b8a`;
+[Actions 36965736970](https://github.com/soBigRice/soRound_os/actions/runs/36965736970)
+的固件构建、Release 和 R2 上传全部成功。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.9) 的 `GeekTool.bin`
+与公开 beta OTA 对象逐字节一致,包内版本为 `v1.7-beta.9`,项目名 `GeekTool`,
+ESP-IDF `v6.0.1`,镜像 checksum/validation hash 有效。发布包为 1,948,000 字节,
+SHA-256 `dd8efedfd08e14c4ed27451d12f0010520e4ce5d90cd24aa78e12a9ce2f7e6c2`;
+CI 镜像 `0x1db960`,3 MiB 分区剩余 `0x1246a0`(38%)。
+
+公开地址返回 200、`Cache-Control: no-store, max-age=0`;
+带匹配 If-Match 的 Range `3072-4095` 返回 206,Content-Range、ETag 及分段字节与完整包吻合。
+正式通道发布前后逐字节一致,SHA-256 仍为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+CI 仍解析为 LVGL 9.6.0~1 / esp_lvgl_port 2.9.0 / esp_codec_dev 1.6.2;
+本次已对 CI 的 LVGL 版本补测,没有修改组件清单或发布流程。
+发布资产验证通过不代表设备已安装 beta9,真机剩余验收见上一节。
+
+发版传输经验:本次 GitHub 直连在连接阶段超时,通过 macOS 已配置的本机代理完成推送。
+下次同类连接失败先用 `scutil --proxy` 核对当前代理,按命令指定,不写死历史端口或修改全局 Git 设置。
