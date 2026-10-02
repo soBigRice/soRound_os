@@ -53,9 +53,9 @@ static const char *const TXT[S__COUNT][2] = {
     [S_WX_LOADING]  = { "loading...",    "加载中..." },
     [S_WX_FAIL]     = { "no wifi / fetch failed", "无网络 / 获取失败" },
     /* stopwatch / countdown */
-    [S_KEY_START]     = { "boot key = start",           "按侧下键开始" },
+    [S_KEY_START]     = { "PWR key = start",            "按 PWR 键开始" },
     [S_RUNNING_LAP]   = { "running - btn = lap",        "计时中 - 按钮记圈" },
-    [S_PAUSED_RESUME] = { "paused - boot key = resume", "已暂停 - 按侧下键继续" },
+    [S_PAUSED_RESUME] = { "paused - PWR key = resume",  "已暂停 - 按 PWR 键继续" },
     [S_LAP]           = { "lap",                        "记圈" },
     [S_RESET]         = { "reset",                      "归零" },
     [S_CD_PAUSE]      = { "key/tap = pause",            "按键或点屏暂停" },

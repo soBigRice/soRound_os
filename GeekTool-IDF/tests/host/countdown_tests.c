@@ -9,8 +9,8 @@ bool launcher_app_visible(void) { return visible; }
 void audio_out_init(void) {}
 void audio_out_deinit(void) {}
 void audio_out_alarm(void) { alarms++; }
-void bootkey_init(void) {}
-bool bootkey_pressed(void) { bool pressed = key; key = false; return pressed; }
+void buttons_reset_control(void) { key = false; }
+bool buttons_control_pressed(void) { bool pressed = key; key = false; return pressed; }
 const lv_font_t *i18n_font_l(void) { return LV_FONT_DEFAULT; }
 const lv_font_t *i18n_font_sym(void) { return LV_FONT_DEFAULT; }
 #include "../../main/app_countdown.c"

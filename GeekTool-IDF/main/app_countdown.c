@@ -1,11 +1,11 @@
 // 倒计时 app —— 圆形递减点环(从 12 点顺时针变暗)+ 中心 MM:SS 大点阵。
-// 一触式预设(1/3/5/10/25 分)立即开始;BOOT 实体键或点中心 = 开始/暂停/继续(DONE=重置),reset 重置;
+// 一触式预设(1/3/5/10/25 分)立即开始;PWR 实体键或点中心 = 开始/暂停/继续(DONE=重置),reset 重置;
 // 归零中心红字闪烁。Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
 #include "app.h"
 #include "glyph.h"
 #include "ui_update.h"
 #include "audio_out.h"
-#include "bootkey.h"
+#include "buttons.h"
 #include "esp_timer.h"
 #include <stdio.h>
 #include <math.h>
@@ -98,7 +98,7 @@ static void preset_cb(lv_event_t *e) {
     begin_run(PRESETS[idx] * 60);
 }
 
-static void cd_toggle(void) {              // BOOT 键 / 点计时区共用:IDLE=开始 RUN=暂停 PAUSE=继续 DONE=重置
+static void cd_toggle(void) {              // PWR 键 / 点计时区共用:IDLE=开始 RUN=暂停 PAUSE=继续 DONE=重置
     int64_t now = esp_timer_get_time();
     if (s_state == ST_IDLE) { if (s_total_s >= 5) begin_run(s_total_s); return; }   // 用自定义时间开始
     if (s_state == ST_RUN) {
@@ -210,7 +210,7 @@ static void countdown_enter(lv_obj_t *parent) {
         lv_obj_set_pos(b, px0 + i * (bw + bg), 330);
     }
 
-    bootkey_init();                // BOOT 键 = 开始/暂停/继续
+    buttons_reset_control();      // 清掉前一页面的 PWR 控制事件
     s_state = ST_IDLE;
     show_state(ST_IDLE);
 }
@@ -218,7 +218,7 @@ static void countdown_enter(lv_obj_t *parent) {
 static void countdown_tick(void) {
     if (!g_center) return;
     bool visible = launcher_app_visible();
-    if (visible && bootkey_pressed()) cd_toggle();
+    if (visible && buttons_control_pressed()) cd_toggle();
     int64_t now = esp_timer_get_time();
     if (s_state == ST_RUN) {
         int64_t us = s_end_us - now;

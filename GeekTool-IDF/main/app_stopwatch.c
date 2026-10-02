@@ -1,9 +1,9 @@
-// 正向计时器(秒表)—— 从 0 累加。BOOT 实体键=开始/暂停/继续(不占锁屏侧键,防误触);
+// 正向计时器(秒表)—— 从 0 累加。PWR 实体键=开始/暂停/继续;
 // 屏上按钮:运行=计圈(lap),停止=归零(reset)。秒环每分钟扫一圈;中心 MM:SS + 百分秒;顶部最近 3 圈。
 #include "app.h"
 #include "glyph.h"
 #include "ui_update.h"
-#include "bootkey.h"
+#include "buttons.h"
 #include "esp_timer.h"
 #include <stdio.h>
 #include <string.h>
@@ -74,7 +74,7 @@ static void update_laps(void) {
     lv_label_set_text(g_lap, buf);
 }
 
-static void toggle_run(void) {             // BOOT 键:开始 / 暂停 / 继续
+static void toggle_run(void) {             // PWR 键:开始 / 暂停 / 继续
     if (s_run) { s_base_us += esp_timer_get_time() - s_start_us; s_run = false; set_hint(tr(S_PAUSED_RESUME), COL_TXT2); }
     else       { s_start_us = esp_timer_get_time(); s_run = true; set_hint(tr(S_RUNNING_LAP), COL_TXT2); }
     update_btn();
@@ -128,7 +128,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
     g_btnl = lv_label_create(btn);
     lv_obj_center(g_btnl);
 
-    bootkey_init();                           // BOOT 键 = 开始/暂停/继续
+    buttons_reset_control();                 // 清掉前一页面的 PWR 控制事件
     s_run = false; s_base_us = 0; s_nlap = 0; s_last_sec = -1; s_last_ring = -1;
     update_btn();
     update_laps();
@@ -136,7 +136,7 @@ static void stopwatch_enter(lv_obj_t *parent) {
 
 static void stopwatch_tick(void) {
     if (!g_center) return;
-    if (bootkey_pressed()) toggle_run();      // BOOT 键:开始/暂停/继续
+    if (buttons_control_pressed()) toggle_run(); // PWR 键:开始/暂停/继续
     int64_t e = elapsed_us();
     int sec = (int)(e / 1000000);
     if (sec != s_last_sec) { draw_mmss(sec); s_last_sec = sec; }

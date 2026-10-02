@@ -51,6 +51,8 @@ BLE 数字孪生以及双分区云 OTA。
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
+实体按键映射与验证见
+[按键实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-实体按键功能对调)。
 
 ## 系统关系
 
@@ -209,7 +211,7 @@ cmake -S GeekTool-IDF/tests/ota -B /tmp/geektool-ota-tests
 cmake --build /tmp/geektool-ota-tests
 ctest --test-dir /tmp/geektool-ota-tests --output-on-failure
 
-# LVGL 性能回归与 OTA 中英文状态渲染
+# LVGL 性能回归、OTA 状态渲染与实体按键映射
 cmake -S GeekTool-IDF/tests/host -B /tmp/geektool-host-tests
 cmake --build /tmp/geektool-host-tests -j 8
 ctest --test-dir /tmp/geektool-host-tests --output-on-failure
@@ -227,6 +229,11 @@ git diff --check
 最近一次本地验证（2026-10-02）：OTA 修复后的固件完整构建、18 组下载恢复/错误边界、
 8 个中英文 OTA 状态渲染及原有 LVGL 性能回归通过；实际设备下载、断线恢复和重启仍待验证。
 Web 11 组回归、类型检查和生产构建为 2026-10-01 流畅性发布时的结果，本次未改 Web。
+
+当前本地按键映射：BOOT 短按锁屏/解锁，长按 2 秒软件关机；PWR 短按控制秒表及倒计时的
+开始/暂停/继续（倒计时结束后复位）。本地版本已 USB 烧录并确认启动有效，实体按键操作待验收。
+按键对调尚未发布，线上 beta9 仍使用原映射。
+断电后的 PWR 上电、按住 BOOT 上电进入下载模式属于硬件功能。
 
 ## 已知边界
 

@@ -3,6 +3,7 @@
 #include "app.h"
 #include "power.h"
 #include "lock.h"
+#include "buttons.h"
 #include "glyph.h"
 #include "quickpanel.h"
 #include "esp_log.h"
@@ -321,6 +322,7 @@ static void app_tick_timer(lv_timer_t *t) {
     bool visible = launcher_app_visible();
     uint32_t now = lv_tick_get();
     if (visible != s_app_visible) {
+        buttons_reset_control();              // 遮挡/恢复不能重放之前的实体键事件
         s_app_visible = visible;
         s_tick_at = now;
         if (cur_app->visibility) cur_app->visibility(visible);
@@ -603,5 +605,5 @@ void launcher_start(void) {
     lv_timer_create(battery_timer_cb, 2000, NULL);
 
     lock_init();                                  // 锁屏 / 表盘 / 实体键 / 省电
-    lock_set(true);                               // 开机/烧录后默认进锁屏(表盘),上滑解锁进菜单
+    lock_set(true);                               // 开机/烧录后默认进锁屏(表盘),BOOT 短按解锁
 }

@@ -1,10 +1,12 @@
-// 锁屏控制:AXP2101 PWRON 侧键 短按=锁/解切换,长按=关机;
-// 锁屏后放电超时熄屏、充电常显(M3b)。按键的去抖/长短判定由 AXP2101 硬件完成。
+// 锁屏控制:BOOT 短按=锁/解切换,长按 2 秒=关机;PWR 短按供计时 App 使用。
+// 锁屏后放电超时熄屏、充电常显(M3b)。实体键由 buttons.c 统一轮询。
 #include "lock.h"
 #include "watchface.h"
 #include "display.h"
 #include "power.h"
 #include "settings.h"
+#include "app.h"
+#include "buttons.h"
 
 #define AOD_MS     12000   // 空闲进入低功耗"平静"态(变暗 + 停止闪烁 + 按分钟刷新)
 #define SLEEP_MS   30000   // 仅"自动熄屏"模式:空闲再久则熄屏
@@ -27,6 +29,7 @@ static void set_screen(scr_t s) {
 }
 
 void lock_set(bool locked) {
+    buttons_reset_control();
     s_locked = locked;
     set_screen(SCR_FULL);
     lv_display_trigger_activity(NULL);    // 重置空闲计时
@@ -36,7 +39,7 @@ void lock_set(bool locked) {
 
 bool lock_is_locked(void) { return s_locked; }
 
-// 解锁改为【侧键短按】(button_cb),表盘上滑不再解锁 —— 避免看表盘时误触解锁。
+// 解锁用 BOOT 短按(button_cb),表盘上滑不再解锁 —— 避免看表盘时误触解锁。
 
 /* 省电:仅锁屏时按空闲超时进入平静/熄屏;触摸/按键唤醒。
    空闲即进入"平静"(变暗+停闪+按分钟刷新),无论充放电都生效(插着 USB 也能看到变暗)。
@@ -54,18 +57,19 @@ static void powersave_cb(lv_timer_t *t) {
         set_screen(SCR_CALM);
 }
 
-/* PWRON 侧键:短按切换锁/解,长按关机(硬件已做去抖+长短判定) */
+/* BOOT 全局锁屏/关机;PWR 只有在 App 可见时发布控制事件。 */
 static void button_cb(lv_timer_t *t) {
-    int ev = power_key_event();
-    if (ev == 1) { lock_set(!s_locked); lv_display_trigger_activity(NULL); }   // 短按
-    else if (ev == 2) power_off();                                             // 长按
+    (void)t;
+    button_event_t ev = buttons_poll(launcher_app_visible());
+    if (ev == BUTTON_SHORT) lock_set(!s_locked);
+    else if (ev == BUTTON_LONG) power_off();
 }
 
 void lock_init(void) {
     watchface_init();
-    // 不再挂上滑解锁手势;解锁用侧键短按(见 button_cb)
+    // 不再挂上滑解锁手势;解锁用 BOOT 短按(见 button_cb)
 
-    power_key_init();                            // 使能 PWRON 键 IRQ
-    lv_timer_create(button_cb, 100, NULL);       // 100ms 轮询 PWRON IRQ
+    buttons_init();
+    lv_timer_create(button_cb, 20, NULL);        // GPIO 去抖/长按;PMU 内部仍按 100ms 读取
     lv_timer_create(powersave_cb, 300, NULL);    // 300ms:触摸唤醒延迟更短
 }

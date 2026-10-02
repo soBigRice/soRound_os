@@ -15,3 +15,8 @@ add_executable(ota_ui_tests ota_ui_tests.c ../../main/glyph.c ../../main/i18n.c 
 target_include_directories(ota_ui_tests PRIVATE ../ota/stubs ../../main)
 target_link_libraries(ota_ui_tests PRIVATE lvgl m)
 add_test(NAME ota_ui_states COMMAND ota_ui_tests)
+add_executable(buttons_tests buttons_tests.c ../../main/buttons.c ../../main/glyph.c)
+target_include_directories(buttons_tests PRIVATE stubs ../../main)
+target_link_libraries(buttons_tests PRIVATE lvgl m)
+target_compile_options(buttons_tests PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
+add_test(NAME physical_button_mapping COMMAND buttons_tests)
