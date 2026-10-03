@@ -6,6 +6,7 @@
 #include "buttons.h"
 #include "glyph.h"
 #include "weather_ui.h"
+#include "weather_location_ui.h"
 #include "quickpanel.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
@@ -42,12 +43,16 @@ static void header_app_style(void) {
     // OTA 的贴边点阵环需要透明点阵返回键;其他 App 保持原有圆形按钮。
     bool ota = cur_app == &app_ota;
     bool weather = cur_app == &app_weather;
+    bool compact = weather || cur_app == &app_settings;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
-    lv_obj_set_style_text_font(g_title, weather ? &font_weather_20 : UI_FONT_L, 0);
-    lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, weather ? 56 : 46);
-    lv_obj_set_size(g_back, weather ? 40 : 48, weather ? 40 : 48);
-    lv_obj_align(g_back, LV_ALIGN_TOP_MID, -100, weather ? 52 : 40);
+    lv_obj_set_style_text_font(g_title, compact ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
+    lv_label_set_long_mode(g_title,LV_LABEL_LONG_MODE_DOTS);
+    lv_obj_set_style_text_align(g_title,LV_TEXT_ALIGN_CENTER,0);
+    lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, compact ? 52 : 46);
+    lv_obj_set_size(g_back, compact ? 40 : 48, compact ? 40 : 48);
+    lv_obj_align(g_back, LV_ALIGN_TOP_MID, -100, compact ? 52 : 40);
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);

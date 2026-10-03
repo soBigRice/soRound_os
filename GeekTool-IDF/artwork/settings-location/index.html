@@ -1,0 +1,115 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>soRound · 设置与地址交互稿</title>
+<style>
+:root{color-scheme:dark;--paper:#eeeae3;--muted:#93979a;--red:#cc5c55}*{box-sizing:border-box}body{margin:0;background:#111314;color:var(--paper);font:16px -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}main{max-width:1540px;margin:auto;padding:42px 28px 64px}header{display:flex;justify-content:space-between;gap:20px;align-items:end;margin-bottom:36px}h1{font-weight:450;font-size:29px;letter-spacing:.08em;margin:0 0 10px}p{color:var(--muted);line-height:1.65;margin:0}small{font-size:13px;color:var(--muted)}.tag{color:var(--red);letter-spacing:.18em;font-size:12px;margin-bottom:10px}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:30px 22px}figure{margin:0;min-width:0}.screen{width:100%;aspect-ratio:1;position:relative;touch-action:none;user-select:none}.screen svg{display:block;width:100%;height:100%}.screen button,.screen input{position:absolute;background:transparent;border:0;color:transparent;cursor:pointer;touch-action:none;border-radius:32px}.screen button:focus-visible,.screen input:focus-visible{outline:2px solid var(--red);outline-offset:2px}.screen input[type=range]{appearance:none;opacity:.001}.screen input[type=range]::-webkit-slider-thumb{appearance:none;width:34px;height:50px}.caption{padding:13px 22px 0;font-size:17px}.caption span{display:block;margin-top:7px;color:var(--muted);font-size:13px;line-height:1.6}.controls{display:flex;gap:10px;margin:32px 0 24px;flex-wrap:wrap}.controls button{font:inherit;font-size:14px;color:var(--paper);border:1px solid #383c3e;background:transparent;border-radius:22px;padding:10px 18px;cursor:pointer}.controls button.active{background:var(--paper);color:#111;border-color:var(--paper)}.demo{display:grid;grid-template-columns:466px minmax(0,1fr);gap:48px;align-items:center;border-top:1px solid #2d3031;padding-top:28px;margin-top:30px}.demo .screen{width:466px}.demo h2{font-size:25px;font-weight:450;margin:0 0 16px}.demo p{margin-top:12px;max-width:590px}.status{font-size:14px;color:#babfbe;margin-top:20px;min-height:24px}.foot{margin-top:32px;font-size:13px;color:#72787b}.board-only .demo,.board-only .controls,.board-only .foot{display:none} .board-only main{padding-top:28px}@media(max-width:1100px){.board{grid-template-columns:repeat(2,minmax(0,1fr))}.demo{grid-template-columns:minmax(0,466px) minmax(0,1fr);gap:24px}.demo .screen{width:100%}}@media(max-width:690px){main{padding:25px 14px}.board{grid-template-columns:1fr}.demo{grid-template-columns:1fr}.demo .screen{max-width:466px;margin:auto}header{align-items:start;flex-direction:column}h1{font-size:22px}}
+</style><main>
+<header><div><div class="tag">SOROUND / INTERACTION STUDY</div><h1>设置与天气地址</h1><p>466 × 466 圆屏 · 黑底、点阵、克制配色</p></div><small>交互设计稿 · 地址与天气数值为样例</small></header>
+<section class="board" id="board"></section>
+<div class="controls"><button class="active" id="settings-tab">体验设置交互</button><button id="weather-tab">体验选地址</button><button id="offline-tab">切换断网样例</button></div>
+<section class="demo"><div class="screen" id="demo"></div><div><div class="tag" id="demo-tag">SETTINGS / DIRECT CONTROL</div><h2 id="demo-title">打开就能调，减少层级</h2><p id="demo-copy">上下滑动切换亮度、音量、常显、静音、表盘、语言与关于。当前项在中心直接调节；右滑或左上角返回退出设置。</p><p id="demo-hint">下方上下箭头同样可以切换。滑块拖动与页面切换使用不同手势区域。</p><div class="status" id="status">当前：亮度 75%</div></div></section>
+<div class="foot">这是浏览器交互稿。天气图标使用原稿转换后的资源；设置交互与地址选择尚未接入设备。设计稿不访问天气 API，不写设备设置。</div>
+</main><script>
+const NS='http://www.w3.org/2000/svg',C={white:'#eeeae3',muted:'#90999f',red:'#cb5e58',line:'#292d30'};
+const digits={0:['01110','10001','10001','10001','10001','10001','01110'],1:['00100','01100','00100','00100','00100','00100','01110'],2:['01110','10001','00001','00110','01000','10000','11111'],3:['11110','00001','00001','01110','00001','00001','11110'],4:['00010','00110','01010','10010','11111','00010','00010'],5:['11111','10000','10000','11110','00001','10001','01110'],6:['01110','10000','10000','11110','10001','10001','01110'],7:['11111','00001','00010','00100','01000','01000','01000'],8:['01110','10001','10001','01110','10001','10001','01110'],9:['01110','10001','10001','01111','00001','00001','01110']};
+const dot=(x,y,r=3,c=C.white)=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`;
+const text=(s,x,y,size=20,color=C.white,weight=400)=>`<text x="${x}" y="${y}" text-anchor="middle" fill="${color}" font-size="${size}" font-weight="${weight}" font-family="Helvetica Neue,PingFang SC,sans-serif">${s}</text>`;
+const chevron=(x,y,dir='left',color=C.white)=>`<path d="${dir==='left'?`M${x+4} ${y-7}l-7 7 7 7`:dir==='up'?`M${x-6} ${y+3}l6-6 6 6`:`M${x-6} ${y-3}l6 6 6-6`}" stroke="${color}" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+function number(s,cx,top,pitch=11,r=3.5){let out='',w=(s.length*6-1)*pitch,x=cx-w/2;for(const ch of s){for(let row=0;row<7;row++)for(let col=0;col<5;col++)if(digits[ch]?.[row][col]==='1')out+=dot(x+col*pitch,top+row*pitch,r);x+=pitch*6}return out}
+function sun(cx,cy){let o='';for(let y=-13;y<=13;y+=7)for(let x=-13;x<=13;x+=7)if(x*x+y*y<170)o+=dot(cx+x,cy+y,2.5);for(let i=0;i<8;i++){let a=i*Math.PI/4;for(let n=0;n<2;n++)o+=dot(cx+Math.cos(a)*(22+n*7),cy+Math.sin(a)*(22+n*7),2.4)}return o}
+function power(cx,cy,color=C.white){let o='';for(let i=0;i<24;i++){let a=Math.PI*(-.33+i*1.66/23);o+=dot(cx+Math.cos(a)*40,cy+Math.sin(a)*40,4,color)}for(let y=cy-43;y<=cy-7;y+=9)o+=dot(cx,y,4,color);return o}
+function chrome(title){return `<circle cx="233" cy="233" r="232" fill="#000"/><circle cx="233" cy="233" r="225" fill="none" stroke="#22272a" stroke-width="6"/><path d="M233 8 A225 225 0 0 1 316 24" fill="none" stroke="${C.white}" stroke-width="6" stroke-linecap="round"/>${dot(133,72,20,'#202629')}${chevron(133,72)}${text(title,233,77,20)}`}
+function dotsPage(idx){let o='';for(let i=0;i<7;i++)o+=dot(203+i*10,431,i===idx?3:2,i===idx?C.red:'#3b4042');return o}
+function nav(){return `${chevron(146,383,'up',C.muted)}${chevron(320,383,'down',C.muted)}${text('上下切换',233,389,14,C.muted)}`}
+function slider(value){let o='';for(let i=0;i<=28;i++)o+=dot(121+i*8,334,3,i/28*100<=value?C.red:'#353a3c');o+=dot(121+value/100*224,334,8,C.white);return o}
+function settingBody(name,value,index){let o=chrome('设置')+text(name,233,128,27);if(name==='亮度'||name==='音量'){o+=name==='亮度'?sun(233,175):`<path d="M215 170h10l12-11v33l-12-11h-10z" fill="none" stroke="${C.white}" stroke-width="2.5"/><path d="M247 162q19 14 0 28" fill="none" stroke="${C.white}" stroke-width="2.5"/>`;o+=number(String(value),213,224)+text('%',305,274,35)+slider(value)}else if(name==='常显'||name==='静音'){o+=power(233,205,value?C.white:C.muted)+text(value?'已开启':'已关闭',233,289,27);o+=`<rect x="174" y="321" width="118" height="52" rx="26" fill="${value?C.red:'#292d30'}"/>`+dot(value?266:200,347,21,C.white)}else if(name==='表盘'){o+=`<circle cx="233" cy="244" r="92" fill="#0e1112" stroke="#343a3c"/>`+(value===1?text('12:08',233,262,43):value===2?`<circle cx="233" cy="244" r="69" fill="none" stroke="${C.white}" stroke-width="5" stroke-dasharray="1 10" stroke-linecap="round"/>`+text('12:08',233,254,25):value===3?`<image href="../weather/native/3.png" x="163" y="191" width="140" height="80"/>`+text('26°',233,295,20):value===4?`<rect x="178" y="208" width="110" height="74" rx="9" fill="#272d30"/>`+text('自选图片',233,251,18):number('12',198,226,6,2)+number('08',266,226,6,2)+dot(230,237,2)+dot(230,255,2))+text(['dots','bold','rings','weather','image'][value],233,349,19,C.muted)+chevron(142,244)+`<path d="M324 237l7 7-7 7" stroke="${C.white}" stroke-width="2.4" fill="none"/>`}else if(name==='语言'){o+=text(value?'中文':'English',233,239,38)+text('轻点切换',233,294,16,C.muted)}else{o+=text('soRound',233,225,35)+text('v1.7-beta.11',233,273,18,C.muted)+text('系统与设备信息',233,324,16,C.muted)}return o+nav()+dotsPage(index)}
+function weatherBody(city='上海',state='ready'){let o=chrome('')+text(city,233,77,city.length>5?17:20)+chevron(313,72,'down',C.muted);if(state==='ready'){o+=`<image href="../weather/native/3.png" x="93" y="92" width="280" height="160"/>`+number('26',219,255)+text('°',303,270,33)+text('阴天',233,353,20)+text('↓ 21°　 ↑ 28°',233,390,20)+text('湿度 64%',233,428,16,C.muted)}else{o+=dot(215,179,3,C.muted)+dot(233,179,3,C.muted)+dot(251,179,3,C.muted)+text('--',233,287,49,C.muted)+text(state==='loading'?'正在更新此地址':'网络未连接',233,350,20,state==='loading'?C.muted:C.red)+text(state==='loading'?'':'轻点重试',233,392,16,C.muted)}return o}
+const check=(x,y)=>`<path d="M${x-6} ${y}l5 5 10-11" fill="none" stroke="${C.red}" stroke-width="2.6" stroke-linecap="round"/>`;
+function locationsBody(selected='上海'){let o=chrome('选择地址')+text('常用与最近',233,115,15,C.muted);['上海','杭州','成都'].forEach((s,i)=>{let y=166+i*72;o+=text(s,217,y,27)+(s===selected?check(329,y-6):`<path d="M326 ${y-11}l6 6-6 6" stroke="#656d71" stroke-width="2" fill="none"/>`)+`<path d="M108 ${y+27}h250" stroke="#22272a"/>`;if(s===selected)o+=dot(126,y-8,3,C.red)});o+=`<rect x="117" y="361" width="232" height="50" rx="25" fill="#171b1d"/>`+text('其他地址',223,393,19)+`<path d="M310 382l6 6-6 6" stroke="${C.white}" stroke-width="2" fill="none"/>`;return o}
+const addressTree={'上海市':{'上海市':['黄浦区','徐汇区','浦东新区']},'浙江省':{'宁波市':['海曙区','鄞州区','江北区'],'杭州市':['西湖区','滨江区','上城区'],'温州市':['鹿城区','龙湾区','瓯海区']},'江苏省':{'南京市':['玄武区','秦淮区','鼓楼区'],'苏州市':['姑苏区','吴中区','吴江区'],'无锡市':['梁溪区','滨湖区','新吴区']}};
+function addressNames(level,path){return level==='province'?Object.keys(addressTree):level==='city'?Object.keys(addressTree[path[0]]):addressTree[path[0]][path[1]]}
+function wheelBody(level='district',idx=1,path=['浙江省','杭州市']){let labels=addressNames(level,path),title=level==='province'?'选择省份':level==='city'?'选择城市':'选择区县',o=chrome(title);o+=text(level==='province'?'中国':level==='city'?path[0]:path.join(' / '),233,127,16,C.muted);if(labels.length>1)o+=text(labels[(idx+labels.length-1)%labels.length],233,201,23,'#626b70')+text(labels[(idx+1)%labels.length],233,326,23,'#626b70');o+=text(labels[idx],233,267,34)+dot(122,254,3,C.red)+`<path d="M148 285h170" stroke="#434a4d"/>`+`<rect x="125" y="365" width="216" height="50" rx="25" fill="${C.white}"/>`+text(level==='district'?'使用此地址':'下一步',233,397,19,'#111');return o}
+function svg(body){return `<svg viewBox="0 0 466 466" xmlns="${NS}"><defs><clipPath id="circle"><circle cx="233" cy="233" r="233"/></clipPath></defs><g clip-path="url(#circle)">${body}</g></svg>`}
+const boardScenes=[['01 / 亮度', '打开直接调节。大读数与点阵滑块，上下切换下一项。',settingBody('亮度',75,0)],['02 / 常显','中心开关直接生效，亮度、音量、静音沿用同一层级。',settingBody('常显',true,2)],['03 / 表盘','同页看预览、点击左右选择。小字保持清晰。',settingBody('表盘',0,4)],['04 / 天气入口','轻点城市名进入地址选择，保留原天气图标和信息层级。',weatherBody()],['05 / 常用地址','最近选过的地址直接切换。其他地址进入省、市、区选择。',locationsBody()],['06 / 省市区选择','上下滚动居中选择，确认后保存完整地址。',wheelBody()]];
+document.querySelector('#board').innerHTML=boardScenes.map(([title,desc,body])=>`<figure><div class="screen">${svg(body)}</div><figcaption class="caption">${title}<span>${desc}</span></figcaption></figure>`).join('');
+const settingNames=['亮度','音量','常显','静音','表盘','语言','关于'];let settingIndex=0,values=[75,60,true,false,0,true,0],mode='settings',locationPage='weather',city='上海',wheelLevel='province',wheelIndex=1,addressPath=['浙江省','杭州市'],selectedPath='上海市',offline=false,loadState='ready',loadTimer=null;
+const demo=document.querySelector('#demo');
+function hit(x,y,w,h,label,fn){let b=document.createElement('button');b.type='button';b.setAttribute('aria-label',label);Object.assign(b.style,{left:x/466*100+'%',top:y/466*100+'%',width:w/466*100+'%',height:h/466*100+'%'});b.addEventListener('click',fn);demo.append(b);return b}
+function setStatus(s){document.querySelector('#status').textContent=s}
+function step(delta){if(mode==='settings'){settingIndex=(settingIndex+delta+7)%7;render()}else if(locationPage==='wheel'){const n=addressNames(wheelLevel,addressPath).length;wheelIndex=(wheelIndex+delta+n)%n;render()}}
+function render(){
+  if(mode==='settings'){
+    let name=settingNames[settingIndex],value=values[settingIndex];
+    demo.innerHTML=svg(settingBody(name,value,settingIndex));
+    hit(117,358,58,48,'上一设置项',()=>step(-1));
+    hit(291,358,58,48,'下一设置项',()=>step(1));
+    if(settingIndex<2){
+      let input=document.createElement('input'); input.type='range';
+      input.min=settingIndex===0?25:0; input.max=100; input.value=value;
+      input.setAttribute('aria-label',name);
+      Object.assign(input.style,{left:'24%',top:'65%',width:'52%',height:'13%'});
+      input.addEventListener('input',()=>{
+        values[settingIndex]=Number(input.value);
+        demo.querySelector('svg').outerHTML=svg(settingBody(name,Number(input.value),settingIndex));
+        setStatus(`${name} ${input.value}% · 松手保存`);
+      });
+      input.addEventListener('change',()=>setStatus(`${name} ${input.value}% · 已保存（样例）`));
+      demo.append(input);
+    }else if(settingIndex===2||settingIndex===3){
+      hit(166,308,134,75,'切换'+name,()=>{values[settingIndex]=!value;render()});
+    }else if(settingIndex===4){
+      hit(116,211,50,66,'上一个表盘',()=>{values[4]=(value+4)%5;render()});
+      hit(303,211,50,66,'下一个表盘',()=>{values[4]=(value+1)%5;render()});
+    }else if(settingIndex===5){
+      hit(141,187,185,126,'切换语言',()=>{values[5]=!value;render()});
+    }
+    setStatus(`当前：${name}${settingIndex<2?' '+value+'%':settingIndex===2||settingIndex===3?value?' 开启':' 关闭':settingIndex===4?' 样例 '+(value+1):''}`);
+  }else if(locationPage==='weather'){
+    demo.innerHTML=svg(weatherBody(city,loadState));
+    hit(165,46,177,49,'选择天气地址',()=>{locationPage='locations';render()});
+    if(loadState==='offline')hit(141,333,185,80,'重新获取天气',()=>selectCity(city,selectedPath));
+    setStatus(`当前地址：${selectedPath} · ${loadState==='ready'?'样例天气':loadState==='loading'?'正在更新':'未连接网络'}`);
+  }else if(locationPage==='locations'){
+    demo.innerHTML=svg(locationsBody(city));
+    ['上海','杭州','成都'].forEach((s,i)=>hit(105,133+i*72,253,66,'选择'+s,()=>selectCity(s,{'上海':'上海市','杭州':'浙江省 / 杭州市','成都':'四川省 / 成都市'}[s])));
+    hit(113,355,239,62,'选择其他地址',()=>{locationPage='wheel';wheelLevel='province';wheelIndex=1;addressPath=['浙江省','杭州市'];render()});
+    setStatus('常用城市快捷切换，或选择其他地址');
+  }else{
+    const labels=addressNames(wheelLevel,addressPath);
+    demo.innerHTML=svg(wheelBody(wheelLevel,wheelIndex,addressPath));
+    hit(146,169,173,55,'上一地址',()=>step(-1));
+    hit(146,292,173,55,'下一地址',()=>step(1));
+    hit(120,358,226,65,wheelLevel==='district'?'使用此地址':'下一步',()=>{
+      if(wheelLevel==='province'){
+        addressPath=[labels[wheelIndex]]; wheelLevel='city';
+        const cities=addressNames('city',addressPath); wheelIndex=cities.includes('杭州市')?cities.indexOf('杭州市'):0;
+      }else if(wheelLevel==='city'){
+        addressPath[1]=labels[wheelIndex]; wheelLevel='district'; wheelIndex=1;
+      }else{
+        const district=labels[wheelIndex];
+        selectCity(addressPath[1].replace('市','')+' · '+district,addressPath.join(' / ')+' / '+district); return;
+      }
+      render();
+    });
+    setStatus('样例地址路径：'+(wheelLevel==='province'?'中国 / '+labels[wheelIndex]:addressPath.join(' / ')+' / '+labels[wheelIndex]));
+  }
+  hit(108,47,50,50,'返回',back);
+}
+function back(){
+  if(mode==='settings'){setStatus('返回启动器（设计稿）');return}
+  if(locationPage==='wheel'){
+    if(wheelLevel==='district'){wheelLevel='city';wheelIndex=addressNames('city',addressPath).indexOf(addressPath[1])}
+    else if(wheelLevel==='city'){wheelLevel='province';wheelIndex=addressNames('province',addressPath).indexOf(addressPath[0])}
+    else locationPage='locations';
+  }else if(locationPage==='locations')locationPage='weather';
+  else{setStatus('返回启动器（设计稿）');return}
+  render();
+}
+function selectCity(s,path){
+  clearTimeout(loadTimer); city=s; selectedPath=path; locationPage='weather'; loadState='loading'; render();
+  loadTimer=setTimeout(()=>{loadState=offline?'offline':'ready';render()},700);
+}
+let start=null;demo.addEventListener('pointerdown',e=>{if(e.target.closest('button,input'))return;start={x:e.clientX,y:e.clientY};demo.setPointerCapture(e.pointerId)});demo.addEventListener('pointerup',e=>{if(!start)return;let dx=e.clientX-start.x,dy=e.clientY-start.y;start=null;if(dx>60&&Math.abs(dx)>Math.abs(dy)*1.4)back();else if(Math.abs(dy)>45&&Math.abs(dy)>Math.abs(dx))step(dy<0?1:-1)});demo.addEventListener('wheel',e=>{e.preventDefault();step(e.deltaY>0?1:-1)},{passive:false});
+document.querySelector('#settings-tab').onclick=()=>switchMode('settings');document.querySelector('#weather-tab').onclick=()=>switchMode('weather');document.querySelector('#offline-tab').onclick=()=>{offline=!offline;document.querySelector('#offline-tab').classList.toggle('active',offline);setStatus(offline?'断网样例已开启，切换地址后会显示失败与重试':'联网样例已开启')};
+function switchMode(next){document.querySelector('#demo-hint').textContent=next==='settings'?'下方上下箭头同样可以切换。滑块拖动与页面切换使用不同手势区域。':'省、市、区按完整路径联动。右滑逐级返回，未确认的选择不改变当前地址。';mode=next;locationPage='weather';document.querySelector('#settings-tab').classList.toggle('active',mode==='settings');document.querySelector('#weather-tab').classList.toggle('active',mode==='weather');document.querySelector('#demo-tag').textContent=mode==='settings'?'SETTINGS / DIRECT CONTROL':'WEATHER / LOCATION';document.querySelector('#demo-title').textContent=mode==='settings'?'打开就能调，减少层级':'轻点城市，更换地址';document.querySelector('#demo-copy').textContent=mode==='settings'?'上下滑动切换亮度、音量、常显、静音、表盘、语言与关于。当前项在中心直接调节；右滑或左上角返回退出设置。':'常用城市快捷切换；其他地址逐级选择省、市、区。确认后更新天气，加载与失败时不混用上一城市的数据。';render()}
+if(new URLSearchParams(location.search).has('board'))document.body.classList.add('board-only');render();
+</script></html>

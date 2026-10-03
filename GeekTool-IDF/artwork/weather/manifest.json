@@ -1,0 +1,771 @@
+{
+  "display": [
+    466,
+    466
+  ],
+  "icon_area": [
+    93,
+    92,
+    280,
+    160
+  ],
+  "sources": {
+    "icons-day.png": "e70f18154d2f1f319d6dd6dc736b14b26c172dd64cab2277dd57f937f4f32ac8",
+    "icons-other.png": "40f453f822f528a83a633bc93cc3560db002cdfc316895ec1ae503791093515f",
+    "screens.png": "0b26405be0b84a4808809ec9acacbd25e8ef67fe280eb06e16d0e03183fe7f7a"
+  },
+  "icons": [
+    {
+      "key": "0",
+      "source": "screens.png",
+      "crop": [
+        750,
+        298,
+        932,
+        466
+      ],
+      "offset": [
+        62,
+        1
+      ],
+      "size": [
+        152,
+        147
+      ],
+      "rgb565_sha256": "e9b14f7a2bef824d28ebe6bb4bb35893f04b728fa5a414591c30ca7873e95314",
+      "compressed_bytes": 12985,
+      "decoded_bytes": 44688
+    },
+    {
+      "key": "1",
+      "source": "icons-day.png",
+      "crop": [
+        345,
+        110,
+        628,
+        288
+      ],
+      "offset": [
+        65,
+        20
+      ],
+      "size": [
+        150,
+        119
+      ],
+      "rgb565_sha256": "88e33399379a9ec9fcb6b9d6b1ed83aeebe30aa3e49c2f7f8befebcb26f63dec",
+      "compressed_bytes": 15233,
+      "decoded_bytes": 35700
+    },
+    {
+      "key": "2",
+      "source": "icons-day.png",
+      "crop": [
+        650,
+        110,
+        933,
+        288
+      ],
+      "offset": [
+        52,
+        22
+      ],
+      "size": [
+        175,
+        116
+      ],
+      "rgb565_sha256": "a261db822321efb0a9d84579acf1c3e3613a157f6c951ee7d80dcc77b741d05e",
+      "compressed_bytes": 21837,
+      "decoded_bytes": 40600
+    },
+    {
+      "key": "3",
+      "source": "screens.png",
+      "crop": [
+        150,
+        320,
+        440,
+        452
+      ],
+      "offset": [
+        18,
+        25
+      ],
+      "size": [
+        243,
+        107
+      ],
+      "rgb565_sha256": "c06b822ffa235442662b1bec73da42124858efd34e3445f134153b4133ac7ef9",
+      "compressed_bytes": 34077,
+      "decoded_bytes": 52002
+    },
+    {
+      "key": "45",
+      "source": "icons-day.png",
+      "crop": [
+        40,
+        380,
+        323,
+        562
+      ],
+      "offset": [
+        57,
+        16
+      ],
+      "size": [
+        165,
+        128
+      ],
+      "rgb565_sha256": "3bdb5a849fbfc1cd2b180fc8014696914979e0427a666188cc69e301511d0c5e",
+      "compressed_bytes": 21538,
+      "decoded_bytes": 42240
+    },
+    {
+      "key": "48",
+      "source": "icons-day.png",
+      "crop": [
+        345,
+        380,
+        628,
+        562
+      ],
+      "offset": [
+        53,
+        16
+      ],
+      "size": [
+        173,
+        127
+      ],
+      "rgb565_sha256": "399814aa632319095aeb91014b8a8e4fde9db51049e21cbea370aaee581b78de",
+      "compressed_bytes": 21277,
+      "decoded_bytes": 43942
+    },
+    {
+      "key": "51",
+      "source": "icons-day.png",
+      "crop": [
+        650,
+        380,
+        933,
+        562
+      ],
+      "offset": [
+        57,
+        24
+      ],
+      "size": [
+        166,
+        112
+      ],
+      "rgb565_sha256": "ca1ef4e0d609af5577aa0dd9f81949828f8b7e1626f90d59f57819423d26be80",
+      "compressed_bytes": 18469,
+      "decoded_bytes": 37184
+    },
+    {
+      "key": "53",
+      "source": "icons-day.png",
+      "crop": [
+        955,
+        380,
+        1214,
+        562
+      ],
+      "offset": [
+        61,
+        22
+      ],
+      "size": [
+        157,
+        115
+      ],
+      "rgb565_sha256": "de7b8c2847ec1f3b230b35f8357c79e3aec08527bf582eadf46e73926f8f7f80",
+      "compressed_bytes": 18513,
+      "decoded_bytes": 36110
+    },
+    {
+      "key": "55",
+      "source": "icons-day.png",
+      "crop": [
+        40,
+        650,
+        323,
+        832
+      ],
+      "offset": [
+        58,
+        23
+      ],
+      "size": [
+        163,
+        114
+      ],
+      "rgb565_sha256": "2566a0cf56a644904fa530a53da08e20f4119eaa7cc0ad40e8aba0dfa4aad45a",
+      "compressed_bytes": 20108,
+      "decoded_bytes": 37164
+    },
+    {
+      "key": "56",
+      "source": "icons-day.png",
+      "crop": [
+        345,
+        650,
+        628,
+        832
+      ],
+      "offset": [
+        59,
+        23
+      ],
+      "size": [
+        161,
+        113
+      ],
+      "rgb565_sha256": "333ed6dd67dfe8b9248f8b4fc3e8d74dfba42840769b7e59a7a6e5cd7a4f047a",
+      "compressed_bytes": 19347,
+      "decoded_bytes": 36386
+    },
+    {
+      "key": "57",
+      "source": "icons-day.png",
+      "crop": [
+        650,
+        650,
+        933,
+        832
+      ],
+      "offset": [
+        60,
+        19
+      ],
+      "size": [
+        160,
+        121
+      ],
+      "rgb565_sha256": "26631e68a4001465013ad63697e2069a4b9be2c6b2e3709cb8786423f99b25b8",
+      "compressed_bytes": 20401,
+      "decoded_bytes": 38720
+    },
+    {
+      "key": "61",
+      "source": "screens.png",
+      "crop": [
+        1275,
+        312,
+        1503,
+        462
+      ],
+      "offset": [
+        40,
+        16
+      ],
+      "size": [
+        193,
+        128
+      ],
+      "rgb565_sha256": "f1b1a545d796a0822543c9b7621329d6a752ec5b17c59805b43a7733e7133067",
+      "compressed_bytes": 22446,
+      "decoded_bytes": 49408
+    },
+    {
+      "key": "63",
+      "source": "icons-day.png",
+      "crop": [
+        40,
+        925,
+        323,
+        1095
+      ],
+      "offset": [
+        59,
+        19
+      ],
+      "size": [
+        161,
+        121
+      ],
+      "rgb565_sha256": "22ad160fcf01c7dc99bbd0e099e0dbcf18180a1701f7f9d55d714785b54f19b1",
+      "compressed_bytes": 19884,
+      "decoded_bytes": 38962
+    },
+    {
+      "key": "65",
+      "source": "icons-day.png",
+      "crop": [
+        345,
+        925,
+        628,
+        1095
+      ],
+      "offset": [
+        57,
+        19
+      ],
+      "size": [
+        166,
+        121
+      ],
+      "rgb565_sha256": "04d68e9c4614168f87a4e8763fad35b409080bfb8e08e1eb480703098ab95227",
+      "compressed_bytes": 20865,
+      "decoded_bytes": 40172
+    },
+    {
+      "key": "66",
+      "source": "icons-day.png",
+      "crop": [
+        650,
+        925,
+        933,
+        1095
+      ],
+      "offset": [
+        60,
+        18
+      ],
+      "size": [
+        160,
+        124
+      ],
+      "rgb565_sha256": "b3809dbfc1ee3253677b35f81b21591988d2a7cbb34d972c204c114635f4995d",
+      "compressed_bytes": 19929,
+      "decoded_bytes": 39680
+    },
+    {
+      "key": "67",
+      "source": "icons-day.png",
+      "crop": [
+        955,
+        925,
+        1214,
+        1095
+      ],
+      "offset": [
+        55,
+        18
+      ],
+      "size": [
+        169,
+        124
+      ],
+      "rgb565_sha256": "6c0d71c4bb548c7a47277276391a7566a413c226fb76ef216fe33a05278053d4",
+      "compressed_bytes": 22033,
+      "decoded_bytes": 41912
+    },
+    {
+      "key": "71",
+      "source": "icons-other.png",
+      "crop": [
+        40,
+        110,
+        323,
+        288
+      ],
+      "offset": [
+        58,
+        19
+      ],
+      "size": [
+        163,
+        121
+      ],
+      "rgb565_sha256": "a12e21d56f80a66797423305861c7f1a4cc712fb3989f3ec5b675b4759a8ea26",
+      "compressed_bytes": 19384,
+      "decoded_bytes": 39446
+    },
+    {
+      "key": "73",
+      "source": "icons-other.png",
+      "crop": [
+        345,
+        110,
+        628,
+        288
+      ],
+      "offset": [
+        59,
+        19
+      ],
+      "size": [
+        162,
+        122
+      ],
+      "rgb565_sha256": "d3a3a6cc40882bf57706d05fc51f283599591719571311e38a074d97d0871079",
+      "compressed_bytes": 20395,
+      "decoded_bytes": 39528
+    },
+    {
+      "key": "75",
+      "source": "icons-other.png",
+      "crop": [
+        650,
+        110,
+        933,
+        288
+      ],
+      "offset": [
+        56,
+        19
+      ],
+      "size": [
+        168,
+        122
+      ],
+      "rgb565_sha256": "40d7c6b6c4af327aaa1599b68d884317e69b23cbdb8b9fb044befa34404d9030",
+      "compressed_bytes": 22365,
+      "decoded_bytes": 40992
+    },
+    {
+      "key": "77",
+      "source": "icons-other.png",
+      "crop": [
+        955,
+        110,
+        1214,
+        288
+      ],
+      "offset": [
+        57,
+        24
+      ],
+      "size": [
+        165,
+        111
+      ],
+      "rgb565_sha256": "93c949c5528e1ce1668669a6f45881f1b0263d839ff427bf06609699e0f80faf",
+      "compressed_bytes": 19115,
+      "decoded_bytes": 36630
+    },
+    {
+      "key": "80",
+      "source": "icons-other.png",
+      "crop": [
+        40,
+        380,
+        323,
+        562
+      ],
+      "offset": [
+        51,
+        6
+      ],
+      "size": [
+        177,
+        147
+      ],
+      "rgb565_sha256": "a91311bbbb375d709d925463b8bef4e3e1bfc00cbc30233abc8a07838fafa63e",
+      "compressed_bytes": 22479,
+      "decoded_bytes": 52038
+    },
+    {
+      "key": "81",
+      "source": "icons-other.png",
+      "crop": [
+        345,
+        380,
+        628,
+        562
+      ],
+      "offset": [
+        48,
+        6
+      ],
+      "size": [
+        184,
+        147
+      ],
+      "rgb565_sha256": "77b18810a08b9d53d32d34c6bab2752922be76c1c1f732e2ab79e83d32a75190",
+      "compressed_bytes": 23493,
+      "decoded_bytes": 54096
+    },
+    {
+      "key": "82",
+      "source": "icons-other.png",
+      "crop": [
+        650,
+        380,
+        933,
+        562
+      ],
+      "offset": [
+        49,
+        6
+      ],
+      "size": [
+        181,
+        147
+      ],
+      "rgb565_sha256": "1bdf39564a2310910d795b0f6651589c4e651c376cdf931c22e5b4e5e7f14cbb",
+      "compressed_bytes": 23977,
+      "decoded_bytes": 53214
+    },
+    {
+      "key": "85",
+      "source": "icons-other.png",
+      "crop": [
+        955,
+        380,
+        1214,
+        562
+      ],
+      "offset": [
+        51,
+        3
+      ],
+      "size": [
+        178,
+        153
+      ],
+      "rgb565_sha256": "970fd97d6c2cc9bf35e839a54b25554d61527489582e15444ab882a285e5d296",
+      "compressed_bytes": 23085,
+      "decoded_bytes": 54468
+    },
+    {
+      "key": "86",
+      "source": "icons-other.png",
+      "crop": [
+        40,
+        650,
+        323,
+        832
+      ],
+      "offset": [
+        51,
+        7
+      ],
+      "size": [
+        177,
+        145
+      ],
+      "rgb565_sha256": "3828b5dc159b320a3c5bd5c5126363ec140f33dd1652ec1a8b6c2a78720d5983",
+      "compressed_bytes": 25328,
+      "decoded_bytes": 51330
+    },
+    {
+      "key": "95",
+      "source": "icons-other.png",
+      "crop": [
+        345,
+        650,
+        628,
+        832
+      ],
+      "offset": [
+        59,
+        16
+      ],
+      "size": [
+        162,
+        128
+      ],
+      "rgb565_sha256": "a03d618ca263925d3f922836f965f2a57a494fe9d883350d84f6cbf5c044f2d6",
+      "compressed_bytes": 19326,
+      "decoded_bytes": 41472
+    },
+    {
+      "key": "97",
+      "source": "icons-other.png",
+      "crop": [
+        650,
+        650,
+        933,
+        832
+      ],
+      "offset": [
+        59,
+        13
+      ],
+      "size": [
+        162,
+        134
+      ],
+      "rgb565_sha256": "de0e332ffc83e359b8703b0279a5f655545ea19bd3ded0ea26c2b789360bb312",
+      "compressed_bytes": 21245,
+      "decoded_bytes": 43416
+    },
+    {
+      "key": "96",
+      "source": "icons-other.png",
+      "crop": [
+        955,
+        650,
+        1214,
+        832
+      ],
+      "offset": [
+        58,
+        14
+      ],
+      "size": [
+        163,
+        131
+      ],
+      "rgb565_sha256": "a90e38e7843f7cb733b4879c421f8866dcae163f928cd6b91963d468fcad2907",
+      "compressed_bytes": 19991,
+      "decoded_bytes": 42706
+    },
+    {
+      "key": "99",
+      "source": "icons-other.png",
+      "crop": [
+        40,
+        925,
+        323,
+        1095
+      ],
+      "offset": [
+        58,
+        13
+      ],
+      "size": [
+        163,
+        133
+      ],
+      "rgb565_sha256": "8b11675d227216f1cc2fa5aae4bd1597142191dd8beb51132752dc90f6caedf0",
+      "compressed_bytes": 20763,
+      "decoded_bytes": 43358
+    },
+    {
+      "key": "0n",
+      "source": "icons-other.png",
+      "crop": [
+        345,
+        925,
+        628,
+        1095
+      ],
+      "offset": [
+        82,
+        17
+      ],
+      "size": [
+        116,
+        125
+      ],
+      "rgb565_sha256": "c18123809e33c93a789e14f92a815c33ac0605794af01a4624f809bfe291bbe3",
+      "compressed_bytes": 12081,
+      "decoded_bytes": 29000
+    },
+    {
+      "key": "1n",
+      "source": "icons-other.png",
+      "crop": [
+        650,
+        925,
+        933,
+        1095
+      ],
+      "offset": [
+        69,
+        18
+      ],
+      "size": [
+        141,
+        124
+      ],
+      "rgb565_sha256": "ead7b83dde0e84aecbfc61b12f0303cf45f4ea518624e5c60da746c5d52c5606",
+      "compressed_bytes": 15077,
+      "decoded_bytes": 34968
+    },
+    {
+      "key": "2n",
+      "source": "icons-other.png",
+      "crop": [
+        955,
+        925,
+        1214,
+        1095
+      ],
+      "offset": [
+        57,
+        16
+      ],
+      "size": [
+        165,
+        127
+      ],
+      "rgb565_sha256": "df345b90b53672f740d2ba1350b64af3913986b0dabe648b836bd565521ffaa8",
+      "compressed_bytes": 22745,
+      "decoded_bytes": 41910
+    },
+    {
+      "key": "80n",
+      "source": "derived:2n+80",
+      "crop": null,
+      "offset": [
+        57,
+        0
+      ],
+      "size": [
+        165,
+        160
+      ],
+      "rgb565_sha256": "b8f9e4df8c2a20caee5d8eed6a3e89b3deac84414cc3de12e86397e5d050ac27",
+      "compressed_bytes": 24131,
+      "decoded_bytes": 52800
+    },
+    {
+      "key": "81n",
+      "source": "derived:2n+81",
+      "crop": null,
+      "offset": [
+        57,
+        0
+      ],
+      "size": [
+        165,
+        160
+      ],
+      "rgb565_sha256": "87e6c086866cc24cb7ea58fc462b7332157dd91dc8191cb8aa9e34ba1397854b",
+      "compressed_bytes": 24630,
+      "decoded_bytes": 52800
+    },
+    {
+      "key": "82n",
+      "source": "derived:2n+82",
+      "crop": null,
+      "offset": [
+        57,
+        0
+      ],
+      "size": [
+        165,
+        160
+      ],
+      "rgb565_sha256": "d973d9322f1c432edc40c40604980c1f54ad11c13cc622661a26b55ea9badd6c",
+      "compressed_bytes": 25152,
+      "decoded_bytes": 52800
+    },
+    {
+      "key": "85n",
+      "source": "derived:2n+85",
+      "crop": null,
+      "offset": [
+        57,
+        0
+      ],
+      "size": [
+        165,
+        160
+      ],
+      "rgb565_sha256": "e0a73e48b39725b82d409ff574c528faa6aa1ddec67d91a31fe8eb4e9828ec84",
+      "compressed_bytes": 24734,
+      "decoded_bytes": 52800
+    },
+    {
+      "key": "86n",
+      "source": "derived:2n+86",
+      "crop": null,
+      "offset": [
+        57,
+        0
+      ],
+      "size": [
+        165,
+        160
+      ],
+      "rgb565_sha256": "b24e6d0ba2f9e751545530acca50eadcb2fa6433776bc8682c71f28dbbe621b9",
+      "compressed_bytes": 26540,
+      "decoded_bytes": 52800
+    }
+  ]
+}

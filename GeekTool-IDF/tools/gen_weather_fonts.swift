@@ -24,11 +24,16 @@ for source in ["main/weather_ui.c", "main/i18n.c"] {
     }
 }
 for size in [16,20] {
+    var sizeCodes=codes
+    if size==16 {
+        let provinces=try String(contentsOfFile:"artwork/locations/province-names.txt",encoding:.utf8)
+        for c in provinces.unicodeScalars where (0x4e00...0x9fff).contains(c.value) {sizeCodes.insert(c.value)}
+    }
     let height = size+6, baseline = 5
     var bitmap: [UInt8] = []
     var descriptors = ["{.bitmap_index=0, .adv_w=0, .box_w=0, .box_h=0, .ofs_x=0, .ofs_y=0}"]
     var chunks: [String] = []
-    let ordered = codes.sorted()
+    let ordered = sizeCodes.sorted()
     for code in ordered {
         let text = String(UnicodeScalar(code)!)
         let isCJK = (0x4e00...0x9fff).contains(code)

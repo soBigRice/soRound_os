@@ -1,6 +1,7 @@
 // 466×466 AMOLED 天气页:颜色/点距/轮廓是视觉语言,并非物理点阵屏。
 // 图标与温度各只有一个绘制对象;状态变化才 invalidate,不为每个点分配 lv_obj。
 #include "weather_ui.h"
+#include "weather_artwork.h"
 #include "app.h"
 #include "settings.h"
 #include "lvgl_compat.h"
@@ -228,6 +229,18 @@ static void icon_event(lv_event_t *e) {
         for (int n = -1; n <= 1; ++n) dot(&p,140+n*18,88,6,WX_SLATE);
         return;
     }
+    const weather_artwork_t *art = weather_artwork_for(ui->code, ui->is_day);
+    if (art) {
+        lv_draw_image_dsc_t image;
+        lv_draw_image_dsc_init(&image);
+        image.src = art->image;
+        lv_area_t area = {p.x + art->x, p.y + art->y,
+                          p.x + art->x + art->image->header.w - 1,
+                          p.y + art->y + art->image->header.h - 1};
+        lv_draw_image(p.layer, &image, &area);
+        return;
+    }
+    // Unknown/unmapped artwork falls back to the existing vector renderer.
     switch (c->kind) {
         case CLEAR:
             if (ui->is_day) sun(&p,140,75,35);

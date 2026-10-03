@@ -28,6 +28,7 @@
 static lv_obj_t *g_ball, *g_big, *g_axes;
 static float ox, oy;
 static uint32_t s_last_ms;
+static unsigned s_missed;
 
 static void level_enter(lv_obj_t *parent) {
     glyph_circle(parent, LCX, LCY, DISH, 16, 2, COL_TXT2);   // 碗沿
@@ -59,7 +60,7 @@ static void level_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_opa(g_ball, LV_OPA_COVER, 0);
     lv_obj_add_flag(g_ball, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    ox = oy = 0; s_last_ms = lv_tick_get();
+    ox = oy = 0; s_last_ms = lv_tick_get(); s_missed=0;
 }
 
 static void level_tick(void) {
@@ -68,7 +69,14 @@ static void level_tick(void) {
     float dt = fminf((float)(now - s_last_ms), 100.0f); s_last_ms = now;
     float alpha = 1.0f - powf(1.0f - SMOOTH, dt / 50.0f);
     float tx, ty, az;
-    if (!imu_read_tilt_z(&tx, &ty, &az)) return;
+    if (!imu_read_tilt_z(&tx, &ty, &az) || !isfinite(tx) || !isfinite(ty) || !isfinite(az)) {
+        if(++s_missed>=3) {
+            lv_obj_add_flag(g_ball,LV_OBJ_FLAG_HIDDEN);
+            ui_text(g_big,"");ui_text(g_axes,tr(S_NO_SENSOR));
+        }
+        return;
+    }
+    s_missed=0;lv_obj_remove_flag(g_ball,LV_OBJ_FLAG_HIDDEN);
     // 标准水平仪:倾角【直接】映射气泡位置(无加速/惯性/摩擦),只做轻度消抖
     float gx = tx * GAIN, gy = ty * GAIN;
     float d = sqrtf(gx * gx + gy * gy);
