@@ -9,7 +9,7 @@ Checked: 2026-10-03. The user approved the native OTA rendering with the full-sc
 - Animation: the arrow moves upward and fades before resetting. The ring sweeps during checking and fills clockwise from actual download progress, with only the completed endpoint pulsing. Settings, occlusion and exit remove both animations.
 - States: gray/white idle and checking, red download progress, amber retry, blue verification, green success/check, and red failure/cross.
 - Round-screen check: all 26 bilingual renders and 66 motion frames fit the physical circular boundary. Long verification text was moved above the progress bar and split over two lines to preserve the power warning.
-- Validation: firmware build, all five host regression groups, 18 OTA recovery/error groups and whitespace checks pass. No new assets or dependencies. Hardware appearance, touch and animation smoothness still require device/user acceptance.
+- Validation: firmware build, all six host regression groups on LVGL 9.5 and upstream 9.6.0, 18 OTA recovery/error groups and whitespace checks pass. No OTA assets or dependencies added. Released with the weather redesign as v1.7-beta.11; hardware appearance, touch and animation smoothness still require device/user acceptance.
 
 The detailed state and lifecycle explanation is maintained in [OTA implementation notes](./GeekTool-IDF/PORTING_NOTES.md#2026-10-03-ota-极简页面).
 

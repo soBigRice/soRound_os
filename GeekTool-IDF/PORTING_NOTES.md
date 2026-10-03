@@ -1020,3 +1020,27 @@ CI 解析 LVGL 9.6.0~1 / esp_lvgl_port 2.9.0 / esp_codec_dev 1.6.2;
 OTA 独立改版阶段的固件完整构建通过，镜像 `0x1d62c0`，3 MiB 应用分区剩余 39%。
 五组主机回归、18 组 OTA 下载恢复/错误边界与 `git diff --check` 通过，已查看真实主机渲染及运动中间帧。
 预览是原生 LVGL 主机渲染，不是设备截图；真机 AMOLED 观感、触摸、帧率及实际 OTA 下载/重启仍待验收。
+
+## 2026-10-03 v1.7-beta.11 发布核对
+
+用户明确授权 OTA 完成后与天气任务一起发版。`v1.7-beta.11` 指向联合代码提交
+`d31d2c80307bfe82997d461f169194f5b052488d`，包含整屏 OTA 点阵环/箭头动效、状态配色、
+真实进度和设置子页，以及天气彩色点阵、专用字体、昼夜映射与数据更新序号修复。
+
+[Actions 37119195742](https://github.com/soBigRice/soRound_os/actions/runs/37119195742)
+的固件构建、Release 和 R2 上传均成功；
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.11) 已发布并标记 prerelease。
+CI 使用 ESP-IDF 6.0.1、LVGL 9.6.0~1、esp_lvgl_port 2.9.0、esp_codec_dev 1.6.2；
+镜像 `0x1ec4c0`，3 MiB 应用分区剩余 36%。本地组件策略未修改。
+
+GitHub `GeekTool.bin` 与公开 Beta 对象逐字节一致，大小 2,016,448 字节，
+SHA-256 `93956446572410a0d6370c94df4402897c75f180fef2335dbcfa43290a138cfc`。
+包内版本 `v1.7-beta.11`、项目 `GeekTool`、目标 ESP32-S3、ESP-IDF `v6.0.1`，
+checksum 和 validation hash 有效。公开 Beta 下载返回 200、`no-store, max-age=0`；
+匹配 If-Match 的 Range `3072-4095` 返回 206，ETag、Content-Range 与 1024 字节分段均与完整镜像一致。
+正式对象发布前后逐字节未变，SHA-256 仍为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+
+本地 LVGL 9.5 和上游 9.6.0 的六组回归通过，包含 26 个中英文 OTA 渲染与 78 个天气渲染；
+18 组 OTA 下载恢复/错误边界、Tag 构建及镜像校验通过。未烧录本版，真实 AMOLED 观感、
+触摸、设备下载/重启和回滚仍待验收；云端发布与包校验不替代设备验收。
