@@ -89,7 +89,7 @@ void weather_location_ui_open(lv_obj_t *parent,bool (*select)(uint16_t)) {
     weather_location_ui_close(); on_select=select;
     root=lv_obj_create(parent);lv_obj_remove_style_all(root);lv_obj_set_size(root,466,466);
     lv_obj_set_style_bg_color(root,lv_color_hex(0),0);lv_obj_set_style_bg_opa(root,LV_OPA_COVER,0);
-    lv_obj_remove_flag(root,LV_OBJ_FLAG_SCROLLABLE);lv_obj_add_flag(root,LV_OBJ_FLAG_GESTURE_BUBBLE);
+    ui_obj_set_scrollable(root,false);ui_obj_set_gesture_bubble(root,true);
     common=lv_obj_create(root);lv_obj_remove_style_all(common);lv_obj_set_size(common,466,466);ui_obj_set_scrollable(common,false);
     picker=lv_obj_create(root);lv_obj_remove_style_all(picker);lv_obj_set_size(picker,466,466);ui_obj_set_scrollable(picker,false);ui_obj_set_hidden(picker,true);
     launcher_set_title(word("选择地址","Location"));
@@ -122,7 +122,7 @@ void weather_location_ui_open(lv_obj_t *parent,bool (*select)(uint16_t)) {
     lv_obj_set_style_bg_color(roller,lv_color_hex(0x171a1e),LV_PART_SELECTED);
     lv_obj_set_style_border_width(roller,0,0);lv_obj_set_style_radius(roller,24,0);
     lv_obj_set_style_text_line_space(roller,22,0);lv_roller_set_visible_row_count(roller,3);
-    lv_obj_align(roller,LV_ALIGN_TOP_MID,0,183);lv_obj_remove_flag(roller,LV_OBJ_FLAG_GESTURE_BUBBLE);
+    lv_obj_align(roller,LV_ALIGN_TOP_MID,0,183);ui_obj_set_gesture_bubble(roller,false);
     lv_obj_add_event_cb(roller,roller_changed,LV_EVENT_VALUE_CHANGED,NULL);
     confirm=button(picker,word("下一步","Next"),356,next,NULL);
     uint16_t index=wx_location_selected(); memset(trail,0,sizeof trail);

@@ -4,7 +4,9 @@ set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/lv_conf.h" CACHE PATH "" FOR
 set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
 set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
-add_subdirectory(../../managed_components/lvgl__lvgl lvgl)
+set(LVGL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../managed_components/lvgl__lvgl"
+    CACHE PATH "LVGL source used to check local and release-version compatibility")
+add_subdirectory("${LVGL_SOURCE_DIR}" lvgl)
 add_executable(performance_tests performance_tests.c countdown_tests.c ../../main/glyph.c)
 target_include_directories(performance_tests PRIVATE stubs ../../main)
 target_link_libraries(performance_tests PRIVATE lvgl m)

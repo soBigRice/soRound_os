@@ -184,7 +184,7 @@ int main(int argc,char **argv) {
     lv_obj_set_style_text_align(heading,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_set_style_text_color(heading,lv_color_hex(0xf2eee6),0); lv_obj_align(heading,LV_ALIGN_TOP_MID,0,56);
     lv_obj_t *ring=lv_arc_create(lv_layer_top()); lv_obj_set_size(ring,458,458); lv_obj_center(ring);
-    lv_obj_remove_flag(ring,LV_OBJ_FLAG_CLICKABLE);
+    ui_obj_set_clickable(ring,false);
     lv_arc_set_rotation(ring,270); lv_arc_set_bg_angles(ring,0,360); lv_arc_set_value(ring,6);
     lv_obj_remove_style(ring,NULL,LV_PART_KNOB);
     lv_obj_set_style_arc_width(ring,6,LV_PART_MAIN); lv_obj_set_style_arc_width(ring,6,LV_PART_INDICATOR);

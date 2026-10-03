@@ -3,6 +3,7 @@
 #include "app.h"
 #include "settings.h"
 #include "weather_ui.h"
+#include "lvgl_compat.h"
 #include "weather_locations.h"
 #include "weather_location_ui.h"
 #include "esp_http_client.h"
@@ -119,21 +120,21 @@ static bool select_location(uint16_t index) {
     if(!wx_location_select(index))return false;
     portENTER_CRITICAL(&s_lock);++s_generation;++s_revision;s_state=WX_IDLE;s_last_fetch=0;portEXIT_CRITICAL(&s_lock);
     s_ui.has_data=false;lv_obj_invalidate(s_ui.icon);lv_obj_invalidate(s_ui.temperature);
-    s_choosing=false;lv_obj_remove_flag(s_content,LV_OBJ_FLAG_HIDDEN);city_title();start_fetch();return true;
+    s_choosing=false;ui_obj_set_hidden(s_content,false);city_title();start_fetch();return true;
 }
 static void choose_location(lv_event_t *e) {
-    (void)e;s_choosing=true;lv_obj_add_flag(s_content,LV_OBJ_FLAG_HIDDEN);weather_location_ui_open(s_parent,select_location);
+    (void)e;s_choosing=true;ui_obj_set_hidden(s_content,true);weather_location_ui_open(s_parent,select_location);
 }
 static void retry(lv_event_t *e) {(void)e;start_fetch();}
 static void weather_enter(lv_obj_t *parent) {
     s_parent=parent;city_title();s_shown=(wx_state_t)-1;s_shown_revision=UINT32_MAX;s_choosing=false;
     s_content=lv_obj_create(parent);lv_obj_remove_style_all(s_content);lv_obj_set_size(s_content,466,466);
-    lv_obj_remove_flag(s_content,LV_OBJ_FLAG_SCROLLABLE);weather_ui_create(&s_ui,s_content);
+    ui_obj_set_scrollable(s_content,false);weather_ui_create(&s_ui,s_content);
     lv_obj_t *city=lv_button_create(s_content);lv_obj_remove_style_all(city);lv_obj_set_size(city,190,48);
     lv_obj_align(city,LV_ALIGN_TOP_MID,25,47);lv_obj_add_event_cb(city,choose_location,LV_EVENT_CLICKED,NULL);
     // The header label lives on the top layer; its non-clickable text allows this
     // generous hit area beneath it to receive taps on city/pin.
-    lv_obj_add_flag(s_ui.status,LV_OBJ_FLAG_CLICKABLE);lv_obj_add_event_cb(s_ui.status,retry,LV_EVENT_CLICKED,NULL);
+    ui_obj_set_clickable(s_ui.status,true);lv_obj_add_event_cb(s_ui.status,retry,LV_EVENT_CLICKED,NULL);
     start_fetch();
 }
 static void weather_tick(void) {
@@ -151,7 +152,7 @@ static bool weather_back(void) {
     if(!s_choosing)return false;
     weather_location_ui_back();
     if(!weather_location_ui_visible()) {
-        s_choosing=false;lv_obj_remove_flag(s_content,LV_OBJ_FLAG_HIDDEN);city_title();
+        s_choosing=false;ui_obj_set_hidden(s_content,false);city_title();
     }
     return true;
 }
