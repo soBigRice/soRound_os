@@ -1,34 +1,17 @@
-# OTA Orbit Console Design QA
+# OTA Minimal Update Page Design QA
 
-## Scope
+Checked: 2026-10-03. The user approved the native OTA rendering with the full-screen dotted ring and filled dotted arrow, and authorized a combined weather/OTA release. Device acceptance remains pending.
 
-- Target: `GeekTool-IDF/main/app_ota.c`
-- Display: 466×466 round AMOLED
-- Selected direction: Orbit Console (option 1)
-- Reference: generated option selected by the user, checked together with a 466×466 geometry prototype
+- Target: `GeekTool-IDF/main/app_ota.c`, 466×466 round AMOLED.
+- Direction: 438px dotted circle inside the 466px screen, large filled dotted arrow, thin download bar, and a small dotted settings button at the top right.
+- Rendering: actual LVGL host renders in English and Chinese were inspected for idle, downloading, retrying, verifying, final/error states and settings. The host fixture recreates launcher chrome; these are not device screenshots.
+- Interaction: pointer input exercises settings entry, Beta switch persistence and disabled state during download. Back consumes the settings level first; leaving/reentering the app restores the real background progress.
+- Animation: the arrow moves upward and fades before resetting. The ring sweeps during checking and fills clockwise from actual download progress, with only the completed endpoint pulsing. Settings, occlusion and exit remove both animations.
+- States: gray/white idle and checking, red download progress, amber retry, blue verification, green success/check, and red failure/cross.
+- Round-screen check: all 26 bilingual renders and 66 motion frames fit the physical circular boundary. Long verification text was moved above the progress bar and split over two lines to preserve the power warning.
+- Validation: firmware build, all five host regression groups, 18 OTA recovery/error groups and whitespace checks pass. No new assets or dependencies. Hardware appearance, touch and animation smoothness still require device/user acceptance.
 
-## Source-to-implementation checks
-
-| Check | Result | Evidence |
-|---|---|---|
-| Single visual frame | Passed | OTA no longer creates a complete inner `lv_arc`; the global battery ring remains the only full circle. |
-| Header hierarchy | Passed | Global back/title remain unchanged; current version sits in the orbit's top opening without crossing a line. |
-| Primary action | Passed | Download glyph and “检查更新” share one 214×178 touch target in the visual center. |
-| Orbit anatomy | Passed | 54 native LVGL dots form a 260° open orbit; idle, checking and real download progress have distinct rendering. |
-| Secondary control | Passed | Beta channel is grouped in a compact bottom capsule and disabled while the OTA task is busy. |
-| State coverage | Passed | Idle, checking, running, success, up-to-date and failure states were rendered in the geometry prototype. |
-| Build compatibility | Passed | ESP-IDF 6.0.1 builds the changed LVGL code with warnings treated as errors. |
-
-## Visible deviations from the concept
-
-- The concept's thin green perimeter is rendered by the product's existing 8px global battery/charging arc; OTA does not own or restyle it.
-- The local prototype uses library vector icons only to verify spacing. Firmware keeps the product's native dotted `glyph_line` download/check/cross icons.
-- The bottom capsule is slightly wider than the concept so the existing 54×28 switch and Chinese label retain usable touch and text spacing.
-
-## Interaction and hardware status
-
-- The prototype verified the main CTA, beta switch and all visible states at the target 466×466 geometry without clipping or text/line collisions.
-- Firmware compilation and static state-path checks pass. AMOLED brightness, actual touch hit testing and animation smoothness still require a device flash and photo/video; these are not claimed as hardware-verified here.
+The detailed state and lifecycle explanation is maintained in [OTA implementation notes](./GeekTool-IDF/PORTING_NOTES.md#2026-10-03-ota-极简页面).
 
 ## Settings Three-category Hub Design QA
 

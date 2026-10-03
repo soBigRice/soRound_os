@@ -5,6 +5,7 @@
 #include "lock.h"
 #include "buttons.h"
 #include "glyph.h"
+#include "weather_ui.h"
 #include "quickpanel.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
@@ -24,6 +25,7 @@ const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
 static lv_obj_t *g_icon, *g_iconart, *g_name, *g_title, *g_back, *g_batt, *g_bolt;
+static lv_obj_t *g_back_label, *g_backdots;
 static lv_obj_t *g_nextart;
 static const app_t *cur_app;
 static int cur, pending_app;
@@ -32,6 +34,36 @@ static uint32_t s_last_batt_color = UINT32_MAX;
 static bool s_app_visible;
 static uint32_t s_tick_at;
 static void battery_visibility(bool covered);
+static bool battery_covered(void) {
+    // OTA 按页面约定只显示一个点阵圆圈;仅在该 App 收起实线电量层。
+    return lock_is_locked() || cur_app == &app_ota;
+}
+static void header_app_style(void) {
+    // OTA 的贴边点阵环需要透明点阵返回键;其他 App 保持原有圆形按钮。
+    bool ota = cur_app == &app_ota;
+    bool weather = cur_app == &app_weather;
+    // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
+    // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
+    lv_obj_set_style_text_font(g_title, weather ? &font_weather_20 : UI_FONT_L, 0);
+    lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, weather ? 56 : 46);
+    lv_obj_set_size(g_back, weather ? 40 : 48, weather ? 40 : 48);
+    lv_obj_align(g_back, LV_ALIGN_TOP_MID, -100, weather ? 52 : 40);
+    lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
+    lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(g_batt, lv_color_hex(weather ? 0x22272a : 0x15151a), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_back, ota ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(g_back, (ota || weather) ? 0 : 1, 0);
+    if (weather) lv_obj_set_style_text_font(g_back_label, &lv_font_montserrat_20, 0);
+    else lv_obj_remove_local_style_prop(g_back_label, LV_STYLE_TEXT_FONT, 0);
+    if (ota) {
+        lv_obj_add_flag(g_back_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(g_backdots, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_remove_flag(g_back_label, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(g_backdots, LV_OBJ_FLAG_HIDDEN);
+    }
+}
 
 /* ---- App 点描图标:沿轮廓撒小圆点(glyph_* 通用画法),容器 IB×IB,中心 IC_C ---- */
 #define IB     132
@@ -317,7 +349,7 @@ static void app_tick_timer(lv_timer_t *t) {
     (void)t;
     s_lvgl_hb++;
     touch_boost_poll();
-    battery_visibility(lock_is_locked());
+    battery_visibility(battery_covered());
     if (!cur_app) return;
     bool visible = launcher_app_visible();
     uint32_t now = lv_tick_get();
@@ -346,6 +378,8 @@ static void back_cb(lv_event_t *e) { app_back(); }
 
 static void enter_app(void) {
     cur_app = APPS[cur];
+    battery_visibility(battery_covered());
+    header_app_style();
     s_app_visible = true; s_tick_at = lv_tick_get();
     ESP_LOGI("app", "enter %s | free internal=%u psram=%u", cur_app->name,
              (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
@@ -388,6 +422,8 @@ void go_home(void) {
     lv_obj_add_flag(g_back, LV_OBJ_FLAG_HIDDEN);
     if (cur_app->exit) cur_app->exit();
     cur_app = NULL;
+    battery_visibility(battery_covered());
+    header_app_style();
     lv_screen_load(launcher_screen);
     if (app_screen) { lv_obj_delete_async(app_screen); app_screen = NULL; }
 }
@@ -448,10 +484,17 @@ static void build_overlay(void) {
     lv_obj_remove_flag(g_back, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_back, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_event_cb(g_back, back_cb, LV_EVENT_CLICKED, NULL);
-    lv_obj_t *bl = lv_label_create(g_back);
-    lv_label_set_text(bl, LV_SYMBOL_LEFT);
-    lv_obj_set_style_text_color(bl, lv_color_hex(COL_TXT), 0);
-    lv_obj_center(bl);
+    g_back_label = lv_label_create(g_back);
+    lv_label_set_text(g_back_label, LV_SYMBOL_LEFT);
+    lv_obj_set_style_text_color(g_back_label, lv_color_hex(COL_TXT), 0);
+    lv_obj_center(g_back_label);
+    g_backdots = lv_obj_create(g_back);
+    lv_obj_remove_style_all(g_backdots);
+    lv_obj_set_size(g_backdots, 48, 48);
+    lv_obj_remove_flag(g_backdots, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(g_backdots, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
+    glyph_line(g_backdots, 28, 17, 21, 24, 4, 1, COL_TXT);
+    glyph_line(g_backdots, 21, 24, 28, 31, 4, 1, COL_TXT);
     lv_obj_add_flag(g_back, LV_OBJ_FLAG_HIDDEN);
 
     // 顶部边缘下拉热区(透明、仅最顶 30px):只在屏幕最顶起手的下拉才触发,避开列表纵向滚动误触
@@ -522,11 +565,11 @@ static void battery_timer_cb(lv_timer_t *t) {
     }
 
     bool plugged = (st == PWR_CHARGING || st == PWR_FULL);
-    if (plugged && !lock_is_locked()) lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
+    if (plugged && !battery_covered()) lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
     else         lv_obj_add_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
 
     if (st != s_last_pwr) {
-        bolt_breath(st == PWR_CHARGING && !lock_is_locked());         // 仅充电时呼吸,充满则常亮
+        bolt_breath(st == PWR_CHARGING && !battery_covered());         // 仅可见且充电时呼吸,充满则常亮
         s_last_pwr = st;
     }
 

@@ -14,8 +14,8 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include <math.h>
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 
 static const char *TAG = "ota";
@@ -37,8 +37,9 @@ static int                  s_last_pct = -1;   // 每次进页面重放当前任
 static int                  s_last_attempt = -1;
 static ota_state_t          s_shown = (ota_state_t)-1;
 
-static lv_obj_t *g_status, *g_ver, *g_icon, *g_pctlbl, *g_action;
-static lv_obj_t *g_orbitbox, *g_hit, *g_switch, *g_channelbox;
+static lv_obj_t *g_status, *g_ver, *g_icon, *g_pctlbl, *g_progress;
+static lv_obj_t *g_main, *g_hit, *g_switch, *g_channelbox, *g_gear, *g_settings;
+static bool s_settings_open, s_visible;
 static void ota_tick(void);
 
 static ota_status_t status_snapshot(void) {
@@ -54,20 +55,22 @@ static void status_publish(const ota_status_t *status, void *user) {
     portEXIT_CRITICAL(&s_mux);
 }
 
-/* ===== Orbit Console:开放点阵轨道 + 中央状态 + 底部通道胶囊 =====
-   全局 layer_top 已有 458px 电量环,OTA 页不能再画完整内环,否则真机会形成双重“靶心”。 */
+/* ===== Nothing:贴边点阵圆环 + 大点阵上箭头 + 底部细横条 =====
+   圆环内放大图标与必要状态;launcher 在 OTA 页收起实线电量环,退出后恢复。 */
 #define OTA_CX       233
-#define OTA_CY       232
-#define ORBIT_R      120
-#define ORBIT_N      54
-#define ORBIT_DOT_R  3
-#define ORBIT_A0     (-0.698132f)   // -40°,右上端点
-#define ORBIT_A1     ( 3.839724f)   // 220°,左上端点;顶部留 100° 开口给版本信息
-
-#define IC_CX 60           // g_icon 容器 120x104,中心 (60,52)
-#define IC_CY 52
+#define OTA_CY       233
+#define ORBIT_R      216
+#define ICON_Y       122
+#define IC_CX        108
+#define IC_CY        108
+#define ORBIT_N      104
+#define OTA_AMBER    0xf5a623
+#define OTA_BLUE     0x64d2ff
+#define ORBIT_IDLE   0x98989c
+#define ORBIT_DIM    0x343438
 
 static lv_obj_t *g_orbit[ORBIT_N];
+static int s_ring_pct, s_orbit_phase;
 
 static void set_visible(lv_obj_t *o, bool visible) {
     if (!o) return;
@@ -75,80 +78,112 @@ static void set_visible(lv_obj_t *o, bool visible) {
     else         lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
 }
 
-static void orbit_dot_style(int i, uint32_t col, lv_opa_t opa) {
-    if (!g_orbit[i]) return;
-    ui_bg_color(g_orbit[i], col);
-    ui_bg_opa(g_orbit[i], opa);
+static void arrow_anim_exec(void *o, int32_t v) {
+    // 只向上运行;首尾淡入/淡出,循环复位发生在不可见时,不播放向下回弹。
+    lv_obj_set_y(o, ICON_Y + 12 - v * 36 / 1000);
+    int opa = v < 160 ? v * 255 / 160 : v > 840 ? (1000 - v) * 255 / 160 : 255;
+    lv_obj_set_style_opa(o, (lv_opa_t)opa, 0);
 }
 
-// 轨道阅读方向从左上端点走向右上端点;数组坐标的生成方向相反,这里做一次映射。
-static int orbit_idx(int step) { return ORBIT_N - 1 - step; }
-
-static void orbit_dim(void) {
-    for (int i = 0; i < ORBIT_N; i++) orbit_dot_style(i, COL_TXT, LV_OPA_20);
+static void stop_arrow_anim(void) {
+    if (!g_icon) return;
+    lv_anim_delete(g_icon, arrow_anim_exec);
+    lv_obj_set_y(g_icon, ICON_Y);
+    lv_obj_set_style_opa(g_icon, LV_OPA_COVER, 0);
 }
 
-static void orbit_idle(void) {
-    for (int step = 0; step < ORBIT_N; step++)
-        orbit_dot_style(orbit_idx(step), step < 5 ? COL_RED : COL_TXT,
-                        step < 5 ? (lv_opa_t)(255 - step * 38) : LV_OPA_COVER);
-}
-
-static void orbit_progress(int pct) {
-    if (pct < 0) pct = 0;
-    if (pct > 100) pct = 100;
-    int head = pct * (ORBIT_N - 1) / 100;
-    for (int step = 0; step < ORBIT_N; step++)
-        orbit_dot_style(orbit_idx(step), step == head ? COL_RED : COL_TXT,
-                        step <= head ? LV_OPA_COVER : LV_OPA_20);
-}
-
-static void orbit_check_frame(int phase) {
-    for (int step = 0; step < ORBIT_N; step++) {
-        int tail = phase - step;
-        bool lit = tail >= 0 && tail <= 5;
-        orbit_dot_style(orbit_idx(step), tail == 0 ? COL_RED : COL_TXT,
-                        lit ? (lv_opa_t)(80 + (5 - tail) * 35) : LV_OPA_20);
-    }
-}
-
-static void orbit_anim_exec(void *o, int32_t v) {
-    (void)o;
-    if (g_orbitbox && (s_shown == OTA_CHECKING || s_shown == OTA_HEADER || s_shown == OTA_RETRYING)) orbit_check_frame(v);
-}
-
-static void stop_orbit_anim(void) {
-    if (g_orbitbox) lv_anim_delete(g_orbitbox, orbit_anim_exec);
-}
-
-static void start_orbit_anim(void) {
-    stop_orbit_anim();
+static void start_arrow_anim(void) {
+    if (!g_icon || !s_visible || s_settings_open) return;
     lv_anim_t a; lv_anim_init(&a);
-    lv_anim_set_var(&a, g_orbitbox);
-    lv_anim_set_exec_cb(&a, orbit_anim_exec);
-    lv_anim_set_values(&a, 0, ORBIT_N - 1);
-    lv_anim_set_duration(&a, 1600);
+    lv_anim_set_var(&a, g_icon);
+    lv_anim_set_exec_cb(&a, arrow_anim_exec);
+    lv_anim_set_values(&a, 0, 1000);
+    lv_anim_set_duration(&a, 1500);
+    lv_anim_set_repeat_delay(&a, 120);
     lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
     lv_anim_start(&a);
 }
 
-static void draw_dl_arrow(uint32_t col) {          // 下载箭头:竖杆 + 箭头 + 底托
-    glyph_line(g_icon, IC_CX, IC_CY - 34, IC_CX, IC_CY + 14, 8, 3, col);       // 竖杆
-    glyph_line(g_icon, IC_CX, IC_CY + 16, IC_CX - 22, IC_CY - 8, 8, 3, col);   // 左斜
-    glyph_line(g_icon, IC_CX, IC_CY + 16, IC_CX + 22, IC_CY - 8, 8, 3, col);   // 右斜
-    glyph_line(g_icon, IC_CX - 28, IC_CY + 34, IC_CX + 28, IC_CY + 34, 9, 3, col); // 底托
+static uint32_t state_color(ota_state_t state) {
+    switch (state) {
+        case OTA_RUNNING: case OTA_FAIL: return COL_RED;
+        case OTA_RETRYING: return OTA_AMBER;
+        case OTA_VERIFYING: return OTA_BLUE;
+        case OTA_OK: case OTA_UPTODATE: return COL_CHARGE;
+        default: return COL_TXT;
+    }
+}
+
+static bool orbit_active(ota_state_t state) {
+    return state == OTA_CHECKING || state == OTA_HEADER || state == OTA_RUNNING ||
+           state == OTA_RETRYING || state == OTA_VERIFYING;
+}
+
+static void orbit_render(ota_state_t state) {
+    uint32_t accent = state_color(state);
+    int filled = s_ring_pct * ORBIT_N / 100;
+    int head = filled > 0 ? filled - 1 : 0;
+    int pulse = s_orbit_phase * 2;
+    if (pulse > ORBIT_N) pulse = 2 * ORBIT_N - pulse;
+    for (int i = 0; i < ORBIT_N; i++) {
+        uint32_t col = ORBIT_DIM;
+        lv_opa_t opa = LV_OPA_COVER;
+        if (state == OTA_IDLE) col = ORBIT_IDLE;
+        else if (state == OTA_CHECKING || state == OTA_HEADER) {
+            int tail = (s_orbit_phase - i + ORBIT_N) % ORBIT_N;
+            if (tail < 6) { col = accent; opa = (lv_opa_t)(255 - tail * 32); }
+        } else if (state == OTA_OK || state == OTA_UPTODATE) col = accent;
+        else if (state == OTA_FAIL) { col = accent; opa = LV_OPA_50; }
+        else {
+            if (i < filled) col = accent;
+            // 只呼吸已经点亮的末端;不把未下载部分点亮成“假进度”。
+            if (filled > 0 && i == head) opa = (lv_opa_t)(128 + pulse * 127 / ORBIT_N);
+        }
+        ui_bg_color(g_orbit[i], col);
+        ui_bg_opa(g_orbit[i], opa);
+    }
+}
+
+static void orbit_anim_exec(void *o, int32_t phase) {
+    (void)o;
+    s_orbit_phase = phase;
+    orbit_render(s_shown);
+}
+
+static void stop_orbit_anim(void) {
+    if (g_main) lv_anim_delete(g_main, orbit_anim_exec);
+}
+
+static void start_orbit_anim(void) {
+    if (!g_main || !s_visible || s_settings_open || !orbit_active(s_shown)) return;
+    lv_anim_t a; lv_anim_init(&a);
+    lv_anim_set_var(&a, g_main);
+    lv_anim_set_exec_cb(&a, orbit_anim_exec);
+    lv_anim_set_values(&a, 0, ORBIT_N - 1);
+    lv_anim_set_duration(&a, 1800);
+    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_anim_start(&a);
+}
+
+static void draw_up_arrow(uint32_t col) {
+    // 等间距点阵填充箭头:15 列的对称箭头头部,5 列宽杆身,不以三条细线拼轮廓。
+    for (int row = 0; row < 17; row++) {
+        int half = row < 8 ? row : 2;
+        for (int x = -half; x <= half; x++)
+            glyph_dot(g_icon, IC_CX + x * 12, 15 + row * 12, 4, col);
+    }
 }
 static void draw_check(uint32_t col) {             // 对勾
-    glyph_line(g_icon, IC_CX - 26, IC_CY, IC_CX - 6, IC_CY + 22, 7, 3, col);
-    glyph_line(g_icon, IC_CX - 6, IC_CY + 22, IC_CX + 28, IC_CY - 20, 7, 3, col);
+    glyph_line(g_icon, IC_CX - 64, IC_CY, IC_CX - 20, IC_CY + 50, 12, 4, col);
+    glyph_line(g_icon, IC_CX - 20, IC_CY + 50, IC_CX + 72, IC_CY - 52, 12, 4, col);
 }
 static void draw_cross(uint32_t col) {             // 叉
-    glyph_line(g_icon, IC_CX - 22, IC_CY - 22, IC_CX + 22, IC_CY + 22, 7, 3, col);
-    glyph_line(g_icon, IC_CX + 22, IC_CY - 22, IC_CX - 22, IC_CY + 22, 7, 3, col);
+    glyph_line(g_icon, IC_CX - 62, IC_CY - 62, IC_CX + 62, IC_CY + 62, 12, 4, col);
+    glyph_line(g_icon, IC_CX + 62, IC_CY - 62, IC_CX - 62, IC_CY + 62, 12, 4, col);
 }
-static void set_icon(int kind, uint32_t col) {     // 0=箭头 1=对勾 2=叉 3=空(下载显数字)
+static void set_icon(int kind, uint32_t col) {     // 0=上箭头 1=对勾 2=叉
     lv_obj_clean(g_icon);
-    if (kind == 0) draw_dl_arrow(col);
+    if (kind == 0) draw_up_arrow(col);
     else if (kind == 1) draw_check(col);
     else if (kind == 2) draw_cross(col);
 }
@@ -173,10 +208,37 @@ static void beta_changed(lv_event_t *e) {             // 内测通道开关:开=
     portENTER_CRITICAL(&s_mux);
     bool busy = s_task_alive;
     portEXIT_CRITICAL(&s_mux);
-    if (busy) return;
+    if (busy) {
+        if (settings_beta()) lv_obj_add_state(g_switch, LV_STATE_CHECKED);
+        else lv_obj_remove_state(g_switch, LV_STATE_CHECKED);
+        return;
+    }
     bool on = lv_obj_has_state(lv_event_get_target_obj(e), LV_STATE_CHECKED);
     settings_set_beta(on ? 1 : 0);
     settings_save();
+}
+
+static void settings_btn(lv_event_t *e) {
+    (void)e;
+    s_settings_open = true;
+    stop_arrow_anim();
+    stop_orbit_anim();
+    set_visible(g_main, false);
+    set_visible(g_gear, false);
+    set_visible(g_settings, true);
+    launcher_set_title(tr_app_name("settings"));
+}
+
+static bool ota_back(void) {
+    if (!s_settings_open) return false;
+    s_settings_open = false;
+    set_visible(g_settings, false);
+    set_visible(g_main, true);
+    set_visible(g_gear, true);
+    launcher_set_title(tr(S_OTA_TITLE));
+    s_shown = (ota_state_t)-1;
+    ota_tick();
+    return true;
 }
 
 static void start_btn(lv_event_t *e) {
@@ -194,7 +256,6 @@ static void start_btn(lv_event_t *e) {
     portEXIT_CRITICAL(&s_mux);
     s_last_pct = -1;
     lv_label_set_text(g_pctlbl, "");
-    orbit_idle();                                      // 重新检查时清掉上一轮终态
     ota_tick();                                      // 先禁用操作,并让快速失败也能重新渲染错误
     const char *url = settings_beta() ? OTA_URL_BETA : OTA_URL_STABLE;
     if (xTaskCreate(ota_task, "ota", 8192, (void *)url, 5, NULL) != pdPASS) {
@@ -212,69 +273,67 @@ static void ota_enter(lv_obj_t *parent) {
     s_last_pct = -1;
     s_last_attempt = -1;
     s_shown = (ota_state_t)-1;
+    s_settings_open = false;
+    s_visible = true;
+    s_ring_pct = s_orbit_phase = 0;
     launcher_set_title(tr(S_OTA_TITLE));
 
-    // 当前版本:紧跟全局标题,占用开放轨道顶部留口,不再压在线条上。
-    g_ver = lv_label_create(parent);
-    const esp_app_desc_t *d = esp_app_get_description();
-    char vb[64]; snprintf(vb, sizeof vb, "%s  %s", tr(S_CURRENT), d->version);
-    lv_label_set_text(g_ver, vb);
-    lv_obj_set_style_text_font(g_ver, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(g_ver, lv_color_hex(COL_TXT2), 0);
-    lv_obj_align(g_ver, LV_ALIGN_TOP_MID, 0, 102);
+    g_main = lv_obj_create(parent);
+    lv_obj_remove_style_all(g_main);
+    lv_obj_set_size(g_main, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(g_main, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(g_main, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    // 开放式点阵轨道:只承担流程与下载进度,不与全局电量环竞争。
-    g_orbitbox = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_orbitbox);
-    lv_obj_set_size(g_orbitbox, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(g_orbitbox, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_orbitbox, LV_OBJ_FLAG_EVENT_BUBBLE);
+    // 从十二点方向顺时针点亮,已点亮的数量只取决于真实下载进度。
     for (int i = 0; i < ORBIT_N; i++) {
-        float a = ORBIT_A0 + (ORBIT_A1 - ORBIT_A0) * i / (ORBIT_N - 1);
-        int x = OTA_CX + (int)(cosf(a) * ORBIT_R);
-        int y = OTA_CY + (int)(sinf(a) * ORBIT_R);
-        g_orbit[i] = glyph_dot(g_orbitbox, x, y, ORBIT_DOT_R, COL_TXT);
-        lv_obj_set_style_bg_opa(g_orbit[i], LV_OPA_20, 0);
+        float a = -1.57079633f + 6.28318531f * i / ORBIT_N;
+        g_orbit[i] = glyph_dot(g_main, OTA_CX + (int)(cosf(a) * ORBIT_R),
+                              OTA_CY + (int)(sinf(a) * ORBIT_R), 3, ORBIT_IDLE);
     }
 
-    // 中央点阵图标:静态邀请点击;检查态由轨道运动表达,避免原来无目的的上下弹跳。
-    g_icon = lv_obj_create(parent);
+    g_icon = lv_obj_create(g_main);
     lv_obj_remove_style_all(g_icon);
-    lv_obj_set_size(g_icon, 120, 104);
-    lv_obj_align(g_icon, LV_ALIGN_TOP_MID, 0, 158);
+    lv_obj_set_size(g_icon, 216, 216);
+    lv_obj_align(g_icon, LV_ALIGN_TOP_MID, 0, ICON_Y);
+    lv_obj_remove_flag(g_icon, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    // 中心大百分比(下载时替代图标)
-    g_pctlbl = lv_label_create(parent);
-    lv_obj_set_style_text_font(g_pctlbl, &lv_font_montserrat_40, 0);
-    lv_obj_set_style_text_color(g_pctlbl, lv_color_hex(COL_TXT), 0);
-    lv_label_set_text(g_pctlbl, "");
-    lv_obj_align(g_pctlbl, LV_ALIGN_TOP_MID, 0, 191);
+    // 下载期间箭头保留;细横条和小百分比放在下方,仍处于外环内的圆屏安全区。
+    g_progress = lv_bar_create(g_main);
+    lv_obj_set_size(g_progress, 116, 4);
+    lv_obj_align(g_progress, LV_ALIGN_TOP_MID, -26, 391);
+    lv_bar_set_range(g_progress, 0, 100);
+    lv_obj_set_style_radius(g_progress, LV_RADIUS_CIRCLE, LV_PART_MAIN);
+    lv_obj_set_style_radius(g_progress, LV_RADIUS_CIRCLE, LV_PART_INDICATOR);
+    lv_obj_set_style_bg_color(g_progress, lv_color_hex(0x242428), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(g_progress, lv_color_hex(COL_RED), LV_PART_INDICATOR);
+    lv_obj_set_style_bg_opa(g_progress, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_progress, LV_OPA_COVER, LV_PART_INDICATOR);
+    lv_obj_set_style_border_width(g_progress, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(g_progress, 0, LV_PART_MAIN);
 
-    // 主操作文案始终位于图标下方,空闲/失败/已最新时均可直接再次点击。
-    g_action = lv_label_create(parent);
-    lv_obj_set_style_text_font(g_action, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(g_action, lv_color_hex(COL_TXT), 0);
-    lv_obj_set_style_text_align(g_action, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-    lv_obj_align(g_action, LV_ALIGN_TOP_MID, 0, 274);
+    g_pctlbl = lv_label_create(g_main);
+    lv_obj_set_style_text_font(g_pctlbl, UI_FONT_M, 0);
+    lv_obj_set_style_text_color(g_pctlbl, lv_color_hex(COL_TXT2), 0);
+    lv_label_set_text(g_pctlbl, "");
+    lv_obj_align(g_pctlbl, LV_ALIGN_TOP_MID, 70, 385);
 
     // 状态说明:只承载反馈和异常原因,不再承担主操作说明。
-    g_status = lv_label_create(parent);
+    g_status = lv_label_create(g_main);
     lv_label_set_long_mode(g_status, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_width(g_status, 280);
     lv_obj_set_style_text_align(g_status, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(g_status, UI_FONT_M, 0);
+    lv_obj_set_style_text_font(g_status, UI_FONT_SYM, 0);
     lv_label_set_text(g_status, "");
     lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
-    lv_obj_align(g_status, LV_ALIGN_TOP_MID, 0, 309);
+    lv_obj_align(g_status, LV_ALIGN_TOP_MID, 0, 358);
 
-    // 透明主操作热区覆盖图标和文案,但不遮挡底部通道。
-    g_hit = lv_obj_create(parent);
+    // 整个圆环内可点,小齿轮另有 48px 热区。
+    g_hit = lv_obj_create(g_main);
     lv_obj_remove_style_all(g_hit);
-    lv_obj_set_size(g_hit, 214, 178);
-    lv_obj_align(g_hit, LV_ALIGN_TOP_MID, 0, 145);
-    lv_obj_set_style_radius(g_hit, 80, 0);
+    lv_obj_set_size(g_hit, ORBIT_R * 2, ORBIT_R * 2);
+    lv_obj_align(g_hit, LV_ALIGN_TOP_MID, 0, OTA_CY - ORBIT_R);
+    lv_obj_set_style_radius(g_hit, LV_RADIUS_CIRCLE, 0);
     lv_obj_set_style_bg_color(g_hit, lv_color_hex(0x16161c), LV_STATE_PRESSED);
     lv_obj_set_style_bg_opa(g_hit, LV_OPA_20, LV_STATE_PRESSED);
     lv_obj_remove_flag(g_hit, LV_OBJ_FLAG_SCROLLABLE);
@@ -282,31 +341,54 @@ static void ota_enter(lv_obj_t *parent) {
     lv_obj_add_flag(g_hit, LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_event_cb(g_hit, start_btn, LV_EVENT_CLICKED, NULL);
 
-    // 测试通道收进统一胶囊,与主操作拉开层级;下载期间禁用,避免通道语义中途改变。
-    g_channelbox = lv_obj_create(parent);
-    lv_obj_set_size(g_channelbox, 192, 48);
-    lv_obj_align(g_channelbox, LV_ALIGN_BOTTOM_MID, 0, -38);
-    lv_obj_set_style_radius(g_channelbox, 24, 0);
+    g_gear = lv_obj_create(parent);
+    lv_obj_remove_style_all(g_gear);
+    lv_obj_set_size(g_gear, 48, 48);
+    lv_obj_align(g_gear, LV_ALIGN_TOP_MID, 100, 40);
+    lv_obj_set_style_radius(g_gear, LV_RADIUS_CIRCLE, 0);
+    lv_obj_set_style_bg_color(g_gear, lv_color_hex(0x16161c), LV_STATE_PRESSED);
+    lv_obj_set_style_bg_opa(g_gear, LV_OPA_COVER, LV_STATE_PRESSED);
+    lv_obj_remove_flag(g_gear, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(g_gear, LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_event_cb(g_gear, settings_btn, LV_EVENT_CLICKED, NULL);
+    glyph_circle(g_gear, 24, 24, 7, 4, 1, COL_TXT2);
+    static const int teeth[8][2]={{24,13},{32,16},{35,24},{32,32},{24,35},{16,32},{13,24},{16,16}};
+    for (int i=0;i<8;i++) glyph_dot(g_gear,teeth[i][0],teeth[i][1],2,COL_TXT2);
+
+    // 复用既有通道/NVS 契约,只把开关移到 OTA 内部设置子页。
+    g_settings = lv_obj_create(parent);
+    lv_obj_remove_style_all(g_settings);
+    lv_obj_set_size(g_settings, lv_pct(100), lv_pct(100));
+    lv_obj_remove_flag(g_settings, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_flag(g_settings, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
+    // 版本移入设置,主界面只保留大圆圈和点阵箭头。
+    g_ver = lv_label_create(g_settings);
+    lv_label_set_text(g_ver, esp_app_get_description()->version);
+    lv_obj_set_style_text_font(g_ver, UI_FONT_M, 0);
+    lv_obj_set_style_text_color(g_ver, lv_color_hex(COL_TXT2), 0);
+    lv_obj_align(g_ver, LV_ALIGN_TOP_MID, 0, 132);
+    g_channelbox = lv_obj_create(g_settings);
+    lv_obj_set_size(g_channelbox, 300, 72);
+    lv_obj_align(g_channelbox, LV_ALIGN_TOP_MID, 0, 184);
+    lv_obj_set_style_radius(g_channelbox, 18, 0);
     lv_obj_set_style_bg_color(g_channelbox, lv_color_hex(0x141419), 0);
     lv_obj_set_style_bg_opa(g_channelbox, LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(g_channelbox, 1, 0);
-    lv_obj_set_style_border_color(g_channelbox, lv_color_hex(0x2d2d34), 0);
-    lv_obj_set_style_border_opa(g_channelbox, LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(g_channelbox, 0, 0);
     lv_obj_set_style_pad_all(g_channelbox, 0, 0);
     lv_obj_remove_flag(g_channelbox, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_channelbox, LV_OBJ_FLAG_EVENT_BUBBLE);
 
     lv_obj_t *bt = lv_label_create(g_channelbox);
-    lv_obj_set_style_text_font(bt, UI_FONT_M, 0);
-    lv_obj_set_style_text_color(bt, lv_color_hex(COL_TXT2), 0);
+    lv_obj_set_style_text_font(bt, UI_FONT_SYM, 0);
+    lv_obj_set_style_text_color(bt, lv_color_hex(COL_TXT), 0);
     lv_label_set_text(bt, tr(S_BETA_CH));
-    lv_obj_align(bt, LV_ALIGN_LEFT_MID, 16, 0);
+    lv_obj_align(bt, LV_ALIGN_LEFT_MID, 24, 0);
 
     g_switch = lv_switch_create(g_channelbox);
     lv_obj_set_size(g_switch, 54, 28);
-    lv_obj_align(g_switch, LV_ALIGN_RIGHT_MID, -10, 0);
+    lv_obj_align(g_switch, LV_ALIGN_RIGHT_MID, -24, 0);
     lv_obj_set_style_bg_color(g_switch, lv_color_hex(0x2a2a31), LV_PART_MAIN);
-    lv_obj_set_style_bg_color(g_switch, lv_color_hex(COL_RED), LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_set_style_bg_color(g_switch, lv_color_hex(COL_TXT2), LV_PART_INDICATOR | LV_STATE_CHECKED);
     lv_obj_set_style_bg_color(g_switch, lv_color_hex(COL_TXT), LV_PART_KNOB);
     lv_obj_remove_flag(g_switch, LV_OBJ_FLAG_GESTURE_BUBBLE);
     if (settings_beta()) lv_obj_add_state(g_switch, LV_STATE_CHECKED);
@@ -318,15 +400,23 @@ static void ota_enter(lv_obj_t *parent) {
 static void ota_tick(void) {
     if (!g_status) return;
     ota_status_t status = status_snapshot();
-    if ((status.state == OTA_RUNNING || status.state == OTA_VERIFYING) && status.pct != s_last_pct) {
+    bool show_progress = status.state == OTA_RUNNING || status.state == OTA_VERIFYING || status.state == OTA_RETRYING;
+    if (show_progress && status.pct != s_last_pct) {
         s_last_pct = status.pct;
-        orbit_progress(status.pct);
-        char pb[8]; snprintf(pb, sizeof pb, "%d%%", status.pct);
+        int pct = status.pct < 0 ? 0 : status.pct > 100 ? 100 : status.pct;
+        s_ring_pct = pct;
+        lv_bar_set_value(g_progress, pct, LV_ANIM_OFF);
+        char pb[8]; snprintf(pb, sizeof pb, "%d%%", pct);
         lv_label_set_text(g_pctlbl, pb);
+        orbit_render(status.state);
     }
     if (status.state == s_shown && status.attempt == s_last_attempt) return;
     s_shown = status.state; s_last_attempt = status.attempt;
+    stop_arrow_anim();
     stop_orbit_anim();
+    s_orbit_phase = 0;
+    orbit_render(status.state);
+    lv_obj_set_style_bg_color(g_progress, lv_color_hex(state_color(status.state)), LV_PART_INDICATOR);
     bool busy = status.state == OTA_CHECKING || status.state == OTA_HEADER || status.state == OTA_RUNNING ||
                 status.state == OTA_RETRYING || status.state == OTA_VERIFYING || status.state == OTA_OK;
     if (busy) {
@@ -336,76 +426,87 @@ static void ota_tick(void) {
         lv_obj_add_flag(g_hit, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_remove_state(g_switch, LV_STATE_DISABLED);
     }
+    set_visible(g_progress, show_progress);
+    set_visible(g_pctlbl, show_progress);
+    lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
+    // 状态占据箭头与横条之间的安全区,避免长英文在圆屏底部碰到点阵环或被裁切。
+    lv_obj_set_y(g_status, show_progress ? 344 : 358);
     switch (status.state) {
-        case OTA_IDLE:     orbit_idle(); set_icon(0, COL_TXT);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-                           lv_label_set_text(g_status, ""); break;
+        case OTA_IDLE:
+            set_icon(0, COL_TXT);
+            lv_label_set_text(g_status, "");
+            start_arrow_anim();
+            break;
         case OTA_HEADER:
-        case OTA_CHECKING: set_icon(0, COL_TXT);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, tr(S_CHECKING));
-                           lv_label_set_text(g_status, "");
-                           start_orbit_anim(); break;
-        case OTA_RETRYING: { set_icon(0, COL_TXT);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, tr(S_OTA_RETRY));
-                           char b[40]; snprintf(b, sizeof b, "%d/%d  %d%%", status.attempt + 1,
-                                                OTA_UPDATE_ATTEMPTS, status.pct);
-                           lv_label_set_text(g_status, b);
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT2), 0);
-                           start_orbit_anim(); } break;
-        case OTA_RUNNING:  set_icon(3, 0);                            // 下载:图标让位给中心大数字
-                           set_visible(g_icon, false); set_visible(g_pctlbl, true);
-                           lv_label_set_text(g_action, "");
-                           lv_label_set_text(g_status, tr(S_UPDATING));
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
-        case OTA_VERIFYING: set_visible(g_icon, false); set_visible(g_pctlbl, true);
-                           lv_label_set_text(g_action, "");
-                           lv_label_set_text(g_status, tr(S_OTA_VERIFY));
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_TXT), 0); break;
-        case OTA_OK:       orbit_dim(); orbit_dot_style(0, COL_CHARGE, LV_OPA_COVER);
-                           set_icon(1, COL_CHARGE);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, "");
-                           lv_label_set_text(g_status, tr(S_DONE_REBOOT));
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); break;
-        case OTA_UPTODATE: { orbit_dim(); orbit_dot_style(0, COL_CHARGE, LV_OPA_COVER);
-                           set_icon(1, COL_CHARGE);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-                           char b[96]; snprintf(b, sizeof b, "%s  %s", tr(S_UPTODATE), status.version);
-                           lv_label_set_text(g_status, b);
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0); } break;
-        case OTA_FAIL: {   orbit_dim();
-                           for (int step = 0; step < 4; step++)
-                               orbit_dot_style(orbit_idx(step), COL_RED, (lv_opa_t)(255 - step * 42));
-                           set_icon(2, COL_RED);
-                           set_visible(g_icon, true); set_visible(g_pctlbl, false);
-                           lv_label_set_text(g_action, tr(S_TAP_UPDATE));
-                           str_id_t message = status.failed_at == OTA_HEADER ? S_OTA_HEADER_FAIL :
-                               status.failed_at == OTA_RUNNING ? S_OTA_DOWNLOAD_FAIL :
-                               status.failed_at == OTA_VERIFYING ? S_OTA_VERIFY_FAIL : S_OTA_CONNECT_FAIL;
-                           if (status.tls_flags) message = S_OTA_TLS_FAIL;
-                           char b[128];
-                           if (status.http_status >= 400)
-                               snprintf(b, sizeof b, "%s\nHTTP %d", tr(message), status.http_status);
-                           else if (status.tls_code)
-                               snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), 0u - (unsigned)status.tls_code);
-                           else snprintf(b, sizeof b, "%s\n0x%04x", tr(message), (unsigned)status.error);
-                           lv_label_set_text(g_status, b);
-                           lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0); } break;
+        case OTA_CHECKING:
+            set_icon(0, COL_TXT);
+            lv_label_set_text(g_status, tr(S_CHECKING));
+            start_arrow_anim();
+            break;
+        case OTA_RETRYING: {
+            set_icon(0, OTA_AMBER);
+            lv_obj_set_style_text_color(g_status, lv_color_hex(OTA_AMBER), 0);
+            char b[96]; snprintf(b, sizeof b, "%s\n%d/%d", tr(S_OTA_RETRY),
+                                 status.attempt + 1, OTA_UPDATE_ATTEMPTS);
+            lv_label_set_text(g_status, b);
+            start_arrow_anim();
+            break;
+        }
+        case OTA_RUNNING:
+            set_icon(0, COL_TXT);
+            lv_label_set_text(g_status, tr(S_OTA_KEEP_POWER));
+            start_arrow_anim();
+            break;
+        case OTA_VERIFYING:
+            set_icon(0, OTA_BLUE);
+            lv_obj_set_style_text_color(g_status, lv_color_hex(OTA_BLUE), 0);
+            lv_label_set_text(g_status, tr(S_OTA_VERIFYING));
+            start_arrow_anim();
+            break;
+        case OTA_OK:
+            set_icon(1, COL_CHARGE);
+            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0);
+            lv_label_set_text(g_status, tr(S_DONE_REBOOT));
+            break;
+        case OTA_UPTODATE: {
+            set_icon(1, COL_CHARGE);
+            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_CHARGE), 0);
+            char b[96]; snprintf(b, sizeof b, "%s\n%s", tr(S_UPTODATE), status.version);
+            lv_label_set_text(g_status, b);
+            break;
+        }
+        case OTA_FAIL: {
+            set_icon(2, COL_RED);
+            str_id_t message = status.failed_at == OTA_HEADER ? S_OTA_HEADER_FAIL :
+                status.failed_at == OTA_RUNNING ? S_OTA_DOWNLOAD_FAIL :
+                status.failed_at == OTA_VERIFYING ? S_OTA_VERIFY_FAIL : S_OTA_CONNECT_FAIL;
+            if (status.tls_flags) message = S_OTA_TLS_FAIL;
+            char b[128];
+            if (status.http_status >= 400)
+                snprintf(b, sizeof b, "%s\nHTTP %d", tr(message), status.http_status);
+            else if (status.tls_code)
+                snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), 0u - (unsigned)status.tls_code);
+            else snprintf(b, sizeof b, "%s\n0x%04x", tr(message), (unsigned)status.error);
+            lv_label_set_text(g_status, b);
+            lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
+            break;
+        }
     }
+    start_orbit_anim();
 }
 
 static void ota_exit(void) {
-    stop_orbit_anim();                                   // 停动画再清指针;后台任务只发布快照
-    g_status = g_ver = g_icon = g_pctlbl = g_action = NULL;
-    g_orbitbox = g_hit = g_switch = g_channelbox = NULL;
+    stop_arrow_anim();                           // 后台下载独立于页面,只停本页视觉动画。
+    stop_orbit_anim();
     memset(g_orbit, 0, sizeof g_orbit);
+    g_status = g_ver = g_icon = g_pctlbl = g_progress = NULL;
+    g_main = g_hit = g_switch = g_channelbox = g_gear = g_settings = NULL;
+    s_settings_open = s_visible = false;
 }
 
 static void ota_visibility(bool visible) {
+    s_visible = visible;
+    stop_arrow_anim();
     stop_orbit_anim();
     if (visible) {
         s_shown = (ota_state_t)-1; s_last_pct = -1;
@@ -413,4 +514,4 @@ static void ota_visibility(bool visible) {
     }
 }
 
-const app_t app_ota = { "ota", COL_TXT, ota_enter, ota_tick, ota_exit, NULL, 0, ota_visibility };
+const app_t app_ota = { "ota", COL_TXT, ota_enter, ota_tick, ota_exit, ota_back, 0, ota_visibility };

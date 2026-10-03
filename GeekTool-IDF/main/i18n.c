@@ -21,10 +21,12 @@ static const char *const TXT[S__COUNT][2] = {
     [S_AOD_DESC]    = { "screen stays dimmed when idle\ninstead of turning off", "空闲时变暗常显\n而不是自动关屏" },
     [S_SILENT_DESC] = { "mute alarms and beeps",  "关闭提示音和铃声" },
     /* ota */
-    [S_OTA_TITLE]   = { "OTA update",   "在线更新" },
+    [S_OTA_TITLE]   = { "OTA",          "OTA" },
     [S_CURRENT]     = { "current",      "当前版本" },
     [S_TAP_UPDATE]  = { "check for update", "检查更新" },
     [S_BETA_CH]     = { "beta", "测试通道" },
+    [S_OTA_KEEP_POWER] = { "do not power off", "请勿断电" },
+    [S_OTA_VERIFYING] = { "verifying\nkeep power on", "正在校验\n请勿断电" },
     [S_CHECKING]    = { "checking latest version...", "正在检查最新版本..." },
     [S_UPDATING]    = { "updating - do not power off", "更新中 - 请勿断电" },
     [S_DONE_REBOOT] = { "done - rebooting", "完成 - 正在重启" },

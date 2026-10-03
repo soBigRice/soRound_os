@@ -2,6 +2,7 @@ idf_component_register(
     SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
          "quickpanel.c"
          "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
+         "weather_ui.c" "font_weather_16.c" "font_weather_20.c"
          "settings.c" "app_settings.c" "app_ota.c" "ota_update.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
          "img_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c"

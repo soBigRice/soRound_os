@@ -30,3 +30,10 @@ target_include_directories(remote_ui_tests PRIVATE ../hid/stubs stubs ../../main
 target_link_libraries(remote_ui_tests PRIVATE lvgl m)
 target_compile_options(remote_ui_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME remote_controls_and_layout COMMAND remote_ui_tests)
+add_executable(weather_ui_tests ../weather/weather_ui_tests.c ../../main/weather_ui.c
+               ../../main/font_weather_16.c ../../main/font_weather_20.c
+               ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(weather_ui_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
+target_link_libraries(weather_ui_tests PRIVATE lvgl m)
+target_compile_options(weather_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME weather_conditions_and_layout COMMAND weather_ui_tests)

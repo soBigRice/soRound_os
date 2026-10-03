@@ -7,6 +7,8 @@
 #define ui_obj_set_clickable lv_obj_set_clickable
 #define ui_obj_set_event_bubble lv_obj_set_event_bubble
 #define ui_obj_set_gesture_bubble lv_obj_set_gesture_bubble
+#define ui_obj_set_hidden lv_obj_set_hidden
+#define ui_obj_is_hidden lv_obj_is_hidden
 #else
 static inline void ui_obj_set_scrollable(lv_obj_t *obj, bool enabled) {
     lv_obj_set_flag(obj, LV_OBJ_FLAG_SCROLLABLE, enabled);
@@ -19,5 +21,11 @@ static inline void ui_obj_set_event_bubble(lv_obj_t *obj, bool enabled) {
 }
 static inline void ui_obj_set_gesture_bubble(lv_obj_t *obj, bool enabled) {
     lv_obj_set_flag(obj, LV_OBJ_FLAG_GESTURE_BUBBLE, enabled);
+}
+static inline void ui_obj_set_hidden(lv_obj_t *obj, bool hidden) {
+    lv_obj_set_flag(obj, LV_OBJ_FLAG_HIDDEN, hidden);
+}
+static inline bool ui_obj_is_hidden(const lv_obj_t *obj) {
+    return lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN);
 }
 #endif
