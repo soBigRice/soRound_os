@@ -5,6 +5,7 @@
 #include "lock.h"
 #include "buttons.h"
 #include "glyph.h"
+#include "launcher_icons.h"
 #include "tools_ui.h"
 #include "weather_ui.h"
 #include "weather_location_ui.h"
@@ -86,180 +87,13 @@ static void header_app_style(void) {
     }
 }
 
-/* ---- App 点描图标:沿轮廓撒小圆点(glyph_* 通用画法),容器 IB×IB,中心 IC_C ---- */
-#define IB     132
-#define IC_C   66
-#define IC_DR  3          // 点半径
-#define IC_ST  9          // 点间距
-#define IPI    3.14159f
-
-static void ic_wifi(lv_obj_t *p) {                 // 信号弧 + 红点源
-    int ay = IC_C + 20;
-    glyph_arc(p, IC_C, ay, 16, IPI * 1.25f, IPI * 1.75f, IC_ST, IC_DR, COL_TXT);
-    glyph_arc(p, IC_C, ay, 28, IPI * 1.22f, IPI * 1.78f, IC_ST, IC_DR, COL_TXT);
-    glyph_arc(p, IC_C, ay, 40, IPI * 1.20f, IPI * 1.80f, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C, ay, 4, COL_RED);
-}
-static void ic_scan(lv_obj_t *p) {                 // 放大镜:圆 + 手柄
-    glyph_circle(p, IC_C - 9, IC_C - 9, 28, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C + 11, IC_C + 11, IC_C + 34, IC_C + 34, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C - 9, IC_C - 9, 4, COL_RED);
-}
-static void ic_chip(lv_obj_t *p) {                 // 芯片:方框 + 引脚 + 红核
-    int s = 30;
-    glyph_line(p, IC_C - s, IC_C - s, IC_C + s, IC_C - s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C + s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C - s, IC_C - s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C + s, IC_C - s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    for (int i = -1; i <= 1; i++) {
-        glyph_dot(p, IC_C + i * 16, IC_C - s - 7, IC_DR, COL_TXT);
-        glyph_dot(p, IC_C + i * 16, IC_C + s + 7, IC_DR, COL_TXT);
-        glyph_dot(p, IC_C - s - 7, IC_C + i * 16, IC_DR, COL_TXT);
-        glyph_dot(p, IC_C + s + 7, IC_C + i * 16, IC_DR, COL_TXT);
-    }
-    glyph_dot(p, IC_C, IC_C, 5, COL_RED);
-}
-static void ic_sun(lv_obj_t *p) {                  // 太阳:圆 + 8 向光点 + 红芯
-    glyph_circle(p, IC_C, IC_C, 18, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C, IC_C, 5, COL_RED);
-    for (int k = 0; k < 8; k++) {
-        float a = k * IPI / 4;
-        glyph_dot(p, IC_C + (int)(cosf(a) * 30), IC_C + (int)(sinf(a) * 30), IC_DR, COL_TXT);
-        glyph_dot(p, IC_C + (int)(cosf(a) * 38), IC_C + (int)(sinf(a) * 38), IC_DR, COL_TXT);
-    }
-}
-
-static void ic_calendar(lv_obj_t *p) {             // 日历:点描外框 + 装订环 + 红色"今天"点
-    int L = IC_C - 34, R = IC_C + 34, T = IC_C - 22, B = IC_C + 32;
-    glyph_line(p, L, T, R, T, IC_ST, IC_DR, COL_TXT);                              // 上框
-    glyph_line(p, L, B, R, B, IC_ST, IC_DR, COL_TXT);                              // 下框
-    glyph_line(p, L, T, L, B, IC_ST, IC_DR, COL_TXT);                              // 左框
-    glyph_line(p, R, T, R, B, IC_ST, IC_DR, COL_TXT);                              // 右框
-    glyph_line(p, L, IC_C - 6, R, IC_C - 6, IC_ST, IC_DR, COL_TXT);               // 月份栏分隔
-    glyph_line(p, IC_C - 16, IC_C - 30, IC_C - 16, IC_C - 16, IC_ST, IC_DR, COL_TXT);  // 装订环
-    glyph_line(p, IC_C + 16, IC_C - 30, IC_C + 16, IC_C - 16, IC_ST, IC_DR, COL_TXT);
-    int dx[3] = { IC_C - 18, IC_C, IC_C + 18 }, dy[2] = { IC_C + 10, IC_C + 24 };
-    for (int r = 0; r < 2; r++)
-        for (int c = 0; c < 3; c++)
-            glyph_dot(p, dx[c], dy[r], 2, COL_TXT);                                // 日期格点
-    glyph_dot(p, IC_C + 18, IC_C + 10, 4, COL_RED);                               // 今天(红)
-}
-
-static void ic_countdown(lv_obj_t *p) {            // 计时器:点描表体 + 顶部按钮 + 红色指针
-    glyph_circle(p, IC_C, IC_C + 4, 30, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C, IC_C + 4, IC_C, IC_C - 16, IC_ST, IC_DR, COL_RED);            // 指针(红,指上)
-    glyph_line(p, IC_C - 9, IC_C - 34, IC_C + 9, IC_C - 34, IC_ST, IC_DR, COL_TXT);   // 顶部按钮横梁
-    glyph_line(p, IC_C, IC_C - 38, IC_C, IC_C - 30, IC_ST, IC_DR, COL_TXT);           // 按钮柄
-}
-
-static void ic_level(lv_obj_t *p) {                // 水平仪:点描圆 + 横轴 + 红心气泡
-    glyph_circle(p, IC_C, IC_C, 28, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - 30, IC_C, IC_C + 30, IC_C, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C, IC_C, 6, COL_RED);
-}
-
-static void ic_maze(lv_obj_t *p) {                 // 迷宫:点描外框 + 内墙 + 红球
-    int s = 30;
-    glyph_line(p, IC_C - s, IC_C - s, IC_C + s, IC_C - s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C + s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C - s, IC_C - s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C + s, IC_C - s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C - 6, IC_C + 8, IC_C - 6, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - 8, IC_C + 12, IC_C + s, IC_C + 12, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C + 16, IC_C - 18, 5, COL_RED);
-}
-
-static void ic_fluid(lv_obj_t *p) {                // 流体:点描圆容器 + 底部沉积颗粒(一颗红)
-    glyph_circle(p, IC_C, IC_C, 30, IC_ST, IC_DR, COL_TXT);
-    for (int r = 0; r < 3; r++)                    // 底部三行颗粒,往上越稀
-        for (int c = -3 + r; c <= 3 - r; c++)
-            glyph_dot(p, IC_C + c * 8, IC_C + 20 - r * 8, 2, COL_TXT);
-    glyph_dot(p, IC_C - 8, IC_C + 12, 3, COL_RED);
-}
-
-static void ic_dice(lv_obj_t *p) {                 // 骰子:点描方框 + 5 点(中心红)
-    int s = 26;
-    glyph_line(p, IC_C - s, IC_C - s, IC_C + s, IC_C - s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C + s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - s, IC_C - s, IC_C - s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C + s, IC_C - s, IC_C + s, IC_C + s, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C - 13, IC_C - 13, 3, COL_TXT);
-    glyph_dot(p, IC_C + 13, IC_C - 13, 3, COL_TXT);
-    glyph_dot(p, IC_C,      IC_C,      4, COL_RED);
-    glyph_dot(p, IC_C - 13, IC_C + 13, 3, COL_TXT);
-    glyph_dot(p, IC_C + 13, IC_C + 13, 3, COL_TXT);
-}
-
-static void ic_stopwatch(lv_obj_t *p) {            // 秒表:点描表体 + 顶钮 + 斜指针(红)
-    glyph_circle(p, IC_C, IC_C + 4, 30, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C, IC_C + 4, IC_C + 16, IC_C - 12, IC_ST, IC_DR, COL_RED);
-    glyph_line(p, IC_C - 9, IC_C - 34, IC_C + 9, IC_C - 34, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C, IC_C - 38, IC_C, IC_C - 30, IC_ST, IC_DR, COL_TXT);
-}
-
-static void ic_mouse(lv_obj_t *p) {                // 蓝牙鼠标:点描鼠标外形(上下两半圆+双竖线)+ 中键红点
-    glyph_arc(p, IC_C, IC_C - 12, 16, 3.1416f, 6.2832f, IC_ST, IC_DR, COL_TXT);   // 顶部半圆
-    glyph_arc(p, IC_C, IC_C + 16, 16, 0, 3.1416f, IC_ST, IC_DR, COL_TXT);         // 底部半圆
-    glyph_line(p, IC_C - 16, IC_C - 12, IC_C - 16, IC_C + 16, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C + 16, IC_C - 12, IC_C + 16, IC_C + 16, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C, IC_C - 28, IC_C, IC_C - 16, 8, IC_DR, COL_TXT);            // 中缝
-    glyph_dot(p, IC_C, IC_C - 8, 4, COL_RED);                                      // 滚轮红点
-}
-
-static void ic_twin(lv_obj_t *p) {                 // 数字孪生:左右两个方块隔中线镜像 + 链路点 + 红心
-    int half = 16, gap = 20;
-    int lx = IC_C - gap - half, rx = IC_C + gap + half;
-    // 左方块(设备)
-    glyph_line(p, lx - half, IC_C - half, lx + half, IC_C - half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, lx - half, IC_C + half, lx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, lx - half, IC_C - half, lx - half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, lx + half, IC_C - half, lx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    // 右方块(网页)
-    glyph_line(p, rx - half, IC_C - half, rx + half, IC_C - half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, rx - half, IC_C + half, rx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, rx - half, IC_C - half, rx - half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, rx + half, IC_C - half, rx + half, IC_C + half, IC_ST, IC_DR, COL_TXT);
-    // 中线链路
-    glyph_dot(p, IC_C - 6, IC_C, 3, COL_TXT);
-    glyph_dot(p, IC_C + 6, IC_C, 3, COL_TXT);
-    glyph_dot(p, IC_C, IC_C, 4, COL_RED);
-}
-
-// (about 已并入 settings,原独立图标 ic_about 移除)
-
-static void ic_ota(lv_obj_t *p) {                  // 下载箭头(红头)+ 底线
-    glyph_line(p, IC_C, IC_C - 30, IC_C, IC_C + 10, IC_ST, IC_DR, COL_TXT);
-    glyph_line(p, IC_C - 15, IC_C - 6, IC_C, IC_C + 12, IC_ST, IC_DR, COL_RED);
-    glyph_line(p, IC_C + 15, IC_C - 6, IC_C, IC_C + 12, IC_ST, IC_DR, COL_RED);
-    glyph_line(p, IC_C - 28, IC_C + 34, IC_C + 28, IC_C + 34, IC_ST, IC_DR, COL_TXT);
-}
-
-static void ic_settings(lv_obj_t *p) {             // 设置:三条滑轨 + 旋钮(中间红)
-    int xs = IC_C - 30, xe = IC_C + 30;
-    glyph_line(p, xs, IC_C - 20, xe, IC_C - 20, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C - 12, IC_C - 20, 6, COL_TXT);
-    glyph_line(p, xs, IC_C, xe, IC_C, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C + 14, IC_C, 6, COL_RED);
-    glyph_line(p, xs, IC_C + 20, xe, IC_C + 20, IC_ST, IC_DR, COL_TXT);
-    glyph_dot(p, IC_C - 2, IC_C + 20, 6, COL_TXT);
-}
-
-static void ic_audio(lv_obj_t *p) {                // 音频:四根高低不一的竖条(中间红)
-    int xs[4] = { IC_C - 24, IC_C - 8, IC_C + 8, IC_C + 24 };
-    int hh[4] = { 20, 38, 14, 30 };
-    for (int i = 0; i < 4; i++)
-        glyph_line(p, xs[i], IC_C + 22, xs[i], IC_C + 22 - hh[i], IC_ST, IC_DR, i == 1 ? COL_RED : COL_TXT);
-}
-
-typedef void (*icon_fn_t)(lv_obj_t *);
-static const icon_fn_t ICON_FN[] = { ic_wifi, ic_scan, ic_chip, ic_sun, ic_calendar, ic_countdown, ic_stopwatch, ic_settings, ic_ota, ic_audio, ic_level, ic_maze, ic_fluid, ic_dice, ic_mouse, ic_twin };  // 顺序对齐 APPS[]
-
+/* ---- Native icon widget; the registry order is unchanged. ---- */
+_Static_assert(sizeof(APPS)/sizeof(APPS[0])==LAUNCHER_ICON_COUNT,"Every app needs a launcher icon");
 static void draw_icon(int i) {
-    lv_obj_clean(g_iconart);
-    ICON_FN[i](g_iconart);
+    launcher_icon_set(g_iconart,(launcher_icon_t)i);
 }
 
-/* ---- 切换当前居中 app:换点阵图标 + 名字 ---- */
+/* ---- 切换当前居中 app:换几何图标 + 名字 ---- */
 static void apply_app(int i) {
     cur = i;
     draw_icon(i);
@@ -293,7 +127,8 @@ static void swap_exec(void *var, int32_t v) {        // v: 0..256
         opa = LV_OPA_COVER * w / 128;
     }
     lv_obj_set_style_translate_x(g_icon, x, 0);
-    lv_obj_set_style_opa(g_icon, opa, 0);
+    // Composite once so rounded stroke joins keep a uniform tone during the fade.
+    lv_obj_set_style_opa_layered(g_icon, opa, 0);
     lv_obj_set_style_translate_x(g_name, x, 0);
     lv_obj_set_style_opa(g_name, opa, 0);
 }
@@ -307,7 +142,7 @@ static void nav(int dir) {
     if (lv_anim_get(&swap_exit_x, swap_exec)) { queued_dir = dir; return; }  // 最多缓存一个后续方向,快速连击也有响应
     pending_app = (cur + dir + APP_COUNT) % APP_COUNT;
     // 准备下一图标发生在动画开始前;中间帧只交换已建好的对象。
-    lv_obj_clean(g_nextart); ICON_FN[pending_app](g_nextart);
+    launcher_icon_set(g_nextart,(launcher_icon_t)pending_app);
     swap_exit_x = -SWAP_SLIDE * dir;                   // 左滑(下一个)向左出,右滑反之
     swapped     = false;
 
@@ -612,9 +447,9 @@ void launcher_start(void) {
     g_icon = lv_obj_create(launcher_screen);
     lv_obj_set_size(g_icon, ICON, ICON);
     lv_obj_set_style_radius(g_icon, ICON / 2, 0);
-    lv_obj_set_style_border_width(g_icon, 2, 0);
-    lv_obj_set_style_border_color(g_icon, lv_color_hex(COL_TXT), 0);
-    lv_obj_set_style_bg_opa(g_icon, LV_OPA_TRANSP, 0);   // 描边圆环,不填充(Nothing 风)
+    lv_obj_set_style_border_width(g_icon, 1, 0);
+    lv_obj_set_style_border_color(g_icon, lv_color_hex(LAUNCHER_FRAME_COLOR), 0);
+    lv_obj_set_style_bg_opa(g_icon, LV_OPA_TRANSP, 0);   // 低对比度图标边界;可点击范围和位置保持
     lv_obj_align(g_icon, LV_ALIGN_CENTER, 0, -16);
     lv_obj_remove_flag(g_icon, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_CLICKABLE);
@@ -622,16 +457,13 @@ void launcher_start(void) {
     lv_obj_add_event_cb(g_icon, icon_pressed,  LV_EVENT_PRESSED,  NULL);
     lv_obj_add_event_cb(g_icon, icon_released, LV_EVENT_RELEASED, NULL);
 
-    g_iconart = lv_obj_create(g_icon);
-    lv_obj_remove_style_all(g_iconart);
-    lv_obj_set_size(g_iconart, IB, IB);
+    g_iconart = launcher_icon_create(g_icon,LAUNCHER_WIFI);
     lv_obj_center(g_iconart);
     lv_obj_remove_flag(g_iconart, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    g_nextart = lv_obj_create(g_icon);
-    lv_obj_remove_style_all(g_nextart);
-    lv_obj_set_size(g_nextart, IB, IB); lv_obj_center(g_nextart);
+    g_nextart = launcher_icon_create(g_icon,LAUNCHER_WIFI);
+    lv_obj_center(g_nextart);
     lv_obj_remove_flag(g_nextart, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_nextart, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
 
@@ -640,17 +472,13 @@ void launcher_start(void) {
     lv_obj_set_style_text_font(g_name, UI_FONT_L, 0);
     lv_obj_align(g_name, LV_ALIGN_CENTER, 0, ICON / 2 + 14);
 
-    lv_obj_t *al = lv_label_create(launcher_screen);
-    lv_label_set_text(al, LV_SYMBOL_LEFT);
-    lv_obj_set_style_text_color(al, lv_color_hex(COL_TXT2), 0);
+    lv_obj_t *al = launcher_icon_create(launcher_screen,LAUNCHER_PREV);
     lv_obj_align(al, LV_ALIGN_LEFT_MID, 14, 0);
     lv_obj_add_flag(al, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(al, 24);
     lv_obj_add_event_cb(al, arrow_prev_cb, LV_EVENT_CLICKED, NULL);
 
-    lv_obj_t *ar = lv_label_create(launcher_screen);
-    lv_label_set_text(ar, LV_SYMBOL_RIGHT);
-    lv_obj_set_style_text_color(ar, lv_color_hex(COL_TXT2), 0);
+    lv_obj_t *ar = launcher_icon_create(launcher_screen,LAUNCHER_NEXT);
     lv_obj_align(ar, LV_ALIGN_RIGHT_MID, -14, 0);
     lv_obj_add_flag(ar, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_ext_click_area(ar, 24);

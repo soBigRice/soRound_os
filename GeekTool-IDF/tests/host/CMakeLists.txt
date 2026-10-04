@@ -81,3 +81,10 @@ add_test(NAME system_font_pixels
 add_test(NAME weather_artwork_pixels
          COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_weather_artwork.py
                  --render-with $<TARGET_FILE:weather_ui_tests>)
+
+# Visual review tool; preview fixtures are not device acceptance or an automated design verdict.
+add_executable(preview_launcher_icons ../../tools/preview_launcher_icons.c ../../main/launcher_icons.c
+               ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(preview_launcher_icons PRIVATE ../weather/stubs stubs ../../main)
+target_link_libraries(preview_launcher_icons PRIVATE lvgl m)
+target_compile_options(preview_launcher_icons PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)

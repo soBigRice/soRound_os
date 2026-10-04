@@ -1324,14 +1324,71 @@ CI 使用 ESP-IDF `v6.0.1`、LVGL `9.6.0~1`、`esp_lvgl_port 2.9.0`。
 
 新布局末端 `0xc20000`，约 12.125MiB，低于 32MiB Flash。
 迁移需一次 USB 刷写新分区表、初始化 OTA 选择、应用及重新生成的只读 `storage.bin`；
-先备份原分区表、NVS 和图片分区并验证备份完整，不执行整片 erase。
-NVS 地址不动是保留设置的设计条件，不代表迁移前已验证数据保留。
+用户随后明确要求“不用备份，直接烧录”，本次按该授权跳过备份，不执行整片 erase。
+此前 stub 大块及 64KiB 分段读取出现数据流中断，没有获得完整备份；半份文件已清理。
+实际刷写采用此前在这块板上成功的 esptool 5.3.0 ROM 模式；读取失败不作为固件故障或天气根因。
 `img_store.c` 将 storage 只读挂载，`main/CMakeLists.txt` 从仓库 images 生成镜像；
 移动地址后需重新刷入，不能只修改 CSV 后向旧设备发大 bin。
 当前 `ota_update.c` 未接入分区表 OTA 迁移，不擅自增加远程迁移流程；
 官方区分应用 OTA 的安全模式与分区表更新的非断电安全模式，依据
 [ESP-IDF 6.0.1 OTA](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/system/ota.html)。
 新布局经 ESP-IDF 6.0.1 `gen_esp32part.py --flash-size 32MB` 生成和反解校验通过。
-回退同样需 USB 恢复原布局及相应固件/资源。设备完整备份、刷写和真机核对进行中，
-不把源码调整或分区工具通过当作设备已迁移。以后超过 3MiB 的应用镜像需要旧设备先迁移；
+回退同样需 USB 恢复原布局及相应固件/资源，本次没有原 Flash 备份。
+设备已 USB 写入最终 beta.17 发布包，新表中的两个 OTA 槽与 storage 均为 4MiB；
+应用、资源、otadata、分区表的设备端 MD5 校验通过，bootloader、NVS、PHY 区域的前后摘要完全相同。
+启动版本、分区、ELF、外设和原 Wi-Fi 自动重连均已核对，详细证据见下方 beta.17 发布记录。
+初始化 otadata 后直接启动 ota_0；本次迁移没有保留原备用应用，不声称已测试迁移失败自动回滚。
+以后超过 3MiB 的应用镜像需要旧设备先迁移；
 当前 System 镜像仍小于 3MiB，OTA 应用通过设备上的分区表定位槽和资源，单独更新 bin 不改变旧布局。
+
+## 2026-10-04 v1.7-beta.17 发布与USB迁移核对
+
+系统信息改为总览 / 内存 / 设备三页，显示内部 RAM、PSRAM 的实时已用、可用、
+最大连续块与历史最低可用，以及芯片、容量、固件/SDK、运行时长、任务数。
+统计口径、刷新生命周期、字体语义保护与验收入口见 [SYSTEM_UI](./SYSTEM_UI.md)。
+原天气首屏、硬币点击/甩动、音频与倾斜行为由既有主机回归保护；设备交互仍需人工验收。
+
+源码提交 `c469f80417e554fa1cd7f35dace725e175784e2a`，系统实现提交 `0494e1e`；
+annotated tag `v1.7-beta.17` 对象为 `5a6b2fef2cd41015b79367048cbed11858f8ff28`。
+[发布构建 37203973934](https://github.com/soBigRice/soRound_os/actions/runs/37203973934)
+通过，使用 ESP-IDF 6.0.1 / LVGL `9.6.0~1`；main 预构建 `37201832750`、
+`37203194477` 均通过。标签包 `0x2fe7e0`（3,139,552B），4MiB 应用槽余
+`0x101820`（1,054,752B，约25%）。本地 LVGL 9.5 的包体不同，不能以其大小或 ELF 代替发布包。
+
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.17) 为 prerelease。
+GitHub 原始 `GeekTool.bin` SHA-256：
+`351873bf98ad8563588479d9703c052c5d6a231d76bd07d12020471cc5797e97`。
+SDK `image-info` 核对 ESP32-S3、`GeekTool` / `v1.7-beta.17`、所有段、XOR checksum 和
+附加 SHA-256 有效，ELF SHA-256 为
+`aaea8269ca93c6b97dc455f76806b2f34fa696f308c3464dec5cba13ceba5103`。
+
+GitHub、R2 和国内 beta 镜像完整字节及 SHA-256 一致，两个公开地址均为 `no-store`；
+`Range: bytes=131072-196607` 配匹配的 `If-Match` 均返回206、65,536B，内容与发布包片段一致。
+国内整包200请求分别在90秒/4,688B和60秒/3,063,487B超时；第二份前缀与发布包一致，
+以相同 ETag 请求 `bytes=3063487-` 得到206并补齐76,065B，合并后的全包摘要匹配。
+这证明断点恢复和镜像内容，不把整包请求超时归因到设备；未修改服务器配置。
+R2及国内正式 `GeekTool.bin` 全包仍为1,872,192B，SHA-256
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，保持 v1.6.1。
+
+### 设备写入证据
+
+用户明确批准双4MiB分区及USB迁移，随后明确要求不备份、直接烧录。
+本次没有完整 Flash 备份，读取中断留下的半份文件已删除。使用 esptool 5.3.0 ROM 模式，
+写入与 OTA 发布完全相同的 GitHub 原始镜像至 `0x20000`，重建的4MiB只读 FAT 至 `0x820000`；
+两者通过设备端摘要校验后写初始化 otadata（`0xf000`）和新分区表（`0x8000`）。
+四个写入区的 MD5 再次核对通过；bootloader `0..0x7fff`、NVS `0x9000..0xefff`、
+PHY `0x11000..0x11fff` 的写入前后 MD5 完全相同。未擦整片 Flash，没有写保留区域。
+esptool 日志中的 compressed 指 USB 传输压缩，写入芯片并校验的是原始镜像，不是压缩 OTA bin。
+
+正常复位后观察45秒：启动表为 `ota_0=0x20000/0x400000`、
+`ota_1=0x420000/0x400000`、`storage=0x820000/0x400000`；
+从 `0x20000` 运行 beta.17，ELF 前缀 `aaea8269c` 匹配发布包。
+8MiB PSRAM 测试、CO5300 显示、CST9217 触摸、QMI8658 及466×466图片解码成功，
+原 Wi-Fi 自动连接并获得 IP；没有观察到 panic、断言、看门狗或 brownout。
+串口已关闭。发布镜像、写入/启动日志和摘要清单位于
+`build/flash-records/system-beta17-20261004/`，为有用的本地验收证据，不纳入源码。
+
+LVGL 9.5 与9.6各14组主机回归通过，系统页22次原生渲染、中英布局与所有历史字形语义通过。
+这次 USB 启动核对不等于系统页真实显示/触摸、设备 OTA 下载重启或自动回滚已验收。
+天气在本次迁移前已由用户确认恢复，原 beta.16 失败请求根因未取到完整日志；
+不能把 Flash 扩容或资源压缩当作天气恢复原因。系统 UI 仍待设备端数值和操作验收。

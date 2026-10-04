@@ -34,7 +34,9 @@ ota_status_t ota_update_run(const char *url,ota_status_cb cb,void *user) {
 #include "../../main/app_ota.c"
 
 #define W 466
-static uint16_t buffer[W*W], pixels[W*W];
+// Native uint16_t arrays guarantee only 2-byte alignment; LVGL's draw buffer requires 4.
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[W*W];
+static uint16_t pixels[W*W];
 static lv_indev_t *input;
 static lv_point_t pointer;
 static lv_indev_state_t pointer_state;
