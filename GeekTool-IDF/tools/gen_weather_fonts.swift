@@ -49,17 +49,28 @@ for size in [16,20] {
         context.textPosition = CGPoint(x:1,y:baseline)
         CTLineDraw(line,context)
         let pixels = context.data!.bindMemory(to:UInt8.self,capacity:width*height)
+        // Trim only pixels that are already transparent at 4bpp. Keep every alpha value,
+        // advance and baseline position; otherwise whitespace consumes the OTA partition.
+        var x0=width,y0=height,x1=0,y1=0
+        for y in 0..<height {for x in 0..<width where pixels[y*width+x]>>4 != 0 {
+            x0=min(x0,x);y0=min(y0,y);x1=max(x1,x+1);y1=max(y1,y+1)
+        }}
+        let glyphWidth=max(0,x1-x0),glyphHeight=max(0,y1-y0)
+        var values:[UInt8]=[]
+        if glyphWidth>0 && glyphHeight>0 {for y in y0..<y1 {for x in x0..<x1 {
+            values.append(pixels[y*width+x]>>4)
+        }}}
         var bytes: [UInt8] = []
         // fmt_txt 的 4bpp 字形是连续像素流,奇数宽度也不做逐行补齐。
-        for i in stride(from:0,to:width*height,by:2) {
-            bytes.append((pixels[i]&0xf0) | (i+1<width*height ? pixels[i+1]>>4 : 0))
+        for i in stride(from:0,to:values.count,by:2) {
+            bytes.append(values[i]<<4 | (i+1<values.count ? values[i+1] : 0))
         }
         let offset = bitmap.count
         bitmap.append(contentsOf:bytes)
         chunks.append(String(format:"/* U+%04X */",code)+"\n"+bytes.enumerated().map { index,value in
             String(format:"0x%02x,",value)+(index%20==19 ? "\n" : "")
         }.joined()+"\n")
-        descriptors.append("{.bitmap_index=\(offset), .adv_w=\(Int((advance*16).rounded())), .box_w=\(width), .box_h=\(height), .ofs_x=-1, .ofs_y=-\(baseline)}")
+        descriptors.append("{.bitmap_index=\(offset), .adv_w=\(Int((advance*16).rounded())), .box_w=\(glyphWidth), .box_h=\(glyphHeight), .ofs_x=\(glyphWidth>0 ? x0-1 : 0), .ofs_y=\(glyphHeight>0 ? height-y1-baseline : 0)}")
     }
     let first = ordered[0], last = ordered.last!
     let unicode = ordered.map { String($0-first) }.joined(separator:",")

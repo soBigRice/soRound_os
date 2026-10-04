@@ -6,7 +6,35 @@ import subprocess
 import tempfile
 import hashlib
 import json
+import re
 from PIL import Image, ImageChops
+
+
+def font_semantic_hash(path):
+    """All glyph alpha values/positions relative to baseline, advances and font metrics.
+
+    Transparent padding is intentionally excluded; visible content cannot change.
+    """
+    source = path.read_text()
+    bitmap = re.search(r"bitmap\[\]\s*=\s*\{(.*?)\};", source, re.S).group(1)
+    data = bytes(int(x, 16) for x in re.findall(r"0x([0-9a-fA-F]{2})", bitmap))
+    entries = re.findall(
+        r"\.bitmap_index=(\d+),\s*\.adv_w=(\d+),\s*\.box_w=(\d+),\s*\.box_h=(\d+),\s*\.ofs_x=(-?\d+),\s*\.ofs_y=(-?\d+)",
+        source,
+    )
+    assert len(entries) > 100 and re.search(r"\.bpp=4\b", source)
+    metrics = [int(re.search(rf"\.{key}=(\d+)", source).group(1)) for key in ("line_height", "base_line")]
+    unicode = re.search(r"uint16_t unicode\[\]\s*=\s*\{([^}]*)\}", source).group(1)
+    result = [metrics, unicode]
+    for entry in entries:
+        index, advance, width, height, offset_x, offset_y = map(int, entry)
+        points = []
+        for k in range(width * height):
+            value = (data[index + k // 2] >> (4 if k % 2 == 0 else 0)) & 15
+            if value:
+                points.append([offset_x + k % width, -offset_y - height + k // width, value])
+        result.append([advance, points])
+    return hashlib.sha256(json.dumps(result, separators=(",", ":")).encode()).hexdigest()
 
 
 def compare(renders, lvgl_version):
@@ -34,6 +62,11 @@ def compare(renders, lvgl_version):
         actual = hashlib.sha256((renders / name).read_bytes()).hexdigest()
         assert actual == digest, f"Existing first-screen pixels changed: {name}"
     print(f"{len(pinned)} exact full first-screen framebuffer comparisons passed.")
+    root = Path(__file__).resolve().parents[1]
+    fonts = json.loads((root / "tests/weather/font_semantics.sha256.json").read_text())
+    for name, digest in fonts.items():
+        assert font_semantic_hash(root / "main" / name) == digest, f"Weather glyph appearance/metrics changed: {name}"
+    print("All 324 weather glyphs retain exact alpha, baseline position and advance after lossless cropping.")
 
 
 if __name__ == "__main__":
