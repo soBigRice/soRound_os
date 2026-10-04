@@ -51,6 +51,8 @@ BLE 数字孪生以及双分区云 OTA。
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
+R2 保留发布包、服务器拉取并原子替换镜像的同步程序、部署配置及迁移状态见
+[OTA 服务器镜像](./GeekTool-IDF/tools/ota_mirror/README.md)。设备域名已切换到指定服务器直连。
 当前 OTA 页使用整屏点阵环、大点阵箭头向上动效和按状态配色的真实下载进度，布局与设置入口见
 [极简 OTA 页面](./GeekTool-IDF/PORTING_NOTES.md#2026-10-03-ota-极简页面)。
 实体按键映射与验证见

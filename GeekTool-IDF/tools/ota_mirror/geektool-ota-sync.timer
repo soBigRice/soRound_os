@@ -1,0 +1,12 @@
+[Unit]
+Description=Check R2 for new stable/beta firmware every minute
+
+[Timer]
+OnBootSec=15s
+OnUnitInactiveSec=60s
+RandomizedDelaySec=5s
+AccuracySec=1s
+Unit=geektool-ota-sync.service
+
+[Install]
+WantedBy=timers.target

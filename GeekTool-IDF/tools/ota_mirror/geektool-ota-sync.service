@@ -1,0 +1,20 @@
+[Unit]
+Description=Mirror verified soRound OS OTA images from Cloudflare R2
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=geektool-ota
+Group=geektool-ota
+EnvironmentFile=/etc/geektool-ota/source.env
+ExecStart=/usr/bin/python3 /opt/geektool-ota/sync_firmware.py --source-base ${OTA_R2_SOURCE}
+StateDirectory=geektool-ota
+ReadWritePaths=/srv/geektool-ota/public
+TimeoutStartSec=420
+UMask=0022
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
