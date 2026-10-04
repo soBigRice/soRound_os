@@ -1,7 +1,8 @@
 # 设置与天气地址交互
 
 核对日期：2026-10-04。用户授权完成功能后已实现原生 LVGL 页面；主机回归和固件构建
-见 `PORTING_NOTES.md` 本轮记录。USB 未识别设备后用户授权 beta OTA 发布，自行升级。圆屏观感、真实地址请求及侧倾触发条件仍需设备操作验收。
+见 `PORTING_NOTES.md` 本轮记录。USB 未识别设备后用户选择自行 OTA；已发布
+[v1.7-beta.13](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.13)。圆屏观感、真实地址请求及侧倾触发条件仍需设备操作验收。
 浏览器旧样稿位于 [artwork/settings-location/index.html](./artwork/settings-location/index.html)，
 其中地址/天气仍为样例；固件没有使用该样例列表。
 

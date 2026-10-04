@@ -1127,7 +1127,7 @@ VALID，原序号 17 扇区未变。随后正常重启观察 12 秒，再次启�
 I2C 断读、时间戳卡死、配置失败节流及恢复；地址层级/稳定 ID 保存读回、旧 HTTP 晚返回、
 保存失败/取消、标题真实触控区与省市区滚轮确认；设置中英文字形/圆屏范围/音频生命周期。
 实际 LVGL 导出 96 个天气/地址页面及七项设置、五种表盘预览。
-最终固件构建成功：`GeekTool.bin` `0x2effb0`（3,080,112）字节，3 MiB 分区剩余
+首轮本地固件构建成功：`GeekTool.bin` `0x2effb0`（3,080,112）字节，3 MiB 分区剩余
 `0x10050`（65,616）字节。未改分区布局、存储镜像或升级依赖。
 
 烧录状态：用户已授权 USB 写入且明确不备份。本轮准备步骤在打开
@@ -1148,3 +1148,31 @@ I2C handle，也不能通过总线 reset 影响触摸。先看读错误/采样�
 首次 `v1.7-beta.12` 发布运行已取消，Release/R2 步骤均跳过；改用新的 `v1.7-beta.13` 标签，不改写旧标签。
 host CMake 的 `LVGL_SOURCE_DIR` 可指向另外一份实际 LVGL 源码，便于复测发布环境版本，默认仍使用本地组件。
 以后新增 LVGL 控件复用兼容层，并在两个实际组件版本补测，不能把本地组件版本当作 CI 版本。
+
+## 2026-10-04 v1.7-beta.13 发布核对
+
+用户明确改为“直接发，我走 OTA”。`v1.7-beta.13` 指向代码提交
+`7e95ef652103bca791ee6d583239d9032f0ba9f8`，包含原稿天气资源、夜间云形修正、
+七项原生设置、天气省市区地址选择与 IMU 运行中恢复，并保留 beta.11 的 OTA/实体按键行为。
+
+[Actions 37137543302](https://github.com/soBigRice/soRound_os/actions/runs/37137543302)
+构建、GitHub 资产发布和 R2 上传均成功。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.13) 为已发布 prerelease，
+北京时间 2026-10-04 00:42:56 发布，唯一资产为 `GeekTool.bin`。
+CI 使用 ESP-IDF `v6.0.1`，解析 LVGL `9.6.0~1`；包内项目 `GeekTool`、版本
+`v1.7-beta.13`、目标 ESP32-S3，镜像 checksum/validation hash 均有效。
+
+- GitHub 资产与公开 `https://ota.miaozong.cc/GeekTool-beta.bin` 逐字节一致，大小
+  `0x2f81d0`（3,113,424）字节，SHA-256
+  `b34b630938f80ab0c9cdd378a021954189e26d9bd4253abe7e9d98d307adb2b5`。
+  3 MiB OTA app 槽剩余 `0x7e30`（32,304）字节；未改变分区布局。
+- beta GET 返回 HTTP 200、`Cache-Control: no-store, max-age=0`；正式对象
+  `GeekTool.bin` 发布前后逐字节相同，SHA-256
+  `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+- 最终源码的 LVGL 9.5 与上游 9.6.0 十组 host 回归均通过，含 96 个天气/地址页面、
+  74 组图标 RGB565 像素对照、设置控件/生命周期、地址取消/保存/旧请求与 IMU 故障恢复。
+  本地 Tag 构建也通过，版本为 `v1.7-beta.13`，镜像 `0x2effc0`（3,080,128）字节。
+
+本轮未完成设备 USB 安装。用户自行从 OTA 页右上角设置开启 beta 后升级；圆屏观感、
+真实联网地址切换、水平仪四向侧倾/竖直后放平及 IMU 其他应用仍待设备操作验收。
+资产核对、主机渲染和故障注入不代替这些验收；当前不能断言实拍设备已安装或侧倾触发原因已排除。
