@@ -1242,3 +1242,37 @@ CI 使用 ESP-IDF `v6.0.1`、LVGL `9.6.0~1`、`esp_lvgl_port 2.9.0`。
 2026-10-04 最终 LVGL 9.5 / 9.6.0 各一组硬币/骰子目标回归通过（9.6 初次严格编译暴露旧 flag API 的弃用，页面已沿用项目 `lvgl_compat.h` 的等价 setter，未关闭警告）。最终本地 ESP-IDF 6.0.1 / LVGL 9.5 构建通过，镜像 3,109,152 字节，3MiB OTA 槽剩余 36,576 字节；SHA256 `230076b678b8cc3360a3b42f491757614d17ade791bf135cb3f9a4f90e8a5d1f`。原生 466×466 截图/动图用于外观审阅，电量环为测试夹具，不代表当前设备电量。无开发板串口，未刷机；真机点击/甩动、触摸帧率与主观效果待用户验收。功能完成后用户明确授权发布 OTA 升级包，沿用 beta 通道，发布证据见对应版本记录。临时主机构建和逐帧中间文件完成后清理，保留审阅图和已有主固件产物。
 
 发布准备：LVGL 9.6.0 全部十二组 host 回归通过，包含既有音频/水平仪、天气首屏像素与全部 324 字形、HID、实体按键、IMU、OTA 页面及新增硬币回归；`tests/ota` 的十八项恢复/错误边界通过。用户此次 OTA 发布授权不视作硬件体验验收。
+
+## 2026-10-04 v1.7-beta.15 发布核对
+
+用户明确要求功能完成后发布 OTA 升级包，沿用 beta 通道。源码提交
+`5d98a062a2470eae5532a50a3353f13b2ea4576c` 包含本次九个相关文件；
+附注标签 `v1.7-beta.15` 的对象为 `07802d39129877d9137de3af031cd21e281d70ac`，
+指向同一源码提交。Git HTTPS 上传超时后通过官方 Git 数据 API 上传，提交、树和标签 SHA
+均与本地完全相同，未改写旧标签或分支历史。
+
+[main 预构建 37189621235](https://github.com/soBigRice/soRound_os/actions/runs/37189621235)
+与 [标签发布 37189962991](https://github.com/soBigRice/soRound_os/actions/runs/37189962991) 均成功。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.15) 明确标记 prerelease，
+北京时间 2026-10-04 16:50:26 发布，唯一资产为 `GeekTool.bin`；中文标题和升级说明已核对。
+
+- CI 使用 ESP-IDF `v6.0.1` 和 LVGL `9.6.0~1`；包内项目 `GeekTool`、版本
+  `v1.7-beta.15`、芯片 ID 为 ESP32-S3，镜像段边界、XOR checksum 及附加 SHA-256 有效。
+- 发布包为 `0x2ff300`（3,142,400）字节，现有 3MiB OTA app 槽剩余 `0xd00`（3,328）字节。
+  SHA-256 `9dd38808b095d7a7ecae1f13755a2c7139474fef54c3233351e5bda1f427549b`，
+  与 GitHub 资产元数据中的 digest 一致；未更改分区、依赖或发布流程。
+- `https://r2-ota.miaozong.cc/GeekTool-beta.bin` 和
+  `https://ota.miaozong.cc/GeekTool-beta.bin` 的完整 GET 均与 GitHub 资产逐字节一致。
+  HEAD/GET 为 200，长度、强 ETag 和 `no-store` 正确；携带对应 `If-Match` 的
+  `Range: bytes=131072-196607` 均为 206，65,536 字节与包内切片一致。
+- 两个域名的正式对象仍为 `v1.6.1`、1,872,192 字节，与发布前下载的正式包逐字节一致，
+  SHA-256 `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+- 验证客户端使用 curl HTTP/1.1，设备地址使用 ESP-IDF 默认 `ESP32 HTTP Client/1.0`，
+  R2 源使用服务的 `soRound-OTA-Mirror/1`。本机默认 urllib 请求曾返回 403，原因未确认；
+  未据此修改服务或固件。检查自动下载工具时先核对实际 HTTP 方法、协议与 User-Agent，
+  再区分工具请求受限和设备下载失败，不能仅依据不同客户端的单次状态码判断 OTA 不可用。
+
+设备 OTA 页右上角设置开启测试通道后检查并升级到 `v1.7-beta.15`。未替用户刷机，
+实际下载/写入/重启、新分区启动、再次检查不重复更新及点击/甩动/动画手感仍待设备验收。
+本次临时测试构建、下载副本、逐帧文件、日志与发布辅助脚本完成后清理；保留源码、
+可检索记录、原生审阅图和既有固件构建目录。
