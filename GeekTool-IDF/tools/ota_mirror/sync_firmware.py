@@ -16,7 +16,7 @@ from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 
 CHANNELS = {"stable": "GeekTool.bin", "beta": "GeekTool-beta.bin"}
-MAX_IMAGE_SIZE = 0x300000  # Must match each ota_0 / ota_1 slot in partitions.csv.
+MAX_IMAGE_SIZE = 0x400000  # Match the migrated ota_0 / ota_1 slots; guarded by the partition regression.
 DEVICE_HOST = "ota.miaozong.cc"
 LOG = logging.getLogger("ota-mirror")
 

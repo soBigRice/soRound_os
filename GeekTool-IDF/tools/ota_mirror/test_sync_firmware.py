@@ -1,3 +1,4 @@
+import csv
 import hashlib
 import io
 import json
@@ -159,6 +160,24 @@ class MirrorTests(unittest.TestCase):
         self.source.etags["GeekTool-beta.bin"] = '"valid"'
         self.source.images["GeekTool-beta.bin"] = b"x" * (MAX_IMAGE_SIZE + 1)
         self.assertEqual(self.mirror.run(), 1)
+
+    def test_migrated_ota_slots_allow_firmware_above_three_mib(self):
+        partitions = Path(__file__).resolve().parents[2] / "partitions.csv"
+        rows = csv.reader(line for line in partitions.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith("#"))
+        slots = {row[0].strip(): int(row[4].strip(), 0) for row in rows
+                 if row[0].strip() in ("ota_0", "ota_1")}
+        self.assertEqual(slots, {"ota_0": 0x400000, "ota_1": 0x400000})
+        self.assertEqual(MAX_IMAGE_SIZE, min(slots.values()))
+        stable = (self.root / "public" / CHANNELS["stable"]).read_bytes()
+        name, path = self.change()
+        image = firmware("v1.7-beta.19", extra=bytes(0x300000))
+        self.assertGreater(len(image), 0x300000)
+        self.source.images[name] = image
+        self.assertEqual(self.mirror.run(), 0)
+        self.assertEqual(path.read_bytes(), image)
+        self.assertEqual((self.root / "public" / CHANNELS["stable"]).read_bytes(), stable)
+        self.assertEqual(json.loads((self.root / "state/beta.json").read_text())["version"], "v1.7-beta.19")
 
     def test_stable_never_accepts_beta_and_project_is_checked(self):
         with self.assertRaises(MirrorError):

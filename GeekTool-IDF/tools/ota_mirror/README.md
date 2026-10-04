@@ -20,7 +20,7 @@ GitHub Actions 继续将正式版和 beta 包发布到 `geektool-fw` R2 桶；�
 2. 源地址、ETag、本地大小和本地 SHA-256 全部一致时跳过 GET。
 3. GET 使用 HEAD 的 `If-Match`，要求完整、未压缩响应及相同 ETag/大小。
 4. 在同一文件系统临时下载；单次 socket 等待 15 秒，下载总期限 180 秒，每个镜像不超过
-   `partitions.csv` 的 `0x300000` OTA 槽。
+   `partitions.csv` 的 `0x400000` OTA 槽。旧3MiB设备须先USB迁移；镜像更新不会替设备迁移分区。
 5. `verify_image()` 检查 ESP32-S3 芯片 ID、段边界、校验和、附加 SHA-256、应用描述中的
    `GeekTool` 项目及版本。正式通道拒绝 `-beta`。当前发布为附加哈希的未签名镜像，
    不引入新的签名契约；将来启用 Secure Boot 时需先更新镜像校验器。
@@ -124,6 +124,12 @@ python3 -m unittest discover -s GeekTool-IDF/tools/ota_mirror -p 'test_*.py' -v
 | --- | --- | --- | --- |
 | 正式 | `v1.6.1` | 1,872,192 | `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807` |
 | beta | `v1.7-beta.13` | 3,113,424 | `b34b630938f80ab0c9cdd378a021954189e26d9bd4253abe7e9d98d307adb2b5` |
+
+2026-10-05：beta.19（3,175,440B）首次超过旧3MiB上限，现有镜像校验器拒绝该真实发布包；
+公网国内地址仍返回完整beta.18，而R2已为beta.19。上限须随已批准的双4MiB分区迁移同步更新。
+新增回归直接读`partitions.csv`约束两个槽与镜像上限一致，并核对超过3MiB的合法镜像能原子替换beta且不影响正式包。
+本地通过后仍须部署`/opt/geektool-ota/sync_firmware.py`、启动专用service，并核对公开完整下载摘要和Range；
+本地修正不能作为目标服务器已更新的证据。
 
 本地临时官方 Nginx 容器（`nginx:stable-alpine`，digest
 `sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94`）加载本目录

@@ -1443,3 +1443,35 @@ LVGL9.5/9.6各15组回归通过且断言开启，新增Wi-Fi真实LVGL/假无线
 当前原生测试检查按钮文字包含关系和每键真实坐标，长SSID保留全部数据、显示省略，避免再以容器范围替代按键验收。
 SDK6.0.1本地构建通过，发布依赖构建及实际OTA包摘要将在beta.19发布后另行记录。
 USB未连接，本轮尚未烧录；设置/密码页真实触摸、无线连接、锁屏恢复与设备OTA重启待用户验收。
+
+## 2026-10-05 v1.7-beta.19 发布与镜像上限核对
+
+UI源码`d567e5fc945bd4e9bfb9a42b68c346454879a8e5`；annotated tag对象
+`0bdaf6af047add977eb15af6dd4caba6b6852fb5`。
+[CI 37215253666](https://github.com/soBigRice/soRound_os/actions/runs/37215253666)构建、Release及R2上传全部成功，
+ESP-IDF6.0.1 / LVGL9.6.0~1；[beta.19](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.19)为prerelease。
+发布包3,175,440B（`0x307410`），4MiB槽余1,018,864B；超过旧3MiB槽29,712B。
+旧布局不能安装此包，须USB迁移；当前用户设备此前已迁移双4MiB。应用OTA不迁移分区。
+
+GitHub资产digest及完整本地文件SHA-256一致：
+`2f8144062c75991fa63348d8b4243d6ce5b26f78a76e4016ec4428e9085b6b35`。
+`image-info`核对ESP32-S3、GeekTool/v1.7-beta.19、全部段、校验和及附加SHA-256有效；
+ELF SHA-256为`dc494e383afa2c7a5c710e673e6a03bad43efd0e6f61807eb3416595ca3854b4`。
+R2整包GET为200、完整字节一致，no-store；强ETag条件下bytes=131072-196607为206、65,536B且逐字节一致。
+R2与国内正式包均完整200，1,872,192B且摘要仍为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，保持v1.6.1。
+
+国内beta整包200返回3,142,096B，摘要`1d0861a91a475aecfc0c3f4d176314970be9b92f20cb84623561a3a634e170a6`、
+描述仍为beta.18；首段Range也为旧版，未将其误计为beta.19下载成功。
+定位`tools/ota_mirror/sync_firmware.py:MAX_IMAGE_SIZE`仍是旧0x300000，真实beta.19在本地被拒绝。
+已改为批准后的0x400000，新增测试直接对照partitions.csv及大于3MiB的合法镜像：修复前失败、后13组通过，
+真实beta.19通过完整镜像校验。旧容量校验、稳定通道隔离、原子替换与失败保留规则均保留。
+防复发：OTA槽迁移时同时检查固件、发布和分发端容量契约；现有分区回归会拦截镜像上限遗漏。
+
+服务器部署尚未完成：网页控制入口两次超时，root默认SSH密钥认证失败；已向用户询问可用SSH连接方式。
+未取得服务器journal或已部署脚本证据，不能仅凭本地重现声称服务器修复生效。
+下一步：核对目标专用镜像脚本→部署经13组验证的上限修正→启动geektool-ota-sync.service→核对国内完整摘要与条件Range。
+Release说明已标明国内镜像待同步。UI代码和tag保持不动，镜像补丁不需要重新构建或移动发布tag。
+USB仍无可用设备串口，没有写入beta.19；设备操作与真实OTA下载/写入/重启待验收。
+有效构建、主机测试、镜像修复前后、发布镜像/摘要及下载证据保存在
+`build/flash-records/controls-beta19-20261005/`；临时测试构建目录与原生PPM已清理，最终PNG保留。
