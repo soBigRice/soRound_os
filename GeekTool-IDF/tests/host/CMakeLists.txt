@@ -64,11 +64,20 @@ target_include_directories(dice_ui_tests PRIVATE ../dice/stubs ../weather/stubs 
 target_link_libraries(dice_ui_tests PRIVATE lvgl m)
 target_compile_options(dice_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME dice_coin_animation_and_layout COMMAND dice_ui_tests)
+add_executable(system_ui_tests ../system/system_ui_tests.c ../../main/tools_ui.c ../../main/font_tools.c
+               ../../main/i18n.c ../../main/font_cn16.c ../../main/font_weather_16.c)
+target_include_directories(system_ui_tests PRIVATE ../system/stubs stubs ../ota/stubs ../../main)
+target_link_libraries(system_ui_tests PRIVATE lvgl m)
+target_compile_options(system_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+target_compile_definitions(system_ui_tests PRIVATE CONFIG_IDF_TARGET="esp32s3" CONFIG_ESP_DEFAULT_CPU_FREQ_MHZ=240)
+add_test(NAME system_memory_and_layout COMMAND system_ui_tests)
 add_executable(imu_tests ../imu/imu_tests.c)
 target_include_directories(imu_tests PRIVATE ../imu/stubs ../ota/stubs ../../main)
 target_link_libraries(imu_tests PRIVATE m)
 add_test(NAME imu_recovery_and_coordinates COMMAND imu_tests)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_test(NAME system_font_pixels
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_system_font.py)
 add_test(NAME weather_artwork_pixels
          COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_weather_artwork.py
                  --render-with $<TARGET_FILE:weather_ui_tests>)

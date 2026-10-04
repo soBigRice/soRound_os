@@ -1,6 +1,6 @@
 // 生成中文精简字库 main/font_cn16.c(LVGL fmt_txt,16px 4bpp,苹方 PingFang SC)。
-// 零外部依赖:macOS 自带 CoreText 渲染。字表 = 扫描 main/ 下含中文串的源文件里的全部 CJK 字符
-// (含注释,略胖无妨;新增中文文案后重跑本脚本再编译)。
+// 零外部依赖:macOS 自带 CoreText 渲染。保留历史字集并扫描 i18n/settings 与 System 文案。
+// 仅裁掉量化后完全透明的外边缘,用字形偏移保留原有像素位置、字距和基线。
 // 用法:cd GeekTool-IDF && swift tools/gen_font_cn.swift
 import Foundation
 import CoreText
@@ -18,6 +18,15 @@ for f in srcFiles {
         FileHandle.standardError.write("cannot read \(f)\n".data(using: .utf8)!); exit(1)
     }
     for ch in s where ("\u{4E00}"..."\u{9FFF}").contains(ch) { set.insert(ch) }
+}
+// System's private labels share this fallback, but comments are not product copy.
+// Keep the added character set scoped to its actual string literals.
+let systemText = try String(contentsOfFile:"main/app_sys.c",encoding:.utf8)
+let literals = try NSRegularExpression(pattern:#""(?:\\.|[^"\\])*""#)
+for match in literals.matches(in:systemText,range:NSRange(systemText.startIndex..<systemText.endIndex,in:systemText)) {
+    for ch in systemText[Range(match.range,in:systemText)!] where ("\u{4E00}"..."\u{9FFF}").contains(ch) {
+        set.insert(ch)
+    }
 }
 // 文案索引不覆盖所有页面和历史字符。新增文案时保留已交付字集,
 // 不能因扫描范围变窄,让其他页面或动态名称里的中文突然缺字。
@@ -69,18 +78,26 @@ var bmpTxt = ""
 for ch in chars {
     let g = render(ch)
     let idx = bitmap.count
+    let ink = (0..<(BOX * BOX)).filter { g[$0] >> 4 != 0 }
+    let x0 = ink.map { $0 % BOX }.min() ?? 0
+    let y0 = ink.map { $0 / BOX }.min() ?? 0
+    let x1 = (ink.map { $0 % BOX }.max() ?? -1) + 1
+    let y1 = (ink.map { $0 / BOX }.max() ?? -1) + 1
+    let width = x1 - x0, height = y1 - y0
+    var pixels: [UInt8] = []
+    for y in y0..<y1 { for x in x0..<x1 { pixels.append(g[y * BOX + x] >> 4) } }
     var bytes: [UInt8] = []
-    var i = 0
-    while i < BOX * BOX {                            // 4bpp,两像素一字节,高半字节在前
-        bytes.append(UInt8((g[i] & 0xF0) | (g[i + 1] >> 4)))
-        i += 2
+    // LVGL 4bpp is a continuous pixel stream, including across odd-width rows.
+    for i in stride(from: 0, to: pixels.count, by: 2) {
+        bytes.append((pixels[i] << 4) | (i + 1 < pixels.count ? pixels[i + 1] : 0))
     }
     bitmap.append(contentsOf: bytes)
     let u = ch.unicodeScalars.first!.value
     bmpTxt += String(format: "    /* U+%04X \"%@\" */\n    ", u, String(ch))
     bmpTxt += bytes.enumerated().map { (i, b) in String(format: "0x%02x,%@", b, (i % 16 == 15) ? "\n    " : " ") }.joined()
     bmpTxt += "\n\n"
-    dsc += "    {.bitmap_index = \(idx), .adv_w = \(BOX * 16), .box_w = \(BOX), .box_h = \(BOX), .ofs_x = 0, .ofs_y = 0},\n"
+    // Bottom-relative ofs_y keeps the ink at the same baseline-relative coordinates.
+    dsc += "    {.bitmap_index = \(idx), .adv_w = \(BOX * 16), .box_w = \(width), .box_h = \(height), .ofs_x = \(x0), .ofs_y = \(ink.isEmpty ? 0 : BOX - y1)},\n"
 }
 let first = chars.first!.unicodeScalars.first!.value
 let last = chars.last!.unicodeScalars.first!.value
@@ -89,7 +106,7 @@ let uniList = chars.map { String($0.unicodeScalars.first!.value - first) }.joine
 let out = """
 /*******************************************************************************
  * 中文精简字库(自动生成,勿手改)—— tools/gen_font_cn.swift
- * 苹方 PingFang SC \(Int(SIZE))px,4bpp,\(chars.count) 字,盒 \(BOX)x\(BOX)。
+ * 苹方 PingFang SC \(Int(SIZE))px,4bpp,\(chars.count) 字;透明边缘无损裁剪,字距 \(BOX)px。
  * 作为 unscii/montserrat 的 fallback 挂在 i18n.c;新增中文文案后重跑脚本。
  ******************************************************************************/
 #include "lvgl.h"
@@ -133,6 +150,6 @@ const lv_font_t font_cn16 = {
     .dsc = &font_dsc,
 };
 """
-let cleanOutput = out.replacingOccurrences(of: #"(?m)^[ \t]+$"#, with: "", options: .regularExpression)
+let cleanOutput = out.replacingOccurrences(of: #"(?m)[ \t]+$"#, with: "", options: .regularExpression)
 try! cleanOutput.write(toFile: outPath, atomically: true, encoding: .utf8)
 print("OK: \(outPath)  \(chars.count) glyphs, bitmap \(bitmap.count) bytes")

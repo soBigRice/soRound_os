@@ -53,6 +53,8 @@ BLE 数字孪生以及双分区云 OTA。
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
 抛硬币的双层币缘、中文大字、上抛翻面、暂停/退出及骰子回归见
 [硬币实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画)。
+系统信息三页布局、内存统计口径、刷新与字体容量防线见
+[系统信息 UI](./GeekTool-IDF/SYSTEM_UI.md)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
 R2 保留发布包、服务器拉取并原子替换镜像的同步程序、部署配置及迁移状态见
