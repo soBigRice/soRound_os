@@ -128,8 +128,10 @@ python3 -m unittest discover -s GeekTool-IDF/tools/ota_mirror -p 'test_*.py' -v
 2026-10-05：beta.19（3,175,440B）首次超过旧3MiB上限，现有镜像校验器拒绝该真实发布包；
 公网国内地址仍返回完整beta.18，而R2已为beta.19。上限须随已批准的双4MiB分区迁移同步更新。
 新增回归直接读`partitions.csv`约束两个槽与镜像上限一致，并核对超过3MiB的合法镜像能原子替换beta且不影响正式包。
-本地通过后仍须部署`/opt/geektool-ota/sync_firmware.py`、启动专用service，并核对公开完整下载摘要和Range；
-本地修正不能作为目标服务器已更新的证据。
+本轮已核对服务器旧脚本摘要与仓库一致，journal明确报`R2 object does not fit the OTA slot`；
+通过既有1Panel终端仅修改容量行并核对新摘要，启动专用service。
+最终国内/R2整包200均为beta.19且与GitHub逐字节一致，If-Match Range206一致，两地址正式包仍为v1.6.1。
+代码、服务器写入、公开下载和设备安装分别核验，后者仍待真机验收。
 
 本地临时官方 Nginx 容器（`nginx:stable-alpine`，digest
 `sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94`）加载本目录

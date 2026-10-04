@@ -6,7 +6,7 @@ BLE 数字孪生以及双分区云 OTA。
 
 当前仓库 `main` 包含 `v1.7-beta.19` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-beta.19 已发布至 GitHub/R2；国内镜像暂仍为 beta.18，4MiB同步上限修正待部署。
+beta.19 已发布至 GitHub/R2/国内 OTA；镜像同步上限已对齐4MiB，三个地址完整文件核对一致。
 
 ## 功能概览
 
@@ -346,11 +346,11 @@ GitHub/R2/国内包全文摘要一致，国内两次整包请求超时后用断�
 图标逻辑见 [LAUNCHER_ICONS](GeekTool-IDF/LAUNCHER_ICONS.md)，完整证据见
 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-v17-beta18-图标发布核对)。
 
-2026-10-05 已发布 [v1.7-beta.19](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.19) 至GitHub/R2：
+2026-10-05 已发布 [v1.7-beta.19](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.19) 至GitHub/R2/国内OTA：
 图标恢复2px白色外圈、名字24px；设置改为四分类及逐级返回，Wi-Fi分离连接状态、附近网络与独立密码输入。
 LVGL9.5/9.6各15组回归及发布构建通过；发布包3,175,440B，须使用双4MiB布局（当前设备此前已迁移）。
-R2整包与GitHub资产摘要一致，Range验证通过；国内beta地址仍返回beta.18，镜像程序旧3MiB限制已在源码修正，
-13组镜像回归通过，服务器部署和国内新包下载待完成。正式通道保持v1.6.1。
+GitHub/R2/国内整包与摘要一致，两个OTA地址的条件Range验证通过；镜像程序旧3MiB限制已修正并部署，
+13组镜像回归通过。两个地址正式包全文摘要仍为v1.6.1，正式通道保持不变。
 USB未连接，本次未烧录；真实观感、设置/密码页触摸、无线连接及设备OTA重启待验收。
 调用链见 [设置与Wi-Fi](GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)，状态见
 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-05-v17-beta19-发布与镜像上限核对)。

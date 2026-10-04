@@ -1,7 +1,7 @@
 # 设置、Wi-Fi与天气地址交互
 
-核对日期：2026-10-05。设置与Wi-Fi随beta.19发布至GitHub/R2；天气地址功能沿用已发布实现。
-国内镜像的4MiB上限修正待部署，设备升级/触摸/无线操作仍待验收；[当前状态](./PORTING_NOTES.md#2026-10-05-v17-beta19-发布与镜像上限核对)。
+核对日期：2026-10-05。设置与Wi-Fi随beta.19发布至GitHub/R2/国内OTA；天气地址功能沿用已发布实现。
+镜像4MiB上限修正已部署，设备升级/触摸/无线操作仍待验收；[当前状态](./PORTING_NOTES.md#2026-10-05-v17-beta19-发布与镜像上限核对)。
 本轮原生双语检查、固件及发布状态见 `PORTING_NOTES.md`；真实设备操作仍需单独验收。
 浏览器旧样稿位于 [artwork/settings-location/index.html](./artwork/settings-location/index.html)，
 其中地址/天气仍为样例；固件没有使用该样例列表。
