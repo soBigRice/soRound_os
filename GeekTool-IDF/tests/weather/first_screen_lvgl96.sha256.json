@@ -1,0 +1,22 @@
+{
+  "loading-en.ppm": "c41aa5dc92eb8d2e33360ff582c804342b01860f26a5a14bf9a1b56b80978b18",
+  "loading-zh.ppm": "94e6a731108919ef20e52967b996bd26d271fecad20379cad69d710bf69fda5d",
+  "code-0-day-en.ppm": "4ec7542efcd5efa3521dcfd9e3269840c05031a653684b98efe91a297773ec07",
+  "code-0-day-zh.ppm": "a17cbd8d59fa6c5e067d3a78470863f05e339d84441a4938c984503586f081b9",
+  "code-2-day-en.ppm": "16c40af3c80ebeec2b2bcd2ae8b60e6eee5a9fa7463903d9ce215ec9c38b6757",
+  "code-2-day-zh.ppm": "40a6b7008594e1a8a01c61227634d4e62a8f41862ee6dab74c69ec8a4ae47035",
+  "code-61-day-en.ppm": "bbe147cc5a94307b7a6bad85799ded452ad4c94c8c15b9bbfe332f0b18fa6a8d",
+  "code-61-day-zh.ppm": "90061118b5a422cbc7c485d30f5675572b503faaf602083f21a67a3abe153af1",
+  "code-80-night-en.ppm": "b00988113e3bd08f3a879d04d524f0e4aa686c66cf66f6de1a5007d4c5dbc9a2",
+  "code-80-night-zh.ppm": "3c547f2dc094b46dd20c723068e108a2df39f5c1ab8f63ef31ed2365d3d8439b",
+  "negative-en.ppm": "f8ddcdb5b920fc691aad7edc984b040655047f25cffc062480b750cc10df0494",
+  "negative-zh.ppm": "1e60f5749b052fd1e3c97ff1abad753cdbba3a9be994f690cc5ac1bb93a8d90c",
+  "three-digit-en.ppm": "0d2f952e5344185fe29a386df97435ed56d3fa976cac9a1c3d251aefb58cff78",
+  "three-digit-zh.ppm": "fe8b024d22f19e9ce8e22d2f350b737a8beb94c90d1359f8a8fe18c82b9f5bef",
+  "unknown-en.ppm": "377b5e0d747a553108bbcc755d6f08a30f7846928ad730aa3f9130f987e145bb",
+  "unknown-zh.ppm": "8f8aca6494ed4a42c73587945eb5db436ae5361a753304c2c9fdc0caca886967",
+  "offline-en.ppm": "62920fc5ec40a38959ec9038d3fde022691fa55248ff1c4db22470f1d178a226",
+  "offline-zh.ppm": "f2e64bb62b5b5cd511fb23a857e352391db1746df9e655be9ac8a8ca1aff7488",
+  "recovered-night-en.ppm": "22f565847ed0301968fc35e3d41495cf6b8f5b39825a0c4fb72489710727f09d",
+  "recovered-night-zh.ppm": "40098bae6183c763eab2ef309787e20dc50f3cabf6dfdaf3c486ab4a0ea49a6b"
+}

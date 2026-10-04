@@ -49,6 +49,8 @@ BLE 数字孪生以及双分区云 OTA。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
+音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
+[音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
 R2 保留发布包、服务器拉取并原子替换镜像的同步程序、部署配置及迁移状态见
@@ -278,6 +280,8 @@ Web 11 组回归、类型检查和生产构建为 2026-10-01 流畅性发布时�
 ## 开发文档
 
 - [ESP-IDF 移植、真机记录与历史问题](./GeekTool-IDF/PORTING_NOTES.md)
+- [音频与水平仪确认稿实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)
+- [天气首屏保护、详情数据与原生滚动](./GeekTool-IDF/WEATHER_DETAILS_DESIGN.md)
 - [Web GeekTwin 校准器说明](./web/README.md)
 - [Arduino GeekTool 原型说明](./GeekTool/README.md)
 - [Arduino Wi-Fi 列表压力测试](./WiFiList_StressTest/README.md)

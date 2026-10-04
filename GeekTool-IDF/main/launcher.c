@@ -5,6 +5,7 @@
 #include "lock.h"
 #include "buttons.h"
 #include "glyph.h"
+#include "tools_ui.h"
 #include "weather_ui.h"
 #include "weather_location_ui.h"
 #include "quickpanel.h"
@@ -44,9 +45,12 @@ static void header_app_style(void) {
     bool ota = cur_app == &app_ota;
     bool weather = cur_app == &app_weather;
     bool compact = weather || cur_app == &app_settings;
+    bool tools = cur_app == &app_audio || cur_app == &app_level;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
     lv_obj_set_style_text_font(g_title, compact ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_style_text_letter_space(g_title, 0, 0);
+    lv_obj_set_style_text_color(g_title, lv_color_hex(COL_TXT), 0);
     lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
     lv_label_set_long_mode(g_title,LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(g_title,LV_TEXT_ALIGN_CENTER,0);
@@ -56,11 +60,23 @@ static void header_app_style(void) {
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(g_batt, lv_color_hex(weather ? 0x22272a : 0x15151a), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(g_batt, lv_color_hex(weather ? 0x22272a : (tools ? TOOLS_FAINT : 0x15151a)), LV_PART_MAIN);
+    if (s_last_batt_color == COL_TXT || s_last_batt_color == TOOLS_WHITE) {
+        s_last_batt_color = tools ? TOOLS_WHITE : COL_TXT;
+        lv_obj_set_style_arc_color(g_batt,lv_color_hex(s_last_batt_color),LV_PART_INDICATOR);
+    }
     lv_obj_set_style_bg_opa(g_back, ota ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
     lv_obj_set_style_border_width(g_back, (ota || weather) ? 0 : 1, 0);
+    lv_obj_set_style_border_color(g_back, lv_color_hex(COL_TXT2), 0);
+    lv_obj_set_style_border_opa(g_back, LV_OPA_50, 0);
+    lv_label_set_text(g_back_label, LV_SYMBOL_LEFT);
+    lv_obj_set_style_text_color(g_back_label, lv_color_hex(COL_TXT), 0);
     if (weather) lv_obj_set_style_text_font(g_back_label, &lv_font_montserrat_20, 0);
     else lv_obj_remove_local_style_prop(g_back_label, LV_STYLE_TEXT_FONT, 0);
+    lv_obj_center(g_back_label);
+    if (tools) {
+        tools_header(g_title,g_back,g_back_label);
+    }
     if (ota) {
         lv_obj_add_flag(g_back_label, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(g_backdots, LV_OBJ_FLAG_HIDDEN);
@@ -396,6 +412,10 @@ static void enter_app(void) {
     lv_label_set_text(g_title, tr_app_name(cur_app->name));   // 默认标题 = app 名(按语言)
     lv_obj_remove_flag(g_title, LV_OBJ_FLAG_HIDDEN);
     lv_obj_remove_flag(g_back, LV_OBJ_FLAG_HIDDEN);
+    if (cur_app == &app_audio || cur_app == &app_level) {
+        lv_label_set_text(g_title, cur_app == &app_audio ? tools_text("AUDIO","音频") : tools_text("LEVEL","水平仪"));
+        tools_label_center(g_title,233,63);
+    }
     if (cur_app->enter) cur_app->enter(app_screen);     // app 可在 enter 里改标题(天气→城市)
     lv_screen_load(app_screen);
 }
@@ -560,7 +580,7 @@ static void battery_timer_cb(lv_timer_t *t) {
     switch (st) {
         case PWR_CHARGING: col = COL_CHARGE; break;               // 充电:绿(⚡ 同步呼吸)
         case PWR_FULL:     col = COL_CHARGE; break;               // 充满:绿(⚡ 常亮)
-        default:           col = (soc > 20) ? COL_TXT             // 放电:白;低电(≤20%)红
+        default:           col = (soc > 20) ? ((cur_app == &app_audio || cur_app == &app_level) ? TOOLS_WHITE : COL_TXT) // 放电:白;低电(≤20%)红
                                  : COL_WARN;
     }
     if (col != s_last_batt_color) {

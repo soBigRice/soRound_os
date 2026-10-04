@@ -33,22 +33,31 @@ target_link_libraries(remote_ui_tests PRIVATE lvgl m)
 target_compile_options(remote_ui_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME remote_controls_and_layout COMMAND remote_ui_tests)
 add_executable(weather_ui_tests ../weather/weather_ui_tests.c ../../main/weather_ui.c ../../main/weather_artwork.c
+               ../../main/weather_data.c ../../main/weather_details.c ../../main/font_weather_details.c
+               ../../managed_components/espressif__cjson/cJSON/cJSON.c
                ../../main/weather_locations.c ../../main/weather_locations_data.c ../../main/weather_location_ui.c
                ../../main/font_location_24.c ../weather/mock_nvs.c
                ../../main/font_weather_16.c ../../main/font_weather_20.c
                ../../main/i18n.c ../../main/font_cn16.c)
-target_include_directories(weather_ui_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
+target_include_directories(weather_ui_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main ../../managed_components/espressif__cjson/cJSON)
 target_link_libraries(weather_ui_tests PRIVATE lvgl m)
 target_compile_options(weather_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+target_compile_definitions(weather_ui_tests PRIVATE WX_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../weather/forecast_fixture.json")
 add_test(NAME weather_conditions_and_layout COMMAND weather_ui_tests)
 add_executable(location_tests ../weather/location_tests.c ../weather/mock_nvs.c ../../main/weather_locations_data.c)
 target_include_directories(location_tests PRIVATE ../weather/stubs ../ota/stubs ../../main)
 add_test(NAME weather_location_persistence COMMAND location_tests)
 add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c
-               ../../main/font_location_24.c ../../main/font_weather_16.c ../../main/weather_artwork.c)
+               ../../main/font_location_24.c ../../main/font_weather_16.c ../../main/weather_artwork.c
+               ../../main/tools_ui.c ../../main/font_tools.c)
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
+add_executable(audio_ui_tests ../audio/audio_ui_tests.c ../../main/tools_ui.c ../../main/font_tools.c)
+target_include_directories(audio_ui_tests PRIVATE ../audio/stubs ../weather/stubs stubs ../ota/stubs ../../main)
+target_link_libraries(audio_ui_tests PRIVATE lvgl m)
+target_compile_options(audio_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME audio_spectrum_and_layout COMMAND audio_ui_tests)
 add_executable(imu_tests ../imu/imu_tests.c)
 target_include_directories(imu_tests PRIVATE ../imu/stubs ../ota/stubs ../../main)
 target_link_libraries(imu_tests PRIVATE m)

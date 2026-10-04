@@ -19,7 +19,7 @@ static void (*pending_task)(void *);
 static const char *response;
 static size_t read_offset;
 static bool init_fail;
-static char requested_url[512];
+static char requested_url[1024];
 static int http_status=200;
 struct mock_client { int unused; };
 static struct mock_client client;
@@ -55,7 +55,9 @@ esp_err_t esp_http_client_cleanup(esp_http_client_handle_t c) { assert(c); retur
 static uint16_t buffer[W*W],pixels[W*W];
 static lv_display_t *display;
 static lv_obj_t *page;
-static unsigned renders;
+static unsigned renders, audited_labels;
+static uint64_t flushed_pixels;
+static int audit_section=-1;
 static lv_point_t pointer;
 static lv_indev_state_t pointer_state;
 static lv_indev_t *input;
@@ -68,11 +70,13 @@ static void click_city(void) {
 }
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map) {
     int width=lv_area_get_width(a);
+    flushed_pixels+=(uint64_t)width*lv_area_get_height(a);
     for(int y=a->y1;y<=a->y2;++y) { memcpy(pixels+y*W+a->x1,map,(size_t)width*2); map+=width*2; }
     lv_display_flush_ready(d);
 }
 static void label_bounds(lv_obj_t *obj) {
     if(ui_obj_is_hidden(obj)) return;
+    if(obj==s_details.hero && lv_obj_get_scroll_y(s_details.scroll)!=0)return; // Native scrolling clips the departing hero.
     // Roller option labels extend outside their clipping viewport by design.
     if(lv_obj_check_type(obj,&lv_roller_class)) return;
     if(lv_obj_check_type(obj,&lv_label_class)) {
@@ -100,7 +104,7 @@ static void capture(const char *directory,const char *name) {
     label_bounds(page); label_bounds(heading);
     lv_obj_invalidate(page); lv_tick_inc(20); lv_timer_handler(); lv_refr_now(display); ++renders;
     assert(lv_obj_get_child_count(s_ui.icon)==0 && lv_obj_get_child_count(s_ui.temperature)==0);
-    assert(lv_obj_get_child_count(s_content)==8); // 点数和天气类型不得增加对象数量。
+    assert(lv_obj_get_child_count(s_details.hero)==7); // Hero points remain drawing objects, not per-dot widgets.
     if(!directory) return;
     char file[512]; snprintf(file,sizeof file,"%s/%s-%s.ppm",directory,name,language?"zh":"en");
     FILE *f=fopen(file,"wb"); assert(f); fprintf(f,"P6\n466 466\n255\n");
@@ -109,7 +113,7 @@ static void capture(const char *directory,const char *name) {
         assert(fwrite(rgb,1,3,f)==3);
     }
     assert(fclose(f)==0);
-    if(s_choosing) return;
+    if(s_choosing || lv_obj_get_scroll_y(s_details.scroll)!=0) return;
     // 图标图集输出来自单独重绘的实际控件,不裁入旁边温度的度符号。
     ui_obj_set_hidden(s_ui.temperature,true); lv_refr_now(display);
     snprintf(file,sizeof file,"%s/%s-%s-icon.ppm",directory,name,language?"zh":"en");
@@ -145,7 +149,8 @@ static void enter(void) {
     page=lv_obj_create(lv_screen_active()); lv_obj_remove_style_all(page); lv_obj_set_size(page,W,W);
     ui_obj_set_scrollable(page,false); weather_enter(page);
 }
-static void leave(void) { weather_exit(); lv_obj_delete(page); page=NULL; }
+static void advance(unsigned ms);
+static void leave(void) { weather_exit();assert(!lv_anim_get(&s_details,NULL));lv_obj_delete(page);page=NULL;advance(1000); }
 static uint64_t icon_pixels(void) {
     // 只比较图标像素,不让不同文案替一个错误复用的图标制造“通过”。
     uint64_t hash=UINT64_C(1469598103934665603);
@@ -170,8 +175,110 @@ static void select_roller(uint16_t parent,uint32_t id) {
 static void tap(const char *zh,const char *en) {
     lv_obj_t *b=find_visible(page,language?zh:en,NULL);assert(b);lv_obj_send_event(b,LV_EVENT_CLICKED,NULL);
 }
+static void advance(unsigned ms) {
+    for(unsigned i=0;i<ms;i+=20) {lv_tick_inc(20);lv_timer_handler();lv_refr_now(display);}
+}
+static void draw_audit(lv_event_t *e) {
+    lv_draw_task_t *task=lv_event_get_draw_task(e);
+    lv_draw_label_dsc_t *d=lv_draw_task_get_label_dsc(task);if(!d)return;
+    uint32_t offset=0;
+    while(d->text[offset]) {
+        uint32_t cp=lv_text_encoded_next(d->text,&offset);lv_font_glyph_dsc_t glyph;
+        if(!lv_font_get_glyph_dsc(d->font,&glyph,cp,0)||glyph.is_placeholder) {
+            fprintf(stderr,"detail missing glyph: U+%04x in %s\n",cp,d->text);assert(false);
+        }
+    }
+    if(audit_section<0 || lv_event_get_target_obj(e)!=s_details.sections[audit_section])return;
+    lv_area_t a;lv_draw_task_get_area(task,&a);++audited_labels;
+    for(int k=0;k<4;++k) {
+        int x=k&1?a.x2:a.x1,y=k&2?a.y2:a.y1;
+        if(y<91 || hypot(x-232.5,y-232.5)>223) {
+            fprintf(stderr,"detail outside safe circle: %s (%d,%d)\n",d->text,x,y);assert(false);
+        }
+    }
+}
+static char *load_forecast(void) {
+    FILE *f=fopen(WX_FIXTURE_PATH,"rb");assert(f);assert(fseek(f,0,SEEK_END)==0);
+    long length=ftell(f);assert(length>0 && length<WX_BUF-1);rewind(f);
+    char *data=malloc((size_t)length+1);assert(data);assert(fread(data,1,(size_t)length,f)==(size_t)length);
+    data[length]=0;fclose(f);return data;
+}
+static void parse_forecast_checks(const char *fixture) {
+    weather_data_t d;
+    assert(weather_data_parse(fixture,strlen(fixture),&d));
+    assert(d.hour_count==12 && d.day_count==5 && d.temp==22 && d.humidity==80);
+    assert(strcmp(d.updated,"13:15")==0 && strcmp(d.hours[11].time,"00:00")==0);
+    assert(fabsf(d.wind-2.5f)<.01f && fabsf(d.visibility-5500)<.1f && isfinite(d.days[0].daylight));
+    assert(!weather_data_parse(fixture,strlen(fixture)-1,&d));
+    const char *partial="{\"current_units\":{\"apparent_temperature\":99},\"current\":{\"temperature_2m\":-12.3,\"relative_humidity_2m\":50,\"weather_code\":3,\"is_day\":0,\"wind_speed_10m\":null},\"daily\":{\"temperature_2m_min\":[-15],\"temperature_2m_max\":[-10]}}";
+    assert(weather_data_parse(partial,strlen(partial),&d));
+    assert(d.temp==-12 && isnan(d.apparent) && isnan(d.wind) && isnan(d.precipitation));
+    assert(!d.hour_count && !d.day_count);
+    const char *invalid="{\"current\":{\"temperature_2m\":22,\"relative_humidity_2m\":80,\"weather_code\":3,\"is_day\":2},\"daily\":{\"temperature_2m_min\":[20],\"temperature_2m_max\":[25]}}";
+    assert(!weather_data_parse(invalid,strlen(invalid),&d));
+    char url[1024];int length=weather_data_url(url,sizeof url,-90,-180);
+    assert(length>0 && length<(int)sizeof url && strstr(url,"forecast_hours=12") && strstr(url,"forecast_days=5"));
+    assert(strstr(url,"wind_speed_unit=ms") && strstr(url,"timezone=auto") && strstr(url,"visibility"));
+    char tiny[20];assert(weather_data_url(tiny,sizeof tiny,31,121)>=(int)sizeof tiny && tiny[sizeof tiny-1]==0);
+}
+static void detail_checks(const char *directory,bool motion,const char *fixture) {
+    response=fixture;assert(select_location(wx_location_find(3101)));pending_task(NULL);weather_tick();
+    assert(s_details.available && s_details.data.hour_count==12 && s_details.data.day_count==5);
+    assert(s_details.indicator_opa==0);
+    lv_obj_update_layout(page);
+    assert(lv_obj_get_scroll_bottom(s_details.scroll)==4*W);
+    for(int i=0;i<4;++i) {
+        ui_obj_set_send_draw_task_events(s_details.sections[i],true);
+        lv_obj_add_event_cb(s_details.sections[i],draw_audit,LV_EVENT_DRAW_TASK_ADDED,NULL);
+    }
+    capture(directory,"forecast-hero");
+    for(int i=0;i<4;++i) {
+        lv_obj_scroll_to_y(s_details.scroll,(i+1)*W,LV_ANIM_OFF);advance(20);
+        audit_section=i;char name[32];snprintf(name,sizeof name,"details-%d",i+1);capture(directory,name);audit_section=-1;
+        assert(s_details.reveal[i]==1);
+    }
+    // Missing optional fields stay unavailable, never turn into fabricated zero values.
+    request(3,true,26);lv_obj_scroll_to_y(s_details.scroll,W,LV_ANIM_OFF);capture(directory,"details-missing");
+    response=fixture;start_fetch();pending_task(NULL);weather_tick();
+    weather_details_reset(&s_details);weather_details_show(&s_details,&s_data,true);advance(1000);
+    // Real pointer drag, release and native momentum rather than a synthetic scroll event.
+    pointer=(lv_point_t){233,340};pointer_state=LV_INDEV_STATE_PRESSED;lv_indev_read(input);
+    for(int i=0;i<8;++i) {pointer.y-=24;lv_tick_inc(20);lv_indev_read(input);lv_timer_handler();}
+    int release_y=lv_obj_get_scroll_y(s_details.scroll);assert(release_y>0 && !s_choosing);
+    pointer_state=LV_INDEV_STATE_RELEASED;lv_tick_inc(20);lv_indev_read(input);advance(100);
+    assert(lv_obj_get_scroll_y(s_details.scroll)>release_y && s_details.indicator_opa>0);
+    advance(1800);assert(lv_obj_get_scroll_y(s_details.scroll)<=4*W && s_details.indicator_opa==0);
+    lv_obj_scroll_to_y(s_details.scroll,2*W,LV_ANIM_ON);advance(80);
+    assert(s_details.indicator_opa>0);weather_visibility(false);
+    assert(!lv_anim_get(&s_details,NULL));
+    int paused=lv_obj_get_scroll_y(s_details.scroll);advance(1000);
+    assert(lv_obj_get_scroll_y(s_details.scroll)==paused && s_details.indicator_opa==0);weather_visibility(true);
+    lv_obj_scroll_to_y(s_details.scroll,4*W,LV_ANIM_ON);advance(40);
+    weather_details_reset(&s_details);assert(!lv_anim_get(&s_details,NULL) && s_details.indicator_opa==0);
+    weather_details_show(&s_details,&s_data,true);advance(700);assert(s_details.indicator_opa==0);
+    // The fixed city hit area still opens the same location UI from a scrolled view.
+    click_city();assert(weather_back());assert(!s_choosing);
+    lv_obj_scroll_to_y(s_details.scroll,4*W,LV_ANIM_OFF);advance(1000);
+    flushed_pixels=0;weather_tick();advance(100);assert(flushed_pixels==0);
+    if(directory && motion && language) {
+        weather_details_reset(&s_details);weather_details_show(&s_details,&s_data,true);
+        // Single-page native scrolls, sampled every 40ms including capture's timer step.
+        for(int i=0;i<120;++i) {
+            if(i%30==0)lv_obj_scroll_to_y(s_details.scroll,(i/30+1)*W,LV_ANIM_ON);
+            advance(20);char name[32];snprintf(name,sizeof name,"motion-%02d",i);capture(directory,name);
+        }
+    }
+    // Restore the original location scenario so EN/ZH first-screen pixel baselines stay comparable.
+    assert(select_location(wx_location_find(320104)));pending_task(NULL);weather_tick();
+    printf("forecast details: live fixture, nullable fields, scoped JSON, circular glyph/layout, pointer inertia, fade, overlay pause and idle redraw passed (%s)\n",language?"ZH":"EN");
+}
 int main(int argc,char **argv) {
+    if(argc==2 && strcmp(argv[1],"--lvgl-version")==0) {
+        printf("%d.%d.%d\n",LVGL_VERSION_MAJOR,LVGL_VERSION_MINOR,LVGL_VERSION_PATCH);return 0;
+    }
     const char *directory=argc>1?argv[1]:NULL;
+    char *fixture=load_forecast();parse_forecast_checks(fixture);
+    bool motion=argc>2 && strcmp(argv[2],"--motion")==0;
     const int codes[]={0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,97,99};
     lv_init(); i18n_init();
     display=lv_display_create(W,W); lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
@@ -250,8 +357,11 @@ int main(int argc,char **argv) {
         select_roller(wx_location_find(3201),320104);tap("确认地址","Confirm");
         lv_timer_handler();assert(!s_choosing && wx_locations[wx_location_selected()].id==320104);
         assert(!weather_cached(NULL,NULL,NULL,NULL,NULL));pending_task(NULL);weather_tick();
+        detail_checks(directory,motion,fixture);
+        lv_obj_scroll_to_y(s_details.scroll,3*W,LV_ANIM_ON);advance(40);
         leave();
     }
+    free(fixture);assert(audited_labels>100);
     printf("%u actual weather renders: all29 WMO codes, 8 night variants + location/cancel/stale-response/save-failure guards, EN/ZH, glyphs, round-safe layout, HTTP/day parsing, offline/re-entry/task recovery passed\n",renders);
     return 0;
 }

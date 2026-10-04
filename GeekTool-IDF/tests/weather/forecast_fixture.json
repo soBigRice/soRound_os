@@ -1,0 +1,219 @@
+{
+  "latitude": 31.247803,
+  "longitude": 121.5,
+  "generationtime_ms": 0.438690185546875,
+  "utc_offset_seconds": 28800,
+  "timezone": "Asia/Shanghai",
+  "timezone_abbreviation": "GMT+8",
+  "elevation": 3.0,
+  "current_units": {
+    "time": "iso8601",
+    "interval": "seconds",
+    "temperature_2m": "°C",
+    "relative_humidity_2m": "%",
+    "weather_code": "wmo code",
+    "is_day": "",
+    "apparent_temperature": "°C",
+    "precipitation": "mm",
+    "wind_speed_10m": "m/s",
+    "wind_direction_10m": "°",
+    "wind_gusts_10m": "m/s",
+    "cloud_cover": "%",
+    "pressure_msl": "hPa",
+    "visibility": "m"
+  },
+  "current": {
+    "time": "2026-10-04T13:15",
+    "interval": 900,
+    "temperature_2m": 22.0,
+    "relative_humidity_2m": 80,
+    "weather_code": 51,
+    "is_day": 1,
+    "apparent_temperature": 23.8,
+    "precipitation": 0.1,
+    "wind_speed_10m": 2.5,
+    "wind_direction_10m": 26,
+    "wind_gusts_10m": 7.9,
+    "cloud_cover": 96,
+    "pressure_msl": 1016.1,
+    "visibility": 5500.0
+  },
+  "hourly_units": {
+    "time": "iso8601",
+    "temperature_2m": "°C",
+    "precipitation_probability": "%",
+    "weather_code": "wmo code",
+    "is_day": "",
+    "precipitation": "mm"
+  },
+  "hourly": {
+    "time": [
+      "2026-10-04T13:00",
+      "2026-10-04T14:00",
+      "2026-10-04T15:00",
+      "2026-10-04T16:00",
+      "2026-10-04T17:00",
+      "2026-10-04T18:00",
+      "2026-10-04T19:00",
+      "2026-10-04T20:00",
+      "2026-10-04T21:00",
+      "2026-10-04T22:00",
+      "2026-10-04T23:00",
+      "2026-10-05T00:00"
+    ],
+    "temperature_2m": [
+      21.9,
+      22.3,
+      22.9,
+      22.5,
+      21.9,
+      21.1,
+      20.5,
+      20.1,
+      20.0,
+      19.5,
+      19.1,
+      19.3
+    ],
+    "precipitation_probability": [
+      59,
+      41,
+      29,
+      21,
+      14,
+      9,
+      6,
+      4,
+      3,
+      2,
+      2,
+      3
+    ],
+    "weather_code": [
+      53,
+      51,
+      51,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3,
+      3
+    ],
+    "is_day": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    "precipitation": [
+      0.5,
+      0.4,
+      0.2,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ]
+  },
+  "daily_units": {
+    "time": "iso8601",
+    "temperature_2m_max": "°C",
+    "temperature_2m_min": "°C",
+    "weather_code": "wmo code",
+    "sunrise": "iso8601",
+    "sunset": "iso8601",
+    "uv_index_max": "",
+    "precipitation_probability_max": "%",
+    "precipitation_sum": "mm",
+    "daylight_duration": "s"
+  },
+  "daily": {
+    "time": [
+      "2026-10-04",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ],
+    "temperature_2m_max": [
+      22.9,
+      22.2,
+      21.9,
+      24.2,
+      24.3
+    ],
+    "temperature_2m_min": [
+      19.1,
+      16.0,
+      13.1,
+      12.7,
+      13.1
+    ],
+    "weather_code": [
+      80,
+      3,
+      0,
+      0,
+      1
+    ],
+    "sunrise": [
+      "2026-10-04T05:49",
+      "2026-10-05T05:49",
+      "2026-10-06T05:50",
+      "2026-10-07T05:51",
+      "2026-10-08T05:51"
+    ],
+    "sunset": [
+      "2026-10-04T17:35",
+      "2026-10-05T17:34",
+      "2026-10-06T17:33",
+      "2026-10-07T17:32",
+      "2026-10-08T17:30"
+    ],
+    "uv_index_max": [
+      0.55,
+      6.55,
+      6.55,
+      6.55,
+      6.5
+    ],
+    "precipitation_probability_max": [
+      100,
+      4,
+      0,
+      0,
+      2
+    ],
+    "precipitation_sum": [
+      16.9,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "daylight_duration": [
+      42400.08,
+      42287.44,
+      42175.31,
+      42063.79,
+      41952.95
+    ]
+  }
+}

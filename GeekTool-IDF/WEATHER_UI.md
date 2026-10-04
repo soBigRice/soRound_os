@@ -19,7 +19,9 @@
 ## 入口与状态流
 
 `launcher.c:enter_app` → `header_app_style` 应用天气页局部顶栏样式 →
-`app_weather.c:weather_enter` → `weather_ui_create` → `start_fetch`。
+`app_weather.c:weather_enter` → `weather_details_create` / `weather_ui_create(hero)` → `start_fetch`。
+
+2026-10-04 首屏像素保持，扩展为原生垂直滚动视口，下方增加当前详情、12 小时趋势、五天预报、日光/UV 和右侧圆弧滚动条。请求现在通过 `weather_data_parse` 使用项目已有 cJSON 按对象解析扩展字段；表盘缓存及地点/轮询契约保持。完整链路与本轮验证见 [天气详情说明](./WEATHER_DETAILS_DESIGN.md)，下文首屏布局及原图基准仍适用。
 
 `wx_task` 保持独立 HTTP 任务：读取 current/daily，解析 `temperature_2m`、湿度、天气码、
 `is_day` 和当日低高温 → 在请求 generation 仍等于当前地点时写入缓存 → 增加 `s_revision` → 发布 `WX_OK`。

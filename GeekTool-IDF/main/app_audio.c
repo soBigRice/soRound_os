@@ -1,7 +1,8 @@
-// 音频可视化 app —— 麦克风拾音,Goertzel 算 18 个频段能量,画成【圆形径向爆发】:
-// 中心向外 36 根辐条(18 段镜像 → 左右对称),辐条点亮的点数 = 该段能量;内→外 青→黄→红,
-// 中心一个红核随总能量脉动。采集+分析在独立任务里(只写 s_band[]);UI 在 audio_tick 更新点阵。
+// 麦克风实时频谱:worker 分析 18 段;UI 快照驱动固定 18×16 点阵和能量配色。
 #include "app.h"
+#include "tools_ui.h"
+#include "ui_update.h"
+#include "settings.h"
 #include "audio_mic.h"
 #include "audio_bus.h"
 #include "board_config.h"
@@ -15,16 +16,12 @@
 #define WIN    480         // 每帧样本数(16kHz → ~33fps)
 #define SR     16000.0f
 
-// 径向布局(466 圆屏,中心 233,233):中心向外的实心辐条(粗圆头线),长度=该段能量
-#define CX     233
-#define CY     233
-#define SPOKES 36          // 辐条数(18 段镜像 → 左右对称)
-#define R0     58          // 内半径(起点)
-#define LMAX   150         // 最大伸出长度
-#define LINE_W 9           // 辐条粗细(实心圆头,比点阵醒目)
-#define COL_LO 0x21e6b6    // 低 青
-#define COL_MD 0xffc233    // 中 黄
-#define COL_HI 0xff3b3b    // 高 红
+#define ROWS 16
+#define GRID_X 81
+#define GRID_Y 147
+#define GRID_W 304
+#define GRID_H 163
+typedef enum { CAPTURE_STARTING, CAPTURE_READY, CAPTURE_FAILED } capture_state_t;
 
 static float              s_band[NB];          // 0..1 平滑后的频段能量
 static volatile bool      s_run;
@@ -32,10 +29,19 @@ static TaskHandle_t       s_worker;
 static portMUX_TYPE       s_mux = portMUX_INITIALIZER_UNLOCKED;
 static volatile bool      s_visible = true;
 static uint32_t           s_generation;
-static lv_obj_t          *g_line[SPOKES];
-static lv_obj_t          *g_core;              // 中心脉冲核
-static lv_point_precise_t s_pts[SPOKES][2];    // 每条 2 点(内端固定,外端随能量)
-static float              s_ca[SPOKES], s_sa[SPOKES];
+static capture_state_t    s_capture;
+static lv_obj_t          *g_content, *g_grid, *g_caption, *g_input, *g_fault;
+static uint32_t           s_colors[NB][ROWS]; // UI-owned, worker never accesses LVGL.
+
+static void capture_publish(uint32_t generation, capture_state_t state, const float *bands) {
+    portENTER_CRITICAL(&s_mux);
+    // A read can finish after exit/re-entry; never publish an earlier activation's frame.
+    if (s_run && s_generation == generation) {
+        s_capture = state;
+        if (bands) memcpy(s_band, bands, sizeof s_band);
+    }
+    portEXIT_CRITICAL(&s_mux);
+}
 
 static void audio_task(void *arg) {
     (void)arg;
@@ -48,6 +54,7 @@ static void audio_task(void *arg) {
         coeff[b] = 2.0f * cosf(2.0f * (float)M_PI * f / SR);
     }
     int logdiv = 0;
+    unsigned missed = 0;
     for (;;) {
         portENTER_CRITICAL(&s_mux);
         bool run = s_run;
@@ -68,13 +75,18 @@ static void audio_task(void *arg) {
             if (!audio_mic_start(board_i2c_bus())) {
                 ESP_LOGW("audio", "mic start failed");
                 audio_mic_stop(); audio_bus_release(); failed_generation = generation;
+                capture_publish(generation, CAPTURE_FAILED, NULL);
                 continue;
             }
             owns_bus = true;
         }
         if (!s_visible) { ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(80)); continue; }
         int n = audio_mic_read(buf, WIN);
-        if (n <= 0) { vTaskDelay(pdMS_TO_TICKS(10)); continue; }
+        if (n <= 0) {
+            if (++missed >= 3) capture_publish(generation, CAPTURE_FAILED, NULL);
+            vTaskDelay(pdMS_TO_TICKS(10)); continue;
+        }
+        missed = 0;
 
         float rms = 0;
         for (int i = 0; i < n; i++) rms += (float)buf[i] * buf[i];
@@ -90,7 +102,7 @@ static void audio_task(void *arg) {
             float prev = bands[b];
             bands[b] = v > prev ? v : prev * 0.80f + v * 0.20f;  // 快上慢下 → 起伏感
         }
-        portENTER_CRITICAL(&s_mux); memcpy(s_band, bands, sizeof bands); portEXIT_CRITICAL(&s_mux);
+        capture_publish(generation, CAPTURE_READY, bands);
         if (++logdiv >= 15) { logdiv = 0; ESP_LOGI("audio", "rms=%.0f", rms); }  // 拾音验证
     }
 }
@@ -101,72 +113,115 @@ static void audio_notify(void) {
     portEXIT_CRITICAL(&s_mux);
 }
 
-static uint32_t tier_color(float v) { return v < 0.35f ? COL_LO : (v < 0.7f ? COL_MD : COL_HI); }
+static uint32_t mix_color(uint32_t a, uint32_t b, float t) {
+    uint32_t result = 0;
+    for (int shift = 0; shift <= 16; shift += 8) {
+        float channel = ((a >> shift) & 255) * (1-t) + ((b >> shift) & 255) * t;
+        result |= (uint32_t)(channel + .5f) << shift;
+    }
+    return result;
+}
+
+static uint32_t spectrum_color(float energy, bool quiet) {
+    if (quiet) return TOOLS_WHITE;
+    static const float stops[] = {0,.30f,.67f,1};
+    static const uint32_t colors[] = {TOOLS_WHITE,0xb5ddd9,0xe6c08b,0xdc7481};
+    energy = fminf(1, fmaxf(0,energy));
+    for (int i=1; i<4; ++i) if (energy <= stops[i])
+        return mix_color(TOOLS_WHITE, mix_color(colors[i-1], colors[i],
+                         (energy-stops[i-1])/(stops[i]-stops[i-1])), .85f);
+    return colors[3];
+}
+
+static void spectrum_draw(lv_event_t *e) {
+    lv_layer_t *layer = lv_event_get_layer(e);
+    lv_area_t a; lv_obj_get_coords(g_grid, &a);
+    for (int b=0; b<NB; ++b) for (int row=0; row<ROWS; ++row)
+        tools_dot(layer, a.x1 + 8 + b*17, a.y1 + 156-row*10, 6, s_colors[b][row]);
+}
+
+static void scale_draw(lv_event_t *e) {
+    lv_layer_t *layer = lv_event_get_layer(e);
+    lv_area_t a; lv_obj_get_coords(lv_event_get_target_obj(e), &a);
+    tools_line(layer, a.x1, a.y1, a.x1+290, a.y1, 1, TOOLS_LINE);
+    const int ticks[] = {0,73,145,217,290};
+    for (int i=0; i<5; ++i) tools_line(layer, a.x1+ticks[i],a.y1,a.x1+ticks[i],a.y1+5,1,TOOLS_GRAY);
+}
+
+static void audio_tick(void);
 
 static void audio_enter(lv_obj_t *parent) {
-    for (int s = 0; s < SPOKES; s++) {
-        float a = s * (6.2831853f / SPOKES) - 1.5708f;       // 从正上方起,顺时针
-        s_ca[s] = cosf(a); s_sa[s] = sinf(a);
-        s_pts[s][0].x = (lv_value_precise_t)(CX + s_ca[s] * R0);   // 内端固定
-        s_pts[s][0].y = (lv_value_precise_t)(CY + s_sa[s] * R0);
-        s_pts[s][1] = s_pts[s][0];                            // 初始零长
-        lv_obj_t *ln = lv_line_create(parent);
-        lv_obj_set_style_line_width(ln, LINE_W, 0);
-        lv_obj_set_style_line_rounded(ln, true, 0);
-        lv_obj_set_style_line_color(ln, lv_color_hex(COL_LO), 0);
-        lv_obj_add_flag(ln, LV_OBJ_FLAG_EVENT_BUBBLE);
-        lv_line_set_points(ln, s_pts[s], 2);
-        g_line[s] = ln;
-    }
-    g_core = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_core);
-    lv_obj_set_style_radius(g_core, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(g_core, lv_color_hex(COL_HI), 0);
-    lv_obj_set_style_bg_opa(g_core, LV_OPA_COVER, 0);
-    lv_obj_remove_flag(g_core, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_core, LV_OBJ_FLAG_EVENT_BUBBLE);
+    g_content = tools_surface(parent,0,0,466,466);
+    lv_obj_t *indicator = tools_surface(g_content,161,107,8,8);
+    lv_obj_set_style_radius(indicator,LV_RADIUS_CIRCLE,0);
+    lv_obj_set_style_bg_color(indicator,lv_color_hex(COL_RED),0);
+    lv_obj_set_style_bg_opa(indicator,LV_OPA_COVER,0);
+    g_input = tools_label(g_content,tools_text("STARTING","正在启动"),&font_tools_20,237,111,TOOLS_GRAY,settings_lang()?1:2);
+    g_grid = tools_surface(g_content,GRID_X,GRID_Y,GRID_W,GRID_H);
+    lv_obj_add_event_cb(g_grid,spectrum_draw,LV_EVENT_DRAW_MAIN,NULL);
+    for (int b=0; b<NB; ++b) for (int row=0; row<ROWS; ++row) s_colors[b][row]=TOOLS_FAINT;
+    lv_obj_t *scale = tools_surface(g_content,88,326,291,7);
+    lv_obj_add_event_cb(scale,scale_draw,LV_EVENT_DRAW_MAIN,NULL);
+    lv_obj_t *low = tools_label(g_content,"80 Hz",&font_tools_19,87,353,TOOLS_GRAY,0);
+    lv_obj_set_x(low,87);
+    lv_obj_t *high = tools_label(g_content,"6 kHz",&font_tools_19,379,353,TOOLS_GRAY,0);
+    lv_obj_set_x(high,379-lv_obj_get_width(high));
+    g_caption = tools_label(g_content,tools_text("LISTENING","聆听中"),&font_tools_21,233,395,TOOLS_WHITE,settings_lang()?1:2);
+    tools_label(g_content,tools_text("18 BANDS","18 个频段"),&font_tools_20,233,423,TOOLS_GRAY,settings_lang()?0:1);
+    g_fault = tools_fault(parent,true);
     // 采集任务拥有硬件,结束后释放任务栈;进退页面只发请求,不等待阻塞的 I2S read。
     portENTER_CRITICAL(&s_mux);
-    memset(s_band, 0, sizeof s_band); s_run = true; s_generation++;
+    memset(s_band, 0, sizeof s_band); s_capture=CAPTURE_STARTING; s_run = true; s_generation++;
     portEXIT_CRITICAL(&s_mux);
     s_visible = true;
     if (!s_worker && xTaskCreate(audio_task, "audio", 4096, NULL, 5, &s_worker) != pdPASS) {
-        s_run = false; ESP_LOGE("audio", "capture task allocation failed");
+        portENTER_CRITICAL(&s_mux); s_run = false; s_capture=CAPTURE_FAILED; portEXIT_CRITICAL(&s_mux);
+        ESP_LOGE("audio", "capture task allocation failed");
     }
     audio_notify();
+    audio_tick();
 }
 
 static void audio_tick(void) {
-    if (!g_line[0]) return;
+    if (!g_grid) return;
     float bands[NB];
-    portENTER_CRITICAL(&s_mux); memcpy(bands, s_band, sizeof bands); portEXIT_CRITICAL(&s_mux);
-    float sum = 0;
-    for (int s = 0; s < SPOKES; s++) {
-        int b = (s <= SPOKES / 2) ? s : SPOKES - s;          // 镜像 → 左右对称
-        if (b >= NB) b = NB - 1;
-        float v = bands[b];
-        sum += v;
-        int len = R0 + (int)(v * LMAX);
-        lv_point_precise_t end = {0};
-        end.x = (lv_value_precise_t)(CX + s_ca[s] * len);
-        end.y = (lv_value_precise_t)(CY + s_sa[s] * len);
-        if (s_pts[s][1].x != end.x || s_pts[s][1].y != end.y) {
-            s_pts[s][1] = end; lv_line_set_points(g_line[s], s_pts[s], 2);
-        }
-        lv_color_t color = lv_color_hex(tier_color(v));
-        if (!lv_color_eq(lv_obj_get_style_line_color(g_line[s], 0), color))
-            lv_obj_set_style_line_color(g_line[s], color, 0);
+    capture_state_t state;
+    portENTER_CRITICAL(&s_mux); memcpy(bands, s_band, sizeof bands); state=s_capture; portEXIT_CRITICAL(&s_mux);
+    if (state==CAPTURE_FAILED) {
+        ui_obj_set_hidden(g_content,true); ui_obj_set_hidden(g_fault,false); return;
     }
-    int cr = 7 + (int)(sum / SPOKES * 26.0f);                // 中心核随总能量脉动
-    lv_obj_set_size(g_core, cr * 2, cr * 2);
-    lv_obj_set_pos(g_core, CX - cr, CY - cr);
+    ui_obj_set_hidden(g_content,false); ui_obj_set_hidden(g_fault,true);
+    const char *input=state==CAPTURE_READY ? tools_text("MIC INPUT","实时拾音") : tools_text("STARTING","正在启动");
+    if (strcmp(lv_label_get_text(g_input),input)) {ui_text(g_input,input);tools_label_center(g_input,237,111);}
+    float max=0; for (int b=0; b<NB; ++b) max=fmaxf(max,bands[b]);
+    // All columns stay at one dot below the first two-dot step; use a calm white listening state.
+    bool quiet=max<1.5f/ROWS;
+    const char *caption=quiet ? tools_text("LISTENING","聆听中") : tools_text("LIVE SPECTRUM","实时频谱");
+    if (strcmp(lv_label_get_text(g_caption),caption)) {
+        ui_text(g_caption,caption); tools_label_center(g_caption,233,395);
+    }
+    lv_area_t coords; lv_obj_get_coords(g_grid,&coords);
+    for (int b=0; b<NB; ++b) {
+        float v=isfinite(bands[b]) ? fminf(1,fmaxf(0,bands[b])) : 0;
+        int count=(int)roundf(v*ROWS); if (count<1) count=1;
+        int first=ROWS, last=-1;
+        for (int row=0; row<ROWS; ++row) {
+            uint32_t color=row>=count ? TOOLS_FAINT : (!quiet && row==count-1 ? COL_RED :
+                spectrum_color((row+1)/(float)ROWS*.72f+v*.28f,quiet));
+            if (color!=s_colors[b][row]) {s_colors[b][row]=color; if (row<first) first=row; last=row;}
+        }
+        if (last>=first) {
+            int x=coords.x1+8+b*17;
+            lv_area_t dirty={x-3,coords.y1+156-last*10-3,x+2,coords.y1+156-first*10+2};
+            lv_obj_invalidate_area(g_grid,&dirty);
+        }
+    }
 }
 
 static void audio_exit(void) {
     portENTER_CRITICAL(&s_mux); s_run = false; s_generation++; portEXIT_CRITICAL(&s_mux);
     audio_notify();
-    for (int s = 0; s < SPOKES; s++) g_line[s] = NULL;
-    g_core = NULL;
+    g_content=g_grid=g_caption=g_input=g_fault=NULL;
 }
 
 static void audio_visibility(bool visible) {

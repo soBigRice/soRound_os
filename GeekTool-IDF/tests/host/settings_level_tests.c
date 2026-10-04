@@ -2,11 +2,13 @@
 #include <assert.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "app.h"
 #include "settings.h"
 #include "sdk.h"
 #include "src/misc/lv_text_private.h"
+#include "tools_render.h"
 static uint8_t language,brightness=191,volume=65,idle,silent,face;
 static int saves,audio_starts,audio_stops,blips;
 static bool sensor_up=true;
@@ -120,5 +122,36 @@ int main(int argc,char **argv) {
     lv_tick_inc(20);level_tick();assert(!lv_obj_has_flag(g_ball,LV_OBJ_FLAG_HIDDEN));
     tx=NAN;for(int i=0;i<3;++i) {lv_tick_inc(20);level_tick();}assert(lv_obj_has_flag(g_ball,LV_OBJ_FLAG_HIDDEN));
     level_exit();lv_obj_delete(page);
+    // Approved layout: check actual glyph ink, including the superscript, against full tick bounds.
+    tools_test_battery();
+    lv_obj_t *back=lv_obj_create(lv_layer_top()),*arrow=lv_label_create(back);
+    lv_obj_set_style_radius(back,LV_RADIUS_CIRCLE,0);lv_obj_set_style_pad_all(back,0,0);
+    for(language=0;language<2;++language) {
+        lv_label_set_text(heading,tools_text("LEVEL","水平仪"));tools_header(heading,back,arrow);
+        page=tools_surface(lv_screen_active(),0,0,466,466);sensor_up=true;tx=ty=0;az=1;level_enter(page);
+        const float poses[][3]={{0,0,1},{.1391731f,-.0697565f,.987815f},{.9961947f,0,.0871557f},{1,0,0},{-1,0,0},{0,1,0},{0,-1,0}};
+        const char *names[]={"level-flat","level-nine","level-85","level-90","level-left","level-down","level-up"};
+        for(unsigned i=0;i<sizeof poses/sizeof poses[0];++i) {
+            tx=poses[i][0];ty=poses[i][1];az=poses[i][2];
+            for(int n=0;n<60;++n){lv_tick_inc(20);level_tick();}
+            capture(page,directory,names[i]);
+            lv_area_t state,number,unit,target;lv_obj_get_coords(g_status,&state);lv_obj_get_coords(g_big,&number);
+            lv_obj_get_coords(g_unit,&unit);lv_obj_get_coords(g_target,&target);
+            assert(target.y2<=324 && state.y1>target.y2); // Includes 13px outward ticks and their caps.
+            const lv_font_t *font=&font_tools_60;lv_font_glyph_dsc_t glyph;
+            assert(lv_font_get_glyph_dsc(font,&glyph,(uint32_t)lv_label_get_text(g_big)[0],0));
+            int number_top=number.y1+font->line_height-font->base_line-glyph.box_h-glyph.ofs_y;
+            assert(number_top>state.y2);
+            font=&font_tools_24;assert(lv_font_get_glyph_dsc(font,&glyph,0xb0,0));
+            int unit_top=unit.y1+font->line_height-font->base_line-glyph.box_h-glyph.ofs_y;
+            assert(unit_top>state.y2);
+            assert(number.x2+7<=unit.x1 && abs((number.x1+unit.x2)/2-233)<=1);
+            assert(hypotf(ox,oy)<=81.01f && hypotf(ox,oy)+BALL_R<DISH);
+        }
+        sensor_up=false;for(int n=0;n<3;++n){lv_tick_inc(20);level_tick();}capture(page,directory,"level-fault");
+        assert(lv_obj_has_flag(g_content,LV_OBJ_FLAG_HIDDEN));
+        sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
+        level_exit();lv_obj_delete(page);
+    }
     puts("7 settings/5 previews EN/ZH, round layout/glyphs, slider persistence, toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
 }
