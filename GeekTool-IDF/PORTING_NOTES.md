@@ -1304,3 +1304,34 @@ CI 使用 ESP-IDF `v6.0.1`、LVGL `9.6.0~1`、`esp_lvgl_port 2.9.0`。
 
 设备 OTA 设置开启测试通道后升级到 beta.16，再打开天气检查当前与详情数据、切换城市。
 本轮设备未接串口，未执行刷机；实际下载、写入、重启与设备端天气恢复待用户验收。
+
+### 2026-10-04 分区扩容与USB迁移
+
+用户反馈 beta.16 天气仍获取失败，并询问是否与分区或 bin 压缩有关。
+当前发布流程直接上传 ESP-IDF `GeekTool.bin`，OTA 更新应用槽；没有 bin 压缩/解压环节。
+天气资源使用无损 RLE、字体透明边缘裁剪，仅影响资源表示，不改天气 URL、JSON 数据或解析逻辑。
+天气失败必须以设备请求日志定位，不能凭包体接近槽上限就归因到天气。
+
+原两个 OTA 槽均为 3MiB，beta.16 发布镜像只剩 2,960B；System UI 的 main 预构建余量为 6,176B。
+用户明确同意两个槽各扩到 4MiB 并 USB 迁移。源码 `partitions.csv` 已调整，同时保留 4MiB 图片 FAT 容量：
+
+| 分区 | 迁移前 offset / size | 新配置 offset / size |
+| --- | --- | --- |
+| nvs / otadata / phy_init | `0x9000 / 0x6000`、`0xf000 / 0x2000`、`0x11000 / 0x1000` | 保持 |
+| ota_0 | `0x20000 / 0x300000` | `0x20000 / 0x400000` |
+| ota_1 | `0x320000 / 0x300000` | `0x420000 / 0x400000` |
+| storage | `0x620000 / 0x400000` | `0x820000 / 0x400000` |
+
+新布局末端 `0xc20000`，约 12.125MiB，低于 32MiB Flash。
+迁移需一次 USB 刷写新分区表、初始化 OTA 选择、应用及重新生成的只读 `storage.bin`；
+先备份原分区表、NVS 和图片分区并验证备份完整，不执行整片 erase。
+NVS 地址不动是保留设置的设计条件，不代表迁移前已验证数据保留。
+`img_store.c` 将 storage 只读挂载，`main/CMakeLists.txt` 从仓库 images 生成镜像；
+移动地址后需重新刷入，不能只修改 CSV 后向旧设备发大 bin。
+当前 `ota_update.c` 未接入分区表 OTA 迁移，不擅自增加远程迁移流程；
+官方区分应用 OTA 的安全模式与分区表更新的非断电安全模式，依据
+[ESP-IDF 6.0.1 OTA](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/system/ota.html)。
+新布局经 ESP-IDF 6.0.1 `gen_esp32part.py --flash-size 32MB` 生成和反解校验通过。
+回退同样需 USB 恢复原布局及相应固件/资源。设备完整备份、刷写和真机核对进行中，
+不把源码调整或分区工具通过当作设备已迁移。以后超过 3MiB 的应用镜像需要旧设备先迁移；
+当前 System 镜像仍小于 3MiB，OTA 应用通过设备上的分区表定位槽和资源，单独更新 bin 不改变旧布局。

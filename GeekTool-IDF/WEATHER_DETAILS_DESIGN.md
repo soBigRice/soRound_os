@@ -43,6 +43,17 @@
 
 采用项目已有 `esp_http_client_config_t.buffer_size_tx`，设为 URL 缓冲大小 1024；不删字段、不改变城市、详情或轮询频率。依据 [ESP-IDF 6.0.1 源码](https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_http_client/esp_http_client.c#L1718-L1766) 核对限制。`weather_ui_tests` 的 HTTP stub 现在模拟默认 512 字节和完整请求行长度：修改前实际 worker 回归在首个成功天气断言失败，修改后通过；覆盖 open 超时、header 失败、完整 JSON 后的 read 错误、HTTP 500、断网与恢复，并检查已连接失败不再显示断网文案。以后扩展查询时先核对请求行和 TX 缓冲，而不是只检查响应夹具大小。
 
+同日用户明确确认 **beta.16 仍获取失败**。发送缓冲修复通过自动回归，但不能据此认定设备问题已完全解决。
+再次按当前完整 URL、HTTP/1.1 和设备默认 User-Agent 请求上海公开数据：HTTP/HTTPS 均返回 200，
+chunked 响应 2,373B；真实 `weather_data_parse` 对两份响应均成功，12 小时/5 天数据完整。
+这排除了本次电脑对照的接口参数与响应容量问题，不证明设备网络、DNS或内存分配正常。
+下一步读取设备 `weather` 的 `forecast open=… headers=… http=… bytes=… read=…` 及相邻网络错误，
+按阶段区分连接、头部、响应、解析和内存问题。USB 日志确认启动版本 beta.16，
+串口连接出现 `USB_UART_CHIP_RESET`；未取得完整失败请求记录。用户随后明确确认天气已正常。
+这是重启后的设备恢复反馈，原失败根因仍未证实，不继续盲改缓冲或转为 HTTPS。
+再次失败时优先收集上述请求日志；不能把 USB 重启后的恢复解释为分区扩容已修复天气。
+分区与资源压缩的核对及已授权迁移见 [分区迁移](./PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移)。
+
 本次 LVGL 9.5 / 9.6 各十二组主机回归通过，原首屏 20 帧、74 组图标像素与全部原字形语义检查通过。ESP-IDF 6.0.1 本地构建通过，镜像 3,109,536 字节，3MiB OTA 槽余 36,192 字节。beta.16 发布构建及 GitHub/R2/国内完整与断点下载校验通过，发布包 3,142,768 字节；真实设备天气恢复仍待验收，详见 [发布记录](./PORTING_NOTES.md#2026-10-04-v17-beta16-发布核对)。
 
 - `tests/weather/first_screen.sha256.json` / `first_screen_lvgl96.sha256.json` 分别固定修改前 LVGL 9.5/9.6 的 20 个完整首屏 RGB565 渲染：中英加载、三种典型天气、夜间、负温、三位温、未知码、断网与恢复。两版本在返回箭头处原本存在栅格差异，因此必须按实际渲染版本比较。9.6 基准取自改动前 00:36 构建的 beta.13 主机测试可执行文件，SHA256 `d07f95fb40e19c221b913e65a2766c256953998ec1da07d34fbecc75e806b873`；其 20 帧与修改后同版本逐帧一致。`check_weather_artwork.py` 查询测试程序版本，同时检查首屏和既有 74 个图标像素比较，不能更新基线掩盖首屏变化。
