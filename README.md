@@ -4,7 +4,7 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-当前仓库 `main` 对应 `v1.7-beta.17` 内测版本，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
+当前仓库 `main` 对应 `v1.7-beta.18` 内测版本，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
 
 ## 功能概览
@@ -57,6 +57,8 @@ BLE 数字孪生以及双分区云 OTA。
 [系统信息 UI](./GeekTool-IDF/SYSTEM_UI.md)。
 启动器16个几何图标、原生圆屏预览及切换绘制逻辑见
 [启动器图标](./GeekTool-IDF/LAUNCHER_ICONS.md)。
+设置分类导航、Wi-Fi连接/密码页及真实数据/事件边界见
+[设置与Wi-Fi交互](./GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
 R2 保留发布包、服务器拉取并原子替换镜像的同步程序、部署配置及迁移状态见
@@ -334,3 +336,11 @@ GitHub、R2、国内 beta 包逐字节一致，镜像校验与断点下载通过
 GitHub/R2/国内包全文摘要一致，国内两次整包请求超时后用断点续传完成校验，正式通道仍为 `v1.6.1`。
 现有3MiB布局可OTA安装此包，分区扩容本身需USB迁移。逻辑见 [SYSTEM_UI](GeekTool-IDF/SYSTEM_UI.md)，
 完整证据见 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-v17-beta17-发布与usb迁移核对)。
+
+2026-10-04 已发布 [v1.7-beta.18](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.18)：
+重绘启动器16个App图标和切换箭头，统一圆润白色线条、红色语义细节并减淡按钮边框；
+保留应用顺序、点击/滑动和220ms切换。LVGL9.5/9.6各14组回归及发布构建通过，
+中英文466×466原生预览已检查。GitHub/R2/国内包完整摘要一致，国内首次连接重置后分段续传校验通过，
+正式通道仍为 `v1.6.1`。USB未连接，本次未刷写设备；真实观感、触摸与设备OTA升级重启待验收。
+图标逻辑见 [LAUNCHER_ICONS](GeekTool-IDF/LAUNCHER_ICONS.md)，完整证据见
+[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-v17-beta18-图标发布核对)。

@@ -1,30 +1,58 @@
-# 设置与天气地址交互
+# 设置、Wi-Fi与天气地址交互
 
-核对日期：2026-10-04。用户授权完成功能后已实现原生 LVGL 页面；主机回归和固件构建
-见 `PORTING_NOTES.md` 本轮记录。USB 未识别设备后用户选择自行 OTA；已发布
-[v1.7-beta.13](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.13)。圆屏观感、真实地址请求及侧倾触发条件仍需设备操作验收。
+核对日期：2026-10-04。设置与Wi-Fi已按本轮反馈重做；天气地址功能沿用已发布实现。
+本轮原生双语检查、固件及发布状态见 `PORTING_NOTES.md`；真实设备操作仍需单独验收。
 浏览器旧样稿位于 [artwork/settings-location/index.html](./artwork/settings-location/index.html)，
 其中地址/天气仍为样例；固件没有使用该样例列表。
 
-## 设置页
+## 设置页（本轮重做）
 
-`main/app_settings.c:settings_enter` → `rebuild`：每屏一项，顺序为亮度、表盘、常显、
-音量、静音、语言、关于。上下点阵箭头或内容区上下滑动切换，系统返回/右滑退出；
-顶部系统热区下拉仍打开快捷面板。
+用户反馈beta.18设置交互不易使用；旧“每屏一项、上下循环七项”已被分类入口替代。
+`app_settings.c:settings_enter → rebuild` 首屏显示四个可直接点选的卡片：显示与表盘、声音、语言、关于设备。
+卡片宽度随圆屏上下收窄；字名24px、辅助信息18px、返回按钮44px。
+不隐藏常用选项，不依赖用户记住上下页顺序。
 
-- 亮度/音量：大点阵数字、点阵横条；`slider_changed` 实时应用，`LV_EVENT_RELEASED`
-  才 `settings_save`。亮度仍为 `SETTINGS_BRIGHT_MIN=64` 至 255，音量 0 至 100。
-  滑块不冒泡手势，避免横向调整触发返回。
-- 常显/静音：点选立即应用并保存，沿用 `IDLE_AOD`/`IDLE_OFF` 及全局静音语义。
-- 表盘：保留 `dots/bold/rings/weather/image` 五项，同页预览、左右选择；图片预览
-  读取已预热的 `img_store_face_image`，天气预览使用原稿资源，选择仍经过 `watchface_select`。
-- 语言立即保存并重画本页，关于显示真实 `esp_app_get_description()->version`。
-- `queue_rebuild` 在输入事件结束后异步重建，退出取消待执行回调；音量页申请音频，
-  `settings_exit` 释放，避免影响随后进入麦克风应用。
+- 显示：亮度读数/滑块、表盘入口和常显整行开关。亮度仍为64～255，拖动实时应用，松手才保存。
+- 声音：音量0～100、静音整行开关及试听。沿用铃声/提示音的全局静音语义；离开声音子页即释放音频。
+- 表盘：保留`dots/bold/rings/weather/image`五种、当前资源预览、左右选择和立即保存。
+- 语言立即应用并重建本页；关于读取真实`esp_app_get_description()->version`，长版本允许换行。
+- `settings_back`：表盘退到显示，其他子页退首页；首页再返回才由启动器退出。右滑沿用`app_t.back`调度。
+- `queue_rebuild`延后销毁输入对象，退出取消待执行回调；开关可点整行或实际switch，事件不重复保存。
 
-`launcher.c:header_app_style` 只为设置和天气采用紧凑标题/返回按钮，其他 App 样式恢复。
-页面固定画布为 466×466，文字与触控区留在圆屏内；`settings_level_tests` 检查双语字形、
-圆形安全范围、控件保存时机、开关、表盘预览、异步销毁与音频释放。
+`control_ui.c/h`只供设置与Wi-Fi使用，统一卡片、单行文字、滑块和整行开关。
+`launcher.c:header_app_style`为这两个App采用24px紧凑标题/44px返回按钮，天气原有40px返回样式保持。
+`settings_level_tests`检查四分类入口、逐级返回、保存时机、整行开关、五种表盘、双语字形/圆形安全范围和音频释放。
+
+## Wi-Fi页（本轮重做）
+
+`app_wifi.c:wifi_enter`建立开关行、当前连接卡、扫描状态/刷新和独立滚动列表。
+当前SSID与连接/认证失败/超时状态明确显示；扫描结果去重、保留信号和已保存/开放/需要密码标记。
+已连接项只在上方卡片呈现，连接改变时`queue_rows → render_rows`用最近扫描快照同步列表，
+不重新访问已释放的SDK扫描列表，也不在点击事件中直接删除当前行。
+最多显示20条扫描记录；沿用SDK按RSSI降序的结果，忽略没有可选SSID的隐藏广播，不新增手动隐藏SSID功能。
+
+点选开放网络直接连接；已保存网络用SDK现有配置重连；新加密网络打开独立密码页。
+认证失败卡片可打开同一密码页，匹配当前保存目标时填入已记住的密码，默认掩码，可直接重试或修改。
+取消只关闭输入页，不写配置、不发起连接。后退/空白处右滑关闭密码页，键盘/文本框不冒泡手势，防止输入时误退出。
+
+密码页采用原生`lv_keyboard_set_map`：大小写、数字/符号和额外符号页，覆盖全部可打印ASCII；
+明确顶部对齐，328×160键盘及连接/返回按钮均在466圆屏内。密码按UTF-8字节长度校验，
+WPA/WPA2保留8～63字节及64位十六进制PSK，SSID32字节与PSK64字节不截断；WEP沿用对应长度入口。
+没有手机配网、二维码或新网络协议，也没有替换NVS格式或擦除凭据。
+
+`wifi_evt`只写服务状态/断开原因，`wifi_tick`在LVGL任务更新页面；
+在调用`esp_wifi_connect`前清除旧尝试标志，避免同步/快速GOT_IP被随后清掉。
+仍保留启动自动重连、后台扫描不主动断网、FLASH凭据和SNTP/RTC；UI错误不假称断网或密码必错。
+退出取消列表异步回调，停下本页扫描并清SDK扫描记录，保留无线服务/连接；扫描取记录失败也清理SDK记录。
+
+采用项目已有LVGL和SDK能力，未增加通用SVG渲染或配网依赖。2026-10-04核查：
+[LVGL9.5键盘映射/默认处理器](https://docs.lvgl.io/9.5/widgets/keyboard.html#new-keymap)、
+[ESP-IDF6.0.1扫描记录与释放契约](https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_wifi/include/esp_wifi.h)。
+自定义的只有键盘排列和`#+=`转到额外符号页，其余按键继续委托`lv_keyboard_def_event_cb`。
+
+`tests/wifi/wifi_ui_tests.c`使用真实LVGL与假无线API，覆盖中英状态、每键圆形边界、密码掩码/取消/重试、
+全部ASCII、SSID/PSK长度、立即GOT_IP、认证失败/超时、扫描失败、开关和12次退出清理。
+主机中的SSID、电量与连接结果均为夹具，不能代替设备真实连接验收。
 
 ## 地址数据与持久化
 

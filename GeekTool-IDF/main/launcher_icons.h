@@ -12,7 +12,7 @@ typedef enum {
 } launcher_icon_t;
 
 #define LAUNCHER_ICON_SIZE 148
-#define LAUNCHER_FRAME_COLOR 0x303034
+#define LAUNCHER_FRAME_COLOR 0xffffff
 
 lv_obj_t *launcher_icon_create(lv_obj_t *parent, launcher_icon_t kind);
 void launcher_icon_set(lv_obj_t *icon, launcher_icon_t kind);

@@ -45,7 +45,7 @@ extern const app_t app_sys;
 extern const app_t app_weather;
 extern const app_t app_calendar;
 extern const app_t app_countdown;
-extern const app_t app_settings;   // 每屏一个设置,上下切换
+extern const app_t app_settings;   // 分类入口,子页返回上一级
 extern const app_t app_ota;
 extern const app_t app_audio;
 extern const app_t app_level;

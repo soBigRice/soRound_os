@@ -45,7 +45,8 @@ static void header_app_style(void) {
     // OTA 的贴边点阵环需要透明点阵返回键;其他 App 保持原有圆形按钮。
     bool ota = cur_app == &app_ota;
     bool weather = cur_app == &app_weather;
-    bool compact = weather || cur_app == &app_settings;
+    bool controls = cur_app == &app_settings || cur_app == &app_wifi;
+    bool compact = weather || controls;
     bool tools = cur_app == &app_audio || cur_app == &app_level;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
@@ -56,8 +57,8 @@ static void header_app_style(void) {
     lv_label_set_long_mode(g_title,LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(g_title,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, compact ? 52 : 46);
-    lv_obj_set_size(g_back, compact ? 40 : 48, compact ? 40 : 48);
-    lv_obj_align(g_back, LV_ALIGN_TOP_MID, -100, compact ? 52 : 40);
+    lv_obj_set_size(g_back, controls ? 44 : (compact ? 40 : 48), controls ? 44 : (compact ? 40 : 48));
+    lv_obj_align(g_back, LV_ALIGN_TOP_MID, controls ? -110 : -100, compact ? 52 : 40);
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);
@@ -447,9 +448,9 @@ void launcher_start(void) {
     g_icon = lv_obj_create(launcher_screen);
     lv_obj_set_size(g_icon, ICON, ICON);
     lv_obj_set_style_radius(g_icon, ICON / 2, 0);
-    lv_obj_set_style_border_width(g_icon, 1, 0);
+    lv_obj_set_style_border_width(g_icon, 2, 0);
     lv_obj_set_style_border_color(g_icon, lv_color_hex(LAUNCHER_FRAME_COLOR), 0);
-    lv_obj_set_style_bg_opa(g_icon, LV_OPA_TRANSP, 0);   // 低对比度图标边界;可点击范围和位置保持
+    lv_obj_set_style_bg_opa(g_icon, LV_OPA_TRANSP, 0);   // 白色清晰外圈;可点击范围和位置保持
     lv_obj_align(g_icon, LV_ALIGN_CENTER, 0, -16);
     lv_obj_remove_flag(g_icon, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_CLICKABLE);
@@ -469,7 +470,9 @@ void launcher_start(void) {
 
     g_name = lv_label_create(launcher_screen);
     lv_obj_set_style_text_color(g_name, lv_color_hex(COL_TXT), 0);
-    lv_obj_set_style_text_font(g_name, UI_FONT_L, 0);
+    lv_obj_set_style_text_font(g_name, &font_location_24, 0);
+    lv_obj_set_width(g_name,300);
+    lv_obj_set_style_text_align(g_name,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(g_name, LV_ALIGN_CENTER, 0, ICON / 2 + 14);
 
     lv_obj_t *al = launcher_icon_create(launcher_screen,LAUNCHER_PREV);

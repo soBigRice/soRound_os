@@ -49,10 +49,16 @@ target_include_directories(location_tests PRIVATE ../weather/stubs ../ota/stubs 
 add_test(NAME weather_location_persistence COMMAND location_tests)
 add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c
                ../../main/font_location_24.c ../../main/font_weather_16.c ../../main/weather_artwork.c
-               ../../main/tools_ui.c ../../main/font_tools.c)
+               ../../main/tools_ui.c ../../main/font_tools.c ../../main/control_ui.c ../../main/font_control.c)
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
+add_executable(wifi_ui_tests ../wifi/wifi_ui_tests.c ../../main/control_ui.c ../../main/font_control.c
+               ../../main/font_location_24.c ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(wifi_ui_tests PRIVATE ../wifi/stubs stubs ../../main)
+target_link_libraries(wifi_ui_tests PRIVATE lvgl m)
+target_compile_options(wifi_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME wifi_controls_and_lifecycle COMMAND wifi_ui_tests)
 add_executable(audio_ui_tests ../audio/audio_ui_tests.c ../../main/tools_ui.c ../../main/font_tools.c)
 target_include_directories(audio_ui_tests PRIVATE ../audio/stubs ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(audio_ui_tests PRIVATE lvgl m)
@@ -84,7 +90,7 @@ add_test(NAME weather_artwork_pixels
 
 # Visual review tool; preview fixtures are not device acceptance or an automated design verdict.
 add_executable(preview_launcher_icons ../../tools/preview_launcher_icons.c ../../main/launcher_icons.c
-               ../../main/i18n.c ../../main/font_cn16.c)
+               ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c)
 target_include_directories(preview_launcher_icons PRIVATE ../weather/stubs stubs ../../main)
 target_link_libraries(preview_launcher_icons PRIVATE lvgl m)
 target_compile_options(preview_launcher_icons PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)

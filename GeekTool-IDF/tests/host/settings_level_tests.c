@@ -45,7 +45,8 @@ bool imu_read_tilt_z(float *x,float *y,float *z) {*x=tx;*y=ty;*z=az;return senso
 #include "../../main/app_settings.c"
 #include "../../main/app_level.c"
 #define W 466
-static uint16_t buffer[W*W],pixels[W*W];
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[W*W];
+static uint16_t pixels[W*W];
 static lv_display_t *display;
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map) {
     int width=lv_area_get_width(a);
@@ -84,26 +85,38 @@ int main(int argc,char **argv) {
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_hex(0),0);
     heading=lv_label_create(lv_layer_top());lv_obj_set_style_text_font(heading,&font_location_24,0);
     lv_obj_set_style_text_color(heading,lv_color_hex(COL_TXT),0);lv_obj_align(heading,LV_ALIGN_TOP_MID,0,52);
+    tools_test_battery();
+    lv_obj_t *back=control_button(lv_layer_top(),101,52,44,44,NULL,NULL);
+    lv_obj_t *arrow=control_label(back,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,20,CONTROL_WHITE);lv_obj_center(arrow);
     for(language=0;language<2;++language) {
         lv_obj_t *page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
-        settings_enter(page);assert(lv_slider_get_min_value(s_slider)==64);
+        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_panel)==4);
+        assert(!settings_back());capture(page,directory,"settings-home");
+        lv_obj_send_event(lv_obj_get_child(s_panel,0),LV_EVENT_CLICKED,NULL);lv_timer_handler();
+        assert(s_page==SETTINGS_DISPLAY && lv_slider_get_min_value(s_slider)==64);
         int before=saves;lv_slider_set_value(s_slider,64,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
         assert(brightness==64 && saves==before);lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==before+1);
         lv_slider_set_value(s_slider,191,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
-        lv_obj_send_event(lv_obj_get_child(s_panel,0),LV_EVENT_CLICKED,NULL);lv_timer_handler();
-        assert(s_item==IT_ABOUT); // Previous wraps from the first item; async rebuild is safe.
-        for(s_item=0;s_item<ITEM_COUNT;++s_item) {
-            rebuild(NULL);char name[32];snprintf(name,sizeof name,"settings-%d",s_item);capture(page,directory,name);
-            if(s_item==IT_AOD) {before=saves;toggle(NULL);lv_timer_handler();assert(idle==IDLE_OFF && saves==before+1);}
-            if(s_item==IT_SILENT) {before=saves;toggle(NULL);lv_timer_handler();assert(silent && saves==before+1);}
-            if(s_item==IT_VOL) {
-                lv_slider_set_value(s_slider,100,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
-                assert(volume==100);blip(NULL);assert(blips>0);
+        lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);
+        before=saves;lv_obj_send_event(lv_obj_get_parent(s_aod),LV_EVENT_CLICKED,NULL);lv_timer_handler();
+        assert(idle==IDLE_OFF && saves==before+1 && !lv_obj_has_state(s_aod,LV_STATE_CHECKED));
+        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
+        const int pages[]={SETTINGS_HOME,SETTINGS_DISPLAY,SETTINGS_FACE,SETTINGS_SOUND,SETTINGS_LANG,SETTINGS_ABOUT};
+        for(unsigned i=0;i<sizeof pages/sizeof pages[0];++i) {
+            s_page=pages[i];rebuild(NULL);char name[40];snprintf(name,sizeof name,"settings-%u",i);capture(page,directory,name);
+            if(s_page==SETTINGS_SOUND) {
+                before=saves;lv_slider_set_value(s_slider,100,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
+                assert(volume==100 && saves==before);lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==before+1);
+                before=saves;lv_obj_send_event(lv_obj_get_parent(s_mute),LV_EVENT_CLICKED,NULL);lv_timer_handler();
+                assert(silent && saves==before+1);blip(NULL);assert(blips>0);
             }
         }
-        s_item=IT_FACE;
+        assert(audio_stops==audio_starts);
+        s_page=SETTINGS_FACE;
         for(face=0;face<5;++face) {rebuild(NULL);char name[32];snprintf(name,sizeof name,"face-%d",face);capture(page,directory,name);}
-        face=4;s_item=IT_FACE;
+        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_DISPLAY);
+        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
+        s_page=SETTINGS_SOUND;rebuild(NULL);assert(audio_starts==audio_stops+1);
         queue_rebuild();settings_exit();lv_obj_delete(page);lv_timer_handler();assert(!s_panel && audio_stops==audio_starts);
         idle=0;silent=0;face=0;
     }
@@ -123,8 +136,7 @@ int main(int argc,char **argv) {
     tx=NAN;for(int i=0;i<3;++i) {lv_tick_inc(20);level_tick();}assert(lv_obj_has_flag(g_ball,LV_OBJ_FLAG_HIDDEN));
     level_exit();lv_obj_delete(page);
     // Approved layout: check actual glyph ink, including the superscript, against full tick bounds.
-    tools_test_battery();
-    lv_obj_t *back=lv_obj_create(lv_layer_top()),*arrow=lv_label_create(back);
+    // Reuse the same system overlay for the approved level layout.
     lv_obj_set_style_radius(back,LV_RADIUS_CIRCLE,0);lv_obj_set_style_pad_all(back,0,0);
     for(language=0;language<2;++language) {
         lv_label_set_text(heading,tools_text("LEVEL","水平仪"));tools_header(heading,back,arrow);
@@ -153,5 +165,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("7 settings/5 previews EN/ZH, round layout/glyphs, slider persistence, toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
+    puts("Settings categories/nested back/5 previews EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
 }

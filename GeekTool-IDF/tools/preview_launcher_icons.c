@@ -1,6 +1,7 @@
 // Native 466x466 launcher previews. The 74% battery is a visual fixture, not device telemetry.
 #include "app.h"
 #include "launcher_icons.h"
+#include "weather_location_ui.h"
 #include "tools_ui.h"
 #include "settings.h"
 #include <stdio.h>
@@ -31,13 +32,14 @@ static lv_obj_t *button;
 static void screen(unsigned index) {
     lv_obj_clean(lv_screen_active());
     button=lv_obj_create(lv_screen_active());lv_obj_set_size(button,196,196);
-    lv_obj_set_style_radius(button,98,0);lv_obj_set_style_border_width(button,1,0);
+    lv_obj_set_style_radius(button,98,0);lv_obj_set_style_border_width(button,2,0);
     lv_obj_set_style_border_color(button,lv_color_hex(LAUNCHER_FRAME_COLOR),0);
     lv_obj_set_style_bg_opa(button,LV_OPA_TRANSP,0);lv_obj_align(button,LV_ALIGN_CENTER,0,-16);
     ui_obj_set_scrollable(button,false);
     lv_obj_t *icon=launcher_icon_create(button,(launcher_icon_t)index);lv_obj_center(icon);
     lv_obj_t *name=lv_label_create(lv_screen_active());lv_label_set_text(name,tr_app_name(names[index]));
-    lv_obj_set_style_text_font(name,UI_FONT_L,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
+    lv_obj_set_style_text_font(name,&font_location_24,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
+    lv_obj_set_width(name,300);lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(name,LV_ALIGN_CENTER,0,112);
     lv_obj_t *left=launcher_icon_create(lv_screen_active(),LAUNCHER_PREV);lv_obj_align(left,LV_ALIGN_LEFT_MID,14,0);
     lv_obj_t *right=launcher_icon_create(lv_screen_active(),LAUNCHER_NEXT);lv_obj_align(right,LV_ALIGN_RIGHT_MID,-14,0);
