@@ -58,6 +58,12 @@ target_include_directories(audio_ui_tests PRIVATE ../audio/stubs ../weather/stub
 target_link_libraries(audio_ui_tests PRIVATE lvgl m)
 target_compile_options(audio_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME audio_spectrum_and_layout COMMAND audio_ui_tests)
+add_executable(dice_ui_tests ../dice/dice_ui_tests.c ../../main/tools_ui.c ../../main/font_coin.c
+               ../../main/i18n.c ../../main/font_cn16.c ../../main/font_tools.c)
+target_include_directories(dice_ui_tests PRIVATE ../dice/stubs ../weather/stubs stubs ../ota/stubs ../../main)
+target_link_libraries(dice_ui_tests PRIVATE lvgl m)
+target_compile_options(dice_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME dice_coin_animation_and_layout COMMAND dice_ui_tests)
 add_executable(imu_tests ../imu/imu_tests.c)
 target_include_directories(imu_tests PRIVATE ../imu/stubs ../ota/stubs ../../main)
 target_link_libraries(imu_tests PRIVATE m)
