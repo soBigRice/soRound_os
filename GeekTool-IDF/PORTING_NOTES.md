@@ -1276,3 +1276,31 @@ CI 使用 ESP-IDF `v6.0.1`、LVGL `9.6.0~1`、`esp_lvgl_port 2.9.0`。
 实际下载/写入/重启、新分区启动、再次检查不重复更新及点击/甩动/动画手感仍待设备验收。
 本次临时测试构建、下载副本、逐帧文件、日志与发布辅助脚本完成后清理；保留源码、
 可检索记录、原生审阅图和既有固件构建目录。
+
+## 2026-10-04 v1.7-beta.16 发布核对
+
+用户反馈最新固件天气在已联网时所有城市均获取失败。本次修复的调用链、根因和发送缓冲回归见
+[天气模块验证说明](./WEATHER_DETAILS_DESIGN.md#验证与防线)。发布沿用用户此前的 OTA 授权及已有测试通道流程。
+
+源码提交 `74518296507d48ba5ba1b75b84726dfffbcc9570`，annotated tag `v1.7-beta.16`
+对象为 `65a5499d2e0c0dc069f2cf9e75c1010d2e4b89c8`。LVGL 9.5/9.6 各十二组主机回归通过，
+新增请求行容量、open/header/read 失败与已连接错误文案检查，原首屏、图标和字体语义保护通过。
+
+[main 预构建 37193319052](https://github.com/soBigRice/soRound_os/actions/runs/37193319052)
+与 [标签发布 37193675279](https://github.com/soBigRice/soRound_os/actions/runs/37193675279) 成功，
+均使用 ESP-IDF 6.0.1 / LVGL `9.6.0~1`。标签构建完成 GitHub Release 与 R2 上传；
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.16) 标记 prerelease，
+北京时间 2026-10-04 18:00:20 发布，唯一资产 `GeekTool.bin`。
+
+- 发布镜像为 `0x2ff470`（3,142,768）字节，3MiB OTA 槽剩余 `0xb90`（2,960）字节。
+  SHA-256 `3b84f19eabf8a7d8c0e5b193f05460c29345e0983f5e77b2c503df29f7ee3ace`，与 GitHub digest 一致。
+  包内 `GeekTool` / `v1.7-beta.16` / ESP32-S3、段边界、XOR checksum 和附加 SHA-256 均有效。
+- `https://r2-ota.miaozong.cc/GeekTool-beta.bin` 与 `https://ota.miaozong.cc/GeekTool-beta.bin`
+  完整 GET 均为 200，与 GitHub 资产逐字节一致，长度、强 ETag 和 `no-store` 正确。
+  curl 使用 HTTP/1.1 和设备默认 `ESP32 HTTP Client/1.0`；两个地址携带各自 `If-Match` 的
+  `Range: bytes=131072-196607` 均返回 206，65,536 字节与镜像对应切片一致。
+- 两个域名的正式对象与发布前正式包逐字节一致，SHA-256 仍为
+  `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+
+设备 OTA 设置开启测试通道后升级到 beta.16，再打开天气检查当前与详情数据、切换城市。
+本轮设备未接串口，未执行刷机；实际下载、写入、重启与设备端天气恢复待用户验收。
