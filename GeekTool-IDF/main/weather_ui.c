@@ -360,7 +360,7 @@ void weather_ui_create(weather_ui_t *ui, lv_obj_t *parent) {
     lv_obj_set_style_text_align(ui->status,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_t *pin=drawing(parent,18,22,62,pin_event,NULL);
     lv_obj_align(pin,LV_ALIGN_TOP_MID,66,62);
-    weather_ui_status(ui,true);
+    weather_ui_status(ui,WEATHER_LOADING);
 }
 void weather_ui_show(weather_ui_t *ui, int temp, int low, int high,
                      int code, int humidity, bool is_day) {
@@ -376,8 +376,10 @@ void weather_ui_show(weather_ui_t *ui, int temp, int low, int high,
     ui_obj_set_hidden(ui->humidity,false);
     ui_obj_set_hidden(ui->status,true);
 }
-void weather_ui_status(weather_ui_t *ui, bool loading) {
-    lv_label_set_text(ui->status,tr(loading?S_WX_LOADING:S_WX_FAIL));
+void weather_ui_status(weather_ui_t *ui, weather_status_t status) {
+    bool loading=status==WEATHER_LOADING;
+    lv_label_set_text(ui->status,tr(loading?S_WX_LOADING:
+        status==WEATHER_OFFLINE?S_WX_FAIL:S_WX_FETCH_FAIL));
     lv_obj_set_style_text_color(ui->status,lv_color_hex(loading?WX_MUTED:WX_PIN),0);
     ui_obj_set_hidden(ui->status,false);
     ui_obj_set_hidden(ui->condition,true);

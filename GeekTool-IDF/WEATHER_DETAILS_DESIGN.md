@@ -27,15 +27,23 @@
 
 `weather_poll/start_fetch → wx_task → weather_data_url → HTTP → weather_data_parse → generation 校验 → s_data/s_revision → weather_tick → weather_ui_show + weather_details_show`。
 
-`weather_data.c` 使用项目已有 cJSON 1.7.19，按 `current/hourly/daily` 对象解析，避免同名的 `*_units` 或逐小时字段被当作当前数值。最大 12 小时、5 天；URL 缓冲 1KiB、响应缓冲保持 8KiB，拒绝截断、非 200 和无效核心数据。上海公开接口实查响应约 2.4KiB；后台任务在解析后释放 HTTP、JSON 和响应内存。
+`weather_data.c` 使用项目已有 cJSON 1.7.19，按 `current/hourly/daily` 对象解析，避免同名的 `*_units` 或逐小时字段被当作当前数值。最大 12 小时、5 天；URL 和 HTTP 发送缓冲均为 1KiB、响应缓冲保持 8KiB，拒绝请求头读取失败、响应读取错误、截断、非 200 和无效核心数据。上海公开接口实查响应约 2.4KiB；后台任务在解析后释放 HTTP、JSON 和响应内存。
 
 首屏核心字段缺失、越界或低温大于高温时请求失败。可选字段的缺失、`null`、非有限/越界数值保留为 `NAN`，UI 显示 `--`；缺小时/逐日数组显示不可用状态，不补造预报。时间以接口 `timezone=auto` 的地点本地时间显示；风速明确请求 `m/s`，能见度由 m 转 km。降水量为 mm、气压为海平面 hPa，UV 是当日预测最大值。小时降水表示该整点前一小时累计，日降水表示当日累计；不把这些预测当作设备传感器读数。
 
 `s_data` 是 UI 与原有 `weather_cached(temp,lo,hi,code,hum)` 的单一快照。保留单 HTTP 任务、地点 generation 防迟到响应、成功 20 分钟/失败 1 分钟轮询及天气表盘缓存接口。换地址重置滚动位置和详情可用状态；旧地点响应不能写入新地点。
 
+`start_fetch` 只有在 `esp_wifi_sta_get_ap_info` 失败时进入 `WX_OFFLINE`；已连接但请求、解析或任务创建失败进入 `WX_FAIL`。前者保留原断网提示，后者显示“获取失败”，两者仍可点击重试。HTTP 失败日志记录 open 错误、header 返回值、HTTP 状态码、已读字节和 read 返回值，不能据旧的组合提示推断 Wi-Fi 已断开。
+
 接口字段、时间和单位依据 [Open-Meteo 官方 Forecast 文档](https://open-meteo.com/en/docs)，2026-10-04 实查。滚动依据 [LVGL 9.5 官方滚动文档](https://lvgl.io/docs/open/9.5/common-widget-features/scrolling)，同时验证本地 9.5 与发布环境 9.6；旗标调用经过 `lvgl_compat.h` 的兼容入口。
 
 ## 验证与防线
+
+2026-10-04 用户反馈 beta.15 在已联网时所有城市均显示“无网络 / 获取失败”。核对实际 URL：上海完整 URL 559 字节，`GET … HTTP/1.1\r\n` 请求行 549 字节；ESP-IDF 6.0.1 默认 TX 缓冲为 512 字节，`http_client_prepare_first_line` 在发送前返回失败。根因是详情增加查询字段后未同步扩大发送缓冲，和 8KiB 响应容量无关。对照请求在电脑直连 HTTP/HTTPS 均返回 200，响应约 2.4KiB；设备未接串口，不能把电脑成功当作设备恢复。
+
+采用项目已有 `esp_http_client_config_t.buffer_size_tx`，设为 URL 缓冲大小 1024；不删字段、不改变城市、详情或轮询频率。依据 [ESP-IDF 6.0.1 源码](https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_http_client/esp_http_client.c#L1718-L1766) 核对限制。`weather_ui_tests` 的 HTTP stub 现在模拟默认 512 字节和完整请求行长度：修改前实际 worker 回归在首个成功天气断言失败，修改后通过；覆盖 open 超时、header 失败、完整 JSON 后的 read 错误、HTTP 500、断网与恢复，并检查已连接失败不再显示断网文案。以后扩展查询时先核对请求行和 TX 缓冲，而不是只检查响应夹具大小。
+
+本次 LVGL 9.5 / 9.6 各十二组主机回归通过，原首屏 20 帧、74 组图标像素与全部原字形语义检查通过。ESP-IDF 6.0.1 本地构建通过，镜像 3,109,536 字节，3MiB OTA 槽余 36,192 字节；发布环境与设备天气恢复另需核对。
 
 - `tests/weather/first_screen.sha256.json` / `first_screen_lvgl96.sha256.json` 分别固定修改前 LVGL 9.5/9.6 的 20 个完整首屏 RGB565 渲染：中英加载、三种典型天气、夜间、负温、三位温、未知码、断网与恢复。两版本在返回箭头处原本存在栅格差异，因此必须按实际渲染版本比较。9.6 基准取自改动前 00:36 构建的 beta.13 主机测试可执行文件，SHA256 `d07f95fb40e19c221b913e65a2766c256953998ec1da07d34fbecc75e806b873`；其 20 帧与修改后同版本逐帧一致。`check_weather_artwork.py` 查询测试程序版本，同时检查首屏和既有 74 个图标像素比较，不能更新基线掩盖首屏变化。
 - `forecast_fixture.json` 为 2026-10-04 上海 Open-Meteo 公开响应，地点时间 13:15，仅用于离线回归，运行固件始终联网请求所选地址。详情截图先切换到上海，避免把夹具天气标在另一城市下。

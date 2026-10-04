@@ -15,6 +15,7 @@ typedef struct {
 void weather_ui_create(weather_ui_t *ui, lv_obj_t *parent);
 void weather_ui_show(weather_ui_t *ui, int temp, int low, int high,
                      int code, int humidity, bool is_day);
-void weather_ui_status(weather_ui_t *ui, bool loading);
+typedef enum {WEATHER_LOADING,WEATHER_OFFLINE,WEATHER_FETCH_FAILED} weather_status_t;
+void weather_ui_status(weather_ui_t *ui, weather_status_t status);
 const char *weather_condition_text(int code, bool is_day);
 bool weather_code_supported(int code);

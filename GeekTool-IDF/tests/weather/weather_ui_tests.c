@@ -21,6 +21,10 @@ static size_t read_offset;
 static bool init_fail;
 static char requested_url[1024];
 static int http_status=200;
+static int request_buffer_size;
+static esp_err_t open_result=ESP_OK;
+static int64_t header_result;
+static bool read_fail;
 struct mock_client { int unused; };
 static struct mock_client client;
 static lv_obj_t *heading;
@@ -37,13 +41,22 @@ esp_err_t esp_crt_bundle_attach(void *config) { (void)config; return ESP_OK; }
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *config) {
     assert(strstr(config->url,"weather_code,is_day"));
     snprintf(requested_url,sizeof requested_url,"%s",config->url);
+    request_buffer_size=config->buffer_size_tx?config->buffer_size_tx:512;
     read_offset=0; return init_fail?NULL:&client;
 }
-esp_err_t esp_http_client_open(esp_http_client_handle_t c,int size) { (void)size; assert(c); return ESP_OK; }
+esp_err_t esp_http_client_open(esp_http_client_handle_t c,int size) {
+    (void)size; assert(c);
+    // ESP-IDF 6.0.1 builds the entire request line in the TX buffer before
+    // sending. A small JSON fixture cannot exercise this URL-size constraint.
+    const char *path=strchr(strstr(requested_url,"://")+3,'/'); assert(path);
+    size_t line_size=strlen("GET ")+strlen(path)+strlen(" HTTP/1.1\r\n");
+    return line_size<(size_t)request_buffer_size?open_result:ESP_FAIL;
+}
 int esp_http_client_get_status_code(esp_http_client_handle_t c) {(void)c;return http_status;}
-int64_t esp_http_client_fetch_headers(esp_http_client_handle_t c) { assert(c); return 0; }
+int64_t esp_http_client_fetch_headers(esp_http_client_handle_t c) { assert(c); return header_result; }
 int esp_http_client_read(esp_http_client_handle_t c,char *out,int size) {
     assert(c); size_t left=strlen(response)-read_offset;
+    if(read_fail && !left)return -1;
     size_t n=left<(size_t)size?left:(size_t)size;
     memcpy(out,response+read_offset,n); read_offset+=n; return (int)n;
 }
@@ -326,7 +339,7 @@ int main(int argc,char **argv) {
         request(3,true,100); capture(directory,"three-digit");
         assert(!weather_code_supported(-1) && !weather_code_supported(42) && !weather_code_supported(100));
         request(42,true,26); capture(directory,"unknown");
-        online=false; start_fetch(); weather_tick(); assert(s_state==WX_FAIL);
+        online=false; start_fetch(); weather_tick(); assert(s_state==WX_OFFLINE);
         assert(!ui_obj_is_hidden(s_ui.status)); capture(directory,"offline");
         leave(); s_task_alive=false; enter(); weather_tick(); capture(directory,"offline-reenter");
         assert(!s_ui.has_data && !weather_cached(NULL,NULL,NULL,NULL,NULL));
@@ -346,7 +359,15 @@ int main(int argc,char **argv) {
         assert(weather_back());assert(!s_choosing && !weather_location_ui_visible());
         assert(wx_locations[wx_location_selected()].id==3201);
         mock_nvs_fail=true;assert(!select_location(wx_location_find(3101)));mock_nvs_fail=false;
-        http_status=500;start_fetch();pending_task(NULL);weather_tick();assert(s_state==WX_FAIL);http_status=200;
+        http_status=500;start_fetch();pending_task(NULL);weather_tick();assert(s_state==WX_FAIL);
+        assert(strcmp(lv_label_get_text(s_ui.status),tr(S_WX_FETCH_FAIL))==0);
+        assert(!weather_cached(NULL,NULL,NULL,NULL,NULL));capture(directory,"fetch-failed");http_status=200;
+        open_result=ESP_ERR_TIMEOUT;start_fetch();pending_task(NULL);weather_tick();
+        assert(s_state==WX_FAIL && !s_task_alive);open_result=ESP_OK;
+        header_result=-ESP_ERR_HTTP_EAGAIN;start_fetch();pending_task(NULL);weather_tick();
+        assert(s_state==WX_FAIL && read_offset==0);header_result=0;
+        read_fail=true;start_fetch();pending_task(NULL);weather_tick();
+        assert(s_state==WX_FAIL && !s_task_alive);read_fail=false;
         response="{\"current\":{\"temperature_2m\":null},\"daily\":{}}";
         start_fetch();pending_task(NULL);weather_tick();assert(s_state==WX_FAIL);
         request(80,false,20);

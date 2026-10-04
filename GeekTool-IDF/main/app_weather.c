@@ -22,7 +22,7 @@
 
 static const char *TAG="weather";
 #define WX_BUF 8192
-typedef enum {WX_IDLE,WX_LOADING,WX_OK,WX_FAIL} wx_state_t;
+typedef enum {WX_IDLE,WX_LOADING,WX_OK,WX_FAIL,WX_OFFLINE} wx_state_t;
 static portMUX_TYPE s_lock=portMUX_INITIALIZER_UNLOCKED;
 static wx_state_t s_state=WX_IDLE,s_shown=(wx_state_t)-1;
 static bool s_task_alive;
@@ -45,21 +45,29 @@ static void wx_task(void *arg) {
         if(generation==s_generation){s_state=WX_FAIL;++s_revision;}
         s_task_alive=false;portEXIT_CRITICAL(&s_lock);vTaskDelete(NULL);return;
     }
-    esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,.timeout_ms=12000};
+    // The expanded forecast's request line exceeds IDF's default 512-byte TX
+    // buffer. Size TX for the bounded URL as well as GET/protocol framing.
+    esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,
+        .timeout_ms=12000,.buffer_size_tx=sizeof url};
     esp_http_client_handle_t cli=esp_http_client_init(&cfg);
     char *body=heap_caps_malloc(WX_BUF,MALLOC_CAP_SPIRAM);if(!body)body=malloc(WX_BUF);
-    int total=0,status=0;bool opened=false;
-    if(cli && body && esp_http_client_open(cli,0)==ESP_OK) {
-        opened=true;esp_http_client_fetch_headers(cli);status=esp_http_client_get_status_code(cli);
-        int nb;
-        while((nb=esp_http_client_read(cli,body+total,WX_BUF-1-total))>0) {
-            total+=nb;if(total>=WX_BUF-1)break;
+    int total=0,status=0,read_result=0;bool opened=false;
+    esp_err_t open_error=ESP_ERR_NO_MEM;int64_t content_length=-1;
+    if(cli && body)open_error=esp_http_client_open(cli,0);
+    if(open_error==ESP_OK) {
+        opened=true;content_length=esp_http_client_fetch_headers(cli);
+        status=esp_http_client_get_status_code(cli);
+        if(content_length>=0) {
+            while((read_result=esp_http_client_read(cli,body+total,WX_BUF-1-total))>0) {
+                total+=read_result;if(total>=WX_BUF-1)break;
+            }
         }
         body[total]=0;
     }
     if(cli) {if(opened)esp_http_client_close(cli);esp_http_client_cleanup(cli);}
     weather_data_t data;
-    bool valid=total>0 && total<WX_BUF-1 && status==200 && weather_data_parse(body,(size_t)total,&data);
+    bool valid=open_error==ESP_OK && content_length>=0 && read_result==0 &&
+        total>0 && total<WX_BUF-1 && status==200 && weather_data_parse(body,(size_t)total,&data);
     free(body);
     portENTER_CRITICAL(&s_lock);
     if(generation==s_generation) {
@@ -69,6 +77,8 @@ static void wx_task(void *arg) {
     s_task_alive=false;
     portEXIT_CRITICAL(&s_lock);
     ESP_LOGI(TAG,"forecast generation=%lu %s",(unsigned long)generation,valid?"ready":"failed");
+    if(!valid)ESP_LOGW(TAG,"forecast open=%s headers=%lld http=%d bytes=%d read=%d",
+        esp_err_to_name(open_error),(long long)content_length,status,total,read_result);
     vTaskDelete(NULL);
 }
 static void start_fetch(void) {
@@ -77,7 +87,7 @@ static void start_fetch(void) {
     wifi_ap_record_t ap;bool online=esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
     portENTER_CRITICAL(&s_lock);
     if(s_task_alive) {portEXIT_CRITICAL(&s_lock);return;}
-    s_state=online?WX_LOADING:WX_FAIL;++s_revision;
+    s_state=online?WX_LOADING:WX_OFFLINE;++s_revision;
     s_last_fetch=(uint32_t)(esp_timer_get_time()/1000);
     if(online) {
         s_task_alive=true;s_request.generation=s_generation;
@@ -132,7 +142,8 @@ static void weather_tick(void) {
     if(!s_ui.status || (state==s_shown && revision==s_shown_revision))return;
     s_shown=state;s_shown_revision=revision;
     if(state==WX_OK)weather_ui_show(&s_ui,data.temp,data.low,data.high,data.code,data.humidity,data.is_day);
-    else weather_ui_status(&s_ui,state==WX_LOADING || state==WX_IDLE);
+    else weather_ui_status(&s_ui,state==WX_OFFLINE?WEATHER_OFFLINE:
+        state==WX_FAIL?WEATHER_FETCH_FAILED:WEATHER_LOADING);
     weather_details_show(&s_details,&data,state==WX_OK);
 }
 static bool weather_back(void) {

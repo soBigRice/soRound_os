@@ -54,6 +54,7 @@ static const char *const TXT[S__COUNT][2] = {
     [S_WX_HUM]      = { "hum",           "湿度" },
     [S_WX_LOADING]  = { "loading...",    "加载中..." },
     [S_WX_FAIL]     = { "no wifi / fetch failed", "无网络 / 获取失败" },
+    [S_WX_FETCH_FAIL] = { "fetch failed / tap to retry", "获取失败" },
     /* stopwatch / countdown */
     [S_KEY_START]     = { "PWR key = start",            "按 PWR 键开始" },
     [S_RUNNING_LAP]   = { "running - btn = lap",        "计时中 - 按钮记圈" },
