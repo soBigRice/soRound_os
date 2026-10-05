@@ -4,9 +4,11 @@
 #include "esp_wifi.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "esp_random.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 static portMUX_TYPE s_lock=portMUX_INITIALIZER_UNLOCKED;
 static bool s_alive;
@@ -22,7 +24,11 @@ static bool current(uint32_t generation) {
 static void fetch_task(void *arg) {
     (void)arg;
     portENTER_CRITICAL(&s_lock);uint32_t generation=s_request;portEXIT_CRITICAL(&s_lock);
-    esp_http_client_config_t cfg={.url=ANSWER_API_URL,.crt_bundle_attach=esp_crt_bundle_attach,
+    // Identical questions return the same response even with no-cache. Use a fresh, non-private nonce.
+    char url[128];
+    snprintf(url,sizeof url,"%s%%20%08lx%08lx",ANSWER_API_URL,
+             (unsigned long)esp_random(),(unsigned long)esp_random());
+    esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,
         .timeout_ms=6000,.buffer_size=1024,.buffer_size_tx=512,.disable_auto_redirect=true};
     esp_http_client_handle_t client=NULL;char *body=NULL;
     answer_response_t result={0};bool valid=false,opened=false;

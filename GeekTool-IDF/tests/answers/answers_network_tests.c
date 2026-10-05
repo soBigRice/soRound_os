@@ -10,10 +10,19 @@ static bool online=true,create_fail,init_fail,open_fail,header_fail,read_fail,co
 static int status=200,handles,opens,closes,cleanups,deletes;
 static int64_t declared=-2,clock_us,read_delay;
 static void (*queued)(void *);
+static char previous_url[128];
+static uint32_t random_value=0x17483920;
+uint32_t esp_random(void){return ++random_value;}
 esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *ap){(void)ap;return online?ESP_OK:ESP_FAIL;}
 esp_err_t esp_crt_bundle_attach(void *p){(void)p;return ESP_OK;}
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *cfg){
-    assert(!strcmp(cfg->url,ANSWER_API_URL)&&cfg->crt_bundle_attach==esp_crt_bundle_attach);
+    size_t prefix=strlen(ANSWER_API_URL);
+    assert(!strncmp(cfg->url,ANSWER_API_URL,prefix)&&cfg->crt_bundle_attach==esp_crt_bundle_attach);
+    assert(strlen(cfg->url)==prefix+19&&!strncmp(cfg->url+prefix,"%20",3));
+    for(size_t i=prefix+3;i<prefix+19;++i)
+        assert((cfg->url[i]>='0'&&cfg->url[i]<='9')||(cfg->url[i]>='a'&&cfg->url[i]<='f'));
+    assert(strcmp(cfg->url,previous_url));
+    snprintf(previous_url,sizeof previous_url,"%s",cfg->url);
     assert(cfg->timeout_ms==6000&&cfg->disable_auto_redirect);
     if(init_fail)return NULL;assert(!handles);++handles;client.at=0;return &client;
 }
@@ -75,5 +84,5 @@ int main(void){
     payload=oversized;declared=0;failure();payload=valid;declared=-2;
     token=request();run();assert(answers_fetch_poll(token,&out)==ANSWER_FETCH_READY);
     assert(!handles&&!queued&&opens==closes&&cleanups>opens&&deletes>=16);
-    puts("answers network: TLS config, bounded titles/UTF8/JSON, live task branch, offline/busy/create/init/header/open/HTTP/read/truncation/size/deadline failures, chunked completion, cancel/stale results and cleanup passed");
+    puts("answers network: unique per-request URL, TLS config, bounded titles/UTF8/JSON, live task branch, offline/busy/create/init/header/open/HTTP/read/truncation/size/deadline failures, chunked completion, cancel/stale results and cleanup passed");
 }

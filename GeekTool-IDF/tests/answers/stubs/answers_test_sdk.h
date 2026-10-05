@@ -28,6 +28,7 @@ bool esp_http_client_is_complete_data_received(esp_http_client_handle_t);
 esp_err_t esp_http_client_close(esp_http_client_handle_t);
 esp_err_t esp_http_client_cleanup(esp_http_client_handle_t);
 int64_t esp_timer_get_time(void);
+uint32_t esp_random(void);
 int xTaskCreate(void (*)(void *),const char *,unsigned,void *,unsigned,void *);
 void vTaskDelete(void *);
 #define ESP_LOGI(tag,...) ((void)(tag))
