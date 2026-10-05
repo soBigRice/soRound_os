@@ -1,5 +1,6 @@
 #include "display.h"
 #include "board_config.h"
+#include "weather_refresh.h"
 
 #include "driver/spi_master.h"
 #include "esp_lcd_panel_io.h"
@@ -9,11 +10,74 @@
 #include "esp_lcd_touch_cst9217.h"
 #include "esp_lvgl_port.h"
 #include "esp_log.h"
+#include "esp_heap_caps.h"
+#include "esp_pm.h"
+#include "driver/gpio.h"
+#include "freertos/semphr.h"
 
 static const char *TAG = "display";
 
 static esp_lcd_panel_io_handle_t s_io;       // 用于发亮度命令 0x51
 static esp_lcd_panel_handle_t    s_panel;    // 用于熄屏/亮屏
+static lv_display_t *s_disp;
+static SemaphoreHandle_t s_te,s_dma;
+static volatile bool s_frame_sending;
+static bool s_te_ready,s_te_warned;
+static weather_refresh_t s_refresh;
+#if CONFIG_PM_ENABLE
+static esp_pm_lock_handle_t s_te_awake;
+#endif
+
+static void te_edge(void *arg) {
+    (void)arg;BaseType_t wake=pdFALSE;xSemaphoreGiveFromISR(s_te,&wake);if(wake)portYIELD_FROM_ISR();
+}
+static bool color_done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_t *event,void *arg) {
+    (void)io;(void)event;BaseType_t wake=pdFALSE;
+    if(s_frame_sending)xSemaphoreGiveFromISR(s_dma,&wake);
+    else lv_display_flush_ready((lv_display_t *)arg);
+    return wake==pdTRUE;
+}
+static void wait_te(void *arg) {
+    (void)arg;
+    if(!s_te_ready)return;
+#if CONFIG_PM_ENABLE
+    // GPIO edge ISR cannot wake automatic light sleep. Hold only across this bounded TE wait.
+    if(s_te_awake)esp_pm_lock_acquire(s_te_awake);
+#endif
+    xSemaphoreTake(s_te,0);
+    if(xSemaphoreTake(s_te,pdMS_TO_TICKS(25))!=pdTRUE&&!s_te_warned) {
+        ESP_LOGW(TAG,"TE timeout; sending the completed weather frame");s_te_warned=true;
+    }
+#if CONFIG_PM_ENABLE
+    if(s_te_awake)esp_pm_lock_release(s_te_awake);
+#endif
+}
+static void send_frame_tile(void *arg,weather_frame_area_t a,uint8_t *pixels) {
+    (void)arg;s_frame_sending=true;xSemaphoreTake(s_dma,0);
+    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_panel,a.x1,a.y1,a.x2+1,a.y2+1,pixels));
+    // DMA completion owns the staging-buffer lifetime; never overwrite pixels while it is being read.
+    xSemaphoreTake(s_dma,portMAX_DELAY);s_frame_sending=false;
+}
+static void synchronized_flush(lv_display_t *disp,const lv_area_t *a,uint8_t *pixels) {
+    if(weather_refresh_flush(&s_refresh,disp,a,pixels))return;
+    // Same asynchronous partial SPI path as esp_lvgl_port 2.8.0 (no rotation or byte swapping on this board).
+    ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_panel,a->x1,a->y1,a->x2+1,a->y2+1,pixels));
+}
+
+void display_weather_mode(bool enabled) {
+    if(!s_disp||enabled==(s_refresh.frame.pixels!=NULL))return;
+    if(enabled) {
+        s_refresh.frame.pixels=heap_caps_calloc(1,WEATHER_FRAME_BYTES,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+        if(!s_refresh.frame.pixels){ESP_LOGW(TAG,"weather frame allocation failed; keeping partial refresh");return;}
+        s_refresh.frame.dirty=false;s_te_warned=false;
+        if(s_te_ready)gpio_intr_enable(LCD_TE);
+        lv_obj_invalidate(lv_screen_active());lv_obj_invalidate(lv_layer_top());
+        ESP_LOGI(TAG,"weather frame: %u PSRAM bytes, TE=%s",(unsigned)WEATHER_FRAME_BYTES,s_te_ready?"GPIO13":"unavailable");
+    }else {
+        if(s_te_ready)gpio_intr_disable(LCD_TE);
+        heap_caps_free(s_refresh.frame.pixels);s_refresh.frame=(weather_frame_t){0};
+    }
+}
 
 /* CO5300 厂商初始化序列(QSPI 模式)—— 来自小智官方对本板的验证 */
 static const co5300_lcd_init_cmd_t vendor_specific_init[] = {
@@ -53,7 +117,7 @@ lv_display_t *display_init(void) {
         .max_transfer_sz = LCD_H_RES * LCD_V_RES * sizeof(uint16_t),
         .flags = SPICOMMON_BUSFLAG_QUAD,
     };
-    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));  // 开 DMA(无撕裂的关键)
+    ESP_ERROR_CHECK(spi_bus_initialize(SPI2_HOST, &buscfg, SPI_DMA_CH_AUTO));
 
     /* 2) 面板 IO */
     esp_lcd_panel_io_handle_t io = NULL;
@@ -118,6 +182,20 @@ lv_display_t *display_init(void) {
     // 驱动遂刷一条无害的 E "swap_xy is not supported"。旋转之后不再变,故只在这一次 add_disp 期间压掉该 tag。
     esp_log_level_set("co5300_spi", ESP_LOG_NONE);
     lv_display_t *disp = lvgl_port_add_disp(&disp_cfg);
+    assert(disp);s_disp=disp;s_dma=xSemaphoreCreateBinary();s_te=xSemaphoreCreateBinary();assert(s_dma&&s_te);
+    esp_lcd_panel_io_callbacks_t callbacks={.on_color_trans_done=color_done};
+    ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(io,&callbacks,disp));
+    s_refresh.wait_te=wait_te;s_refresh.send=send_frame_tile;
+    lv_display_set_flush_cb(disp,synchronized_flush);
+    gpio_config_t te={.pin_bit_mask=1ULL<<LCD_TE,.mode=GPIO_MODE_INPUT,.intr_type=GPIO_INTR_POSEDGE};
+    esp_err_t isr=gpio_install_isr_service(0);
+    s_te_ready=(isr==ESP_OK||isr==ESP_ERR_INVALID_STATE)&&gpio_config(&te)==ESP_OK&&gpio_isr_handler_add(LCD_TE,te_edge,NULL)==ESP_OK;
+    if(!s_te_ready)ESP_LOGW(TAG,"TE setup unavailable; complete-frame refresh remains enabled for weather");
+    else gpio_intr_disable(LCD_TE);
+#if CONFIG_PM_ENABLE
+    if(esp_pm_lock_create(ESP_PM_NO_LIGHT_SLEEP,0,"weather_te",&s_te_awake)!=ESP_OK)
+        ESP_LOGW(TAG,"TE light-sleep guard unavailable");
+#endif
     esp_log_level_set("co5300_spi", ESP_LOG_INFO);   // 恢复,后续真有错误照常打印
     lv_display_add_event_cb(disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, NULL);
     return disp;

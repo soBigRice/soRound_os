@@ -7,7 +7,7 @@ let text = try String(contentsOfFile:"artwork/locations/names.txt",encoding:.utf
 var codes = Set<UInt32>(32...126)
 for c in (text+"省市区选择地址常用最近其他地点确认保存失败亮度音量常显静音表盘语言关于开启关闭拖动调整上下滑动切换点击试听中文").unicodeScalars where c.value>126 { if c.value != 10 { codes.insert(c.value) } }
 let literals=try NSRegularExpression(pattern:#""(?:\\.|[^"\\])*""#)
-for source in ["main/weather_location_ui.c","main/app_settings.c","main/app_wifi.c","main/app_answers.c","main/i18n.c"] {
+for source in ["main/weather_location_ui.c","main/app_settings.c","main/app_wifi.c","main/app_answers.c","main/app_zodiac.c","main/zodiac_data.c","main/app_merit.c","main/i18n.c"] {
     let content=try String(contentsOfFile:source,encoding:.utf8)
     for match in literals.matches(in:content,range:NSRange(content.startIndex..<content.endIndex,in:content)) {
         for c in content[Range(match.range,in:content)!].unicodeScalars where c.value>126 {codes.insert(c.value)}

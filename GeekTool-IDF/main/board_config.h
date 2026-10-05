@@ -11,6 +11,7 @@
 #define LCD_QSPI_D2    6
 #define LCD_QSPI_D3    7
 #define LCD_RST        1            // ← 1.75C = GPIO1(非 C 是 39)
+#define LCD_TE         13           // 1.75C 官方原理图 LCD_TE
 #define LCD_H_RES      466
 #define LCD_V_RES      466
 #define LCD_GAP_X      0x06         // 列偏移(对应 set_gap(0x06,0))

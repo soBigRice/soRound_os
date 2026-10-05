@@ -145,6 +145,22 @@ static void write_silence(int ms) {
         done += k;
     }
 }
+static void write_knock(void) {
+    const int n=RATE*95/1000;
+    for(int done=0;done<n;) {
+        if(cancelled())return;
+        apply_volume();
+        if(s_io_failed)return;
+        int k=n-done<CHUNK?n-done:CHUNK;
+        for(int i=0;i<k;++i) {
+            float t=(done+i)/(float)RATE;
+            float wood=sinf(6.2831853f*720*t)*expf(-55*t)+.45f*sinf(6.2831853f*1340*t)*expf(-90*t);
+            s_buf[i]=(int16_t)(wood*18000.0f);
+        }
+        if(esp_codec_dev_write(s_dev,s_buf,k*sizeof(int16_t))!=ESP_CODEC_DEV_OK){s_io_failed=true;return;}
+        done+=k;
+    }
+}
 
 static void output_worker(void *arg) {
     (void)arg;
@@ -191,7 +207,8 @@ static void output_worker(void *arg) {
                     write_tone(1568, 200, 0.6f);
                     write_silence(150);
                 }
-            } else write_tone(1175, 80, 0.5f);
+            } else if(req==3)write_knock();
+            else write_tone(1175, 80, 0.5f);
         }
         portENTER_CRITICAL(&s_mux);
         s_busy = false;
@@ -237,3 +254,4 @@ static void play(int req) {
 }
 void audio_out_alarm(void) { play(2); }
 void audio_out_blip(void) { play(1); }
+void audio_out_knock(void) { play(3); }

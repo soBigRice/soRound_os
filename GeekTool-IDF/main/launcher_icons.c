@@ -132,6 +132,14 @@ static void paint(ink_t *p,launcher_icon_t kind) {
         line(p,16,6,8,14,3,COL_TXT2);line(p,8,14,16,22,3,COL_TXT2);break;
     case LAUNCHER_NEXT:
         line(p,12,6,20,14,3,COL_TXT2);line(p,20,14,12,22,3,COL_TXT2);break;
+    case LAUNCHER_ZODIAC:
+        stroke(p,32,101,48,43);stroke(p,48,43,103,31);stroke(p,103,31,119,91);stroke(p,119,91,71,120);
+        dot(p,32,101,12,INK);dot(p,48,43,14,INK);dot(p,103,31,10,INK);dot(p,119,91,14,COL_RED);dot(p,71,120,10,INK);
+        stroke(p,80,64,80,82);stroke(p,71,73,89,73);break;
+    case LAUNCHER_MERIT:
+        box(p,22,60,104,68,34,INK);box(p,36,75,76,39,19,INK);
+        stroke(p,54,64,84,105);dot(p,83,106,9,COL_RED);
+        stroke(p,90,42,127,21);dot(p,85,43,18,COL_RED);break;
     default: break;
     }
 }

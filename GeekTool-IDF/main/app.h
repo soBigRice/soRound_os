@@ -56,6 +56,8 @@ extern const app_t app_dice;
 extern const app_t app_twin;
 extern const app_t app_mouse;
 extern const app_t app_answers;
+extern const app_t app_zodiac;
+extern const app_t app_merit;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
 

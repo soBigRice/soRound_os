@@ -70,3 +70,17 @@ beta.16 的 LVGL 9.5 / 9.6 各十二组主机回归通过，原首屏 20 帧、7
 检查原始天气 4bpp 字形发现固定栅格的透明空边占用 29,180 字节。只裁去已量化为零的像素，并补偿 `ofs_x/ofs_y`，保持所有非零 alpha、基线坐标、advance、Unicode 映射和行高。两份字库由 57,268 缩至 28,088 字节，没有降色深、改变图标、删除功能或扩大分区。`gen_weather_fonts.swift` 同步采用同样裁剪；`font_semantics.sha256.json` 固定裁剪前全部 324 个字形的可见像素/排版语义，像素检查工具永久核对。LVGL 9.5/9.6 各十一组回归再次通过，包含原首屏和详情。
 
 修正后 main 预构建 `37184442540` 与标签发布 `37184982751` 均通过，CI 使用 ESP-IDF 6.0.1、LVGL `9.6.0~1`。`v1.7-beta.14`（源码 `9680430`）发布包为 `0x2fdda0`（3,136,928）字节，3 MiB OTA 槽剩余 `0x2260`（8,800）字节，SHA256 `99ac2dabb69876e3cea98ef9654d1524f8ceecec7a1a6adfb3539775586e8a49`。GitHub、R2 与国内 beta 镜像逐字节一致，完整/断点下载通过；设备流畅性仍待验收。完整证据见 [PORTING_NOTES](./PORTING_NOTES.md#2026-10-04-v17-beta14-发布核对)。
+
+## 2026-10-05 完整帧与TE同步
+
+用户反馈天气滚动有分层跳动。当前直接链路是两块内部DMA 40行缓冲，渲染一块即推屏；初始化虽发送 `0x35/0x00` 开启TE，但从未读取TE输入。这是候选原因，尚无该次设备刷新日志或帧率测量，不能宣称已测得根因或提升百分比。用户批准仅天气页完整PSRAM帧+TE，其他App保留部分刷新。
+
+`app_weather.enter/visibility/exit` → `display_weather_mode`在LVGL锁内申请/释放434,312字节（约424KiB）PSRAM，使能/停用GPIO13 TE中断。进入或重新显示时全屏失效以建立有效缓存；离开/遮挡释放，原天气首屏、五屏内容、惯性、揭示动画、弧形滚动条和数据频率不变。
+
+`display.c/synchronized_flush` → `weather_refresh_flush` → `weather_frame_patch`按LVGL实际stride将所有脏块复制进RGB565_SWAPPED完整帧。非最后块立即flush_ready；最后块等待一次新的TE上升沿，再将本帧脏区域并集分批打包进当前最后一块LVGL DMA缓冲推屏。每块DMA完成后才覆写缓冲；整次推屏结束后再释放最后一次flush。保留未改变像素及面板偶数窗口对齐，不交换颜色字节、不增添常驻渲染任务、不额外申请整屏内部DMA内存。
+
+TE最多等25ms，缺信号则日志标记并推送已合成帧；分配失败保持原刷新路径，不减分辨率或删除详情。自动light sleep期间GPIO边沿ISR不能唤醒，因此只在这次短暂TE等待内持有 `ESP_PM_NO_LIGHT_SLEEP`，退出等待即释放。其他App不启用TE中断。SPI完成回调按当前异步部分刷新/同步帧传输分别通知LVGL或DMA信号量。
+
+方案使用现有LVGL9.5/9.6公共flush API与ESP-IDF6.0.1 SDK，不改依赖。`esp_lvgl_port 2.8.0~1` 的LVGL9实现未使用 `trans_size`，所以没有照抄README的PSRAM canvas示例依赖隐式bounce buffer；实际复用现有内部DMA缓冲。依据：[1.75C官方原理图](https://github.com/waveshareteam/ESP32-S3-Touch-AMOLED-1.75C/blob/main/Schematic/ESP32-S3-Touch-AMOLED-1.75C-schematic.pdf)GPIO13/LCD_TE，[ESP-IDF LCD缓冲生命周期](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/peripherals/lcd.html)、[esp_lvgl_port源码](https://github.com/espressif/esp-bsp/tree/master/components/esp_lvgl_port)。核查日期2026-10-05，最终行为以本项目已安装版本源码为准。
+
+`weather_refresh_tests`执行真实LVGL双缓冲/40行刷新，检查完整帧与面板字节一致、TE每帧只等一次、脏块并集、原字节序、DMA容量、静止不传与缓存缺失时原路径。原天气20帧首屏与74组图标基线仍须通过。软件验证不测量实际TE边沿、SPI传输帧率或屏幕撕裂；升级后轻拖/快速甩动五屏、遮挡恢复/退出再入、对比系统信息PSRAM占用与串口TE警告是最低真机验收。

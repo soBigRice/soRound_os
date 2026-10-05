@@ -23,7 +23,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -46,7 +46,7 @@ static void header_app_style(void) {
     bool ota = cur_app == &app_ota;
     bool weather = cur_app == &app_weather;
     bool controls = cur_app == &app_settings || cur_app == &app_wifi;
-    bool book = cur_app == &app_answers;
+    bool book = cur_app == &app_answers || cur_app == &app_zodiac || cur_app == &app_merit;
     bool compact = weather || controls || book;
     bool tools = cur_app == &app_audio || cur_app == &app_level;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。

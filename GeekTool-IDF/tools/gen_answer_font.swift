@@ -1,5 +1,5 @@
 // Run from GeekTool-IDF: swift tools/gen_answer_font.swift
-// Local CoreText, original answer/UI literals only; no shared-font replacement.
+// Local CoreText, answer literals plus verified horoscope extra glyphs; existing pixels stay unchanged.
 import Foundation
 import CoreText
 import CoreGraphics
@@ -17,6 +17,8 @@ for source in ["main/app_answers.c", "main/answer_messages.h"] {
         }
     }
 }
+let extra=try String(contentsOfFile:"artwork/zodiac/extra-glyphs.txt",encoding:.utf8)
+for scalar in extra.unicodeScalars where scalar.value>126 {codes.insert(scalar.value)}
 let size=32, height=40, baseline=7
 let ordered=codes.sorted()
 var bitmap:[UInt8]=[], chunks:[String]=[], glyphs=["{0,0,0,0,0,0}"]

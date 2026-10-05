@@ -1,6 +1,7 @@
 // Shared weather cache. HTTP task never touches LVGL/NVS; location generations
 // prevent a previous city's late response from appearing under the new title.
 #include "app.h"
+#include "display.h"
 #include "settings.h"
 #include "weather_ui.h"
 #include "weather_details.h"
@@ -123,6 +124,7 @@ static void choose_location(lv_event_t *e) {
 }
 static void retry(lv_event_t *e) {(void)e;start_fetch();}
 static void weather_enter(lv_obj_t *parent) {
+    display_weather_mode(true);
     s_parent=parent;city_title();s_shown=(wx_state_t)-1;s_shown_revision=UINT32_MAX;s_choosing=false;
     s_content=lv_obj_create(parent);lv_obj_remove_style_all(s_content);lv_obj_set_size(s_content,466,466);
     ui_obj_set_scrollable(s_content,false);weather_details_create(&s_details,s_content);weather_ui_create(&s_ui,s_details.hero);
@@ -155,7 +157,8 @@ static bool weather_back(void) {
     return true;
 }
 static void weather_exit(void) {
+    display_weather_mode(false);
     weather_location_ui_close();weather_details_close(&s_details);memset(&s_ui,0,sizeof s_ui);s_parent=s_content=NULL;s_choosing=false;
 }
-static void weather_visibility(bool visible) {weather_details_visibility(&s_details,visible);}
+static void weather_visibility(bool visible) {display_weather_mode(visible);weather_details_visibility(&s_details,visible);}
 const app_t app_weather={"weather",COL_TXT,weather_enter,weather_tick,weather_exit,weather_back,0,weather_visibility};

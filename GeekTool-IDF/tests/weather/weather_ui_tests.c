@@ -62,6 +62,8 @@ int esp_http_client_read(esp_http_client_handle_t c,char *out,int size) {
 }
 esp_err_t esp_http_client_close(esp_http_client_handle_t c) { assert(c); return ESP_OK; }
 esp_err_t esp_http_client_cleanup(esp_http_client_handle_t c) { assert(c); return ESP_OK; }
+static bool frame_mode;
+void display_weather_mode(bool enabled){frame_mode=enabled;}
 #include "../../main/app_weather.c"
 
 #define W 466
@@ -160,10 +162,10 @@ static void request(int code,bool day,int temp) {
 }
 static void enter(void) {
     page=lv_obj_create(lv_screen_active()); lv_obj_remove_style_all(page); lv_obj_set_size(page,W,W);
-    ui_obj_set_scrollable(page,false); weather_enter(page);
+    ui_obj_set_scrollable(page,false); weather_enter(page);assert(frame_mode);
 }
 static void advance(unsigned ms);
-static void leave(void) { weather_exit();assert(!lv_anim_get(&s_details,NULL));lv_obj_delete(page);page=NULL;advance(1000); }
+static void leave(void) { weather_exit();assert(!frame_mode);assert(!lv_anim_get(&s_details,NULL));lv_obj_delete(page);page=NULL;advance(1000); }
 static uint64_t icon_pixels(void) {
     // 只比较图标像素,不让不同文案替一个错误复用的图标制造“通过”。
     uint64_t hash=UINT64_C(1469598103934665603);
