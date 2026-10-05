@@ -371,3 +371,12 @@ GitHub/R2/国内整包与摘要一致，两个OTA地址的条件Range验证通�
 USB未连接，本次未烧录；真实观感、设置/密码页触摸、无线连接及设备OTA重启待验收。
 调用链见 [设置与Wi-Fi](GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)，状态见
 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-05-v17-beta19-发布与镜像上限核对)。
+
+2026-10-06 已发布 [v1.7-beta.25](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.25) 内测版：
+修正旧出厂熊猫覆盖三组默认山景，保留真正自定义图片；按设计稿校正十五款字体比例、环形分段、
+红色标记、天气与信息栏，并修正超长SSID挤压IP。保留索引、AOD、按键及已获准的TLS PSRAM配置。
+LVGL9.5/9.6各三项表盘/图片缓存/设置预览回归及素材校验通过；CI发布包4,087,360B，符合双4MiB槽。
+GitHub/R2/国内OTA整包摘要一致，国内条件Range通过；正式通道仍为v1.6.1且全文摘要未变。
+在设备OTA页面开启内测后升级；本次未USB刷写，beta.25的设备下载/重启及主观显示仍待验证。
+逻辑与原生预览见[锁屏表盘](GeekTool-IDF/WATCHFACES_UI.md)，证据见
+[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-06-v17-beta25-表盘纠正发布)。

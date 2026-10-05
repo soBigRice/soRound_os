@@ -1725,3 +1725,38 @@ GitHub资产、R2源、`ota.miaozong.cc/GeekTool-beta.bin`三个完整下载的 
 `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，版本、长度与摘要完全一致。
 当前启动确认条件仍是原先的 UI+创建Wi-Fi任务，未引入新的启动诊断策略。
 断网恢复、坏包拒绝、失败启动回滚、下一个不同版本再次写入以及十五款的主观观感/功耗仍未实机验收。
+
+## 2026-10-06 v1.7-beta.25 表盘纠正发布
+
+用户确认发布上一轮原生预览修正。仅本任务28个文件提交为
+`8af2da9dee988f5f247f19a00017f7c2a24cbee5`，保留十五款、索引、真正自定义图片、AOD及按键。
+修正旧出厂熊猫误入自定义分支，恢复三组默认山景，并对齐排版、字重、分段/进度及天气信息。
+真实熊猫素材回归修正前失败、修正后通过；同长度不同内容图片仍保持用户优先。
+LVGL9.5/9.6各三项表盘/图片缓存/设置回归及素材校验通过；发布前本地目标构建通过。
+9.6原生渲染另行查看：字体/布局相同，天气图片抗锯齿及极少控件边缘像素存在版本差异，未宣称逐像素一致。
+
+HTTPS Git连接仍超时，SSH443可连接但现有身份未获仓库认证；未调整全局代理、Git身份或SSH配置。
+按[GitHub Git数据库API](https://docs.github.com/en/rest/git/commits)将本地对象传输至同一仓库：
+每个blob、整棵tree、原始作者/提交者/时区/message的commit与annotated tag均核对原始SHA相同，
+全部验证后才fast-forward main并创建新tag引用，不force、不改历史、不重打旧标签。
+此前待同步的beta.24文档提交`b2c3961`也按同一原始SHA补齐。
+标签`v1.7-beta.25`对象为`c05719c4d8152e0f64daad11bb030862fc5607e5`，仍指向发布源码`8af2da9`。
+此为一次传输替代，现有Actions构建/发布规则、分区、NVS和安全校验均未改。
+
+[CI 37388232093](https://github.com/soBigRice/soRound_os/actions/runs/37388232093)成功，
+实际ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0；
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.25)为prerelease。
+实际CI包4,087,360B，4MiB槽余106,944B（约104.4KiB）；本地旧依赖候选4,053,696B，不能混用。
+GitHub资产、R2源及国内设备地址`ota.miaozong.cc/GeekTool-beta.bin`三份完整下载的版本均为
+`v1.7-beta.25`，SHA256均为
+`8e3e8a0ca692210a2a1fae7b6faa5217e61d4ad9f85ee689685559e4915ae4c5`；
+ESP32-S3镜像段边界、XOR校验和、附加SHA256及项目/版本检查通过。
+镜像ELF摘要为`35f74e55ae12d05fe28fa46a6476985856d7a21ff07eaba0159cbeb72d4751e1`。
+国内beta地址同ETag的条件Range返回206，65536–131071字节与CI整包对应片段一致。
+三个beta下载均一次完成；不把主机下载称为本次设备升级。
+
+发布前R2正式包及发布后R2/国内正式包均为`v1.6.1`、1,872,192B，SHA256均为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，正式通道未变。
+实际CI包保留于`build/releases/v1.7-beta.25/GeekTool.bin`，最小回执位于
+`build/flash-records/beta25-release-20261006/`；其余临时下载、日志及本轮watcher结束后清理。
+本次未执行USB写入；beta.25设备下载、启动、背景效果、触摸/功耗及既有恢复边界仍待真机验收。
