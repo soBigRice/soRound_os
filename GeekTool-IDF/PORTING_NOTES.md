@@ -1679,7 +1679,7 @@ TLS 临时会话数据会进入未加密的 PSRAM，此取舍已获用户批准�
 
 另已构建本地 `v1.7-beta.24` 候选（相同代码、只改变版本），4,045,008B，SHA256
 `582266d14995ca8cc6615dd0711c5b83d5aba284272c1cfe5b2418d7fc0b38f9`，
-位于 `build/ota-candidates/v1.7-beta.24/`；该本地包未上传、未刷入。用户随后明确要求“发布吧”，
+该本地包未上传、未刷入，发布后清理其重复 `.bin`并保留验证摘要。用户随后明确要求“发布吧”，
 已授权当前表盘与 OTA 修复提交、推送、发布 `v1.7-beta.24`到内测通道并验证设备升级。
 采用既有 Tag→GitHub Actions→Release/R2→国内静态镜像链路；正式通道不在本次发布范围。
 线上实际包以 CI 产物为准，须单独记录真实哈希，不把本地候选哈希当作 CI 产物哈希。
@@ -1693,3 +1693,35 @@ B 启动后仍能继续升级；断网/坏包与启动失败的恢复。发布�
 本轮构建曾因手动删除 CMake 缓存项留下孤立注释而失败；CMake 重新生成缓存后，使用
 官方 `export.sh` 与 SDK Python 3.14 PATH 构建通过。以后取消临时 `-D` 覆盖应使用 CMake
 的 `-U`/重新配置机制，避免手工裁剪缓存；系统 Python 3.9 不能用于本 SDK 导出。
+
+### beta.24 内测发布与基础真机验收
+
+用户明确授权后，将当前表盘、OTA、对应测试/文档和可复现素材共64个文件提交为
+`15adba01d3bdbdf3924a676aa446b75d81dac015`，原子推送 `main`与 `v1.7-beta.24`标签。
+没有其他暂存内容，没有改发布工作流、分区或稳定通道。原 OFL 许可证逐字保留上游内容，
+含一处行尾空格；除该原文外源码 Diff 检查通过，实际3张JPEG及固定字体/OFL摘要检查通过。
+
+[CI 37324405710](https://github.com/soBigRice/soRound_os/actions/runs/37324405710)全部成功，
+构建耗时5分30秒；实际依赖 ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.24)为 prerelease，
+发布包为4,078,448B，4MiB槽实际剩115,856B（约113.1KiB），比本地旧依赖候选更大。
+GitHub资产、R2源、`ota.miaozong.cc/GeekTool-beta.bin`三个完整下载的 SHA256 均为
+`3e32c8d0a109827999300ed63742f7ffba32aaeeea0dcfb936c1d9dc3d0cd107`。
+镜像主机下载首轮60秒收到3,096,250B后超时，使用同 ETag 的 `If-Match`续传返回206，
+最终整包镜像结构、附加校验摘要与两个源均一致；这不是设备断网恢复实测。
+
+串口确认设备从 `v1.7-beta.23-1-gfb70add-dirty`发起 `attempt 1/3`，最终返回
+`result state=6 version=v1.7-beta.24`；耗时279,081ms（约4分39秒），没有 TLS 错误或重试。
+设备自动重启，从 `ota_0`（`0x20000`）启动 `v1.7-beta.24`，ELF日志前缀 `ce42d2a18`
+与 CI 镜像完整ELF摘要 `ce42d2a180edbbd6861aca159cd0d64a779fe8ac826378437898189b9f7ad89b`
+一致，8MiB PSRAM 测试、主应用启动通过，日志记录新镜像转 VALID。
+重启后保持更新页面，首次连接返回 `result state=8 version=v1.7-beta.24`；
+内部可用82,963B/最大块31,744B，PSRAM可用7,930,776B/最大块7,864,320B。
+用户确认“已是最新版本 beta24”“已经自动重启”，因此本次完整升级与下一次连接已实机通过。
+
+最小发布/设备证据保存于 `build/flash-records/beta24-release-20261005/`，实际 CI 包保存于
+`build/releases/v1.7-beta.24/GeekTool.bin`；临时整包副本、原始串口日志和读串口进程在结束时清理。
+发布前后正式通道完整包均为 `v1.6.1`、1,872,192B，SHA256
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，版本、长度与摘要完全一致。
+当前启动确认条件仍是原先的 UI+创建Wi-Fi任务，未引入新的启动诊断策略。
+断网恢复、坏包拒绝、失败启动回滚、下一个不同版本再次写入以及十五款的主观观感/功耗仍未实机验收。
