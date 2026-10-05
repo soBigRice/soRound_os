@@ -4,6 +4,7 @@
 #include "watchface_backgrounds.h"
 #include "esp_vfs_fat.h"
 #include "esp_heap_caps.h"
+#include "esp_rom_crc.h"
 #include "esp_log.h"
 #include "jpeg_decoder.h"
 #include <stdio.h>
@@ -49,6 +50,15 @@ static const lv_image_dsc_t *decode_image(void) {
     size_t rd = fread(in, 1, sz, f);
     fclose(f);
     if (rd != (size_t)sz) { free(in); return NULL; }
+
+    // OTA leaves the read-only FAT partition intact. The original factory panda
+    // is a default, not a user override; identify its contents, never its filename alone.
+    // CRC is only an asset fingerprint here, not a trust or integrity decision.
+    if (sz == 22494 && esp_rom_crc32_le(0, in, (uint32_t)sz) == 0x8734e6d4u) {
+        free(in);
+        ESP_LOGI(TAG, "legacy factory background: using selected theme");
+        return NULL;
+    }
 
     size_t outsz = (size_t)IMG_W * IMG_H * 2;
     uint8_t *out = heap_caps_malloc(outsz, MALLOC_CAP_SPIRAM);

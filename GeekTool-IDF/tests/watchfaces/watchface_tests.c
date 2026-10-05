@@ -92,8 +92,11 @@ int main(int argc,char **argv){
     for(int i=0;i<15;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
     // At 10:08, minute progress must leave six o'clock dark; the hour ring must have passed it.
     watchface_select(12);capture(NULL,"ring-semantics");
-    assert(((pixels[429*466+233]>>5)&63)<=13);
-    assert(((pixels[403*466+233]>>5)&63)>=52);
+    // Between the 30/31 minute dots, the unused outer track must be black.
+    assert(((pixels[442*466+244]>>5)&63)<=13);
+    assert(((pixels[398*466+233]>>5)&63)>15);
+    // The unused portion is dotted, not a duplicate complete solid ring.
+    assert(pixels[85*466+153]==0);
     for(int i=0;i<15;++i){watchface_select(i);watchface_set_aod(true);char name[32];snprintf(name,sizeof name,"aod-%02d",i);uint64_t hash=capture(folder,name);
         assert(wf_timer->period==39000);now+=9;tick(NULL);assert(hash==capture(NULL,"same-minute"));now-=9;watchface_set_aod(false);assert(wf_timer->period==1000);}
     watchface_select(3);capture(NULL,"before");flushed=0;low=18;high=34;tick(NULL);capture(folder,"weather-range-change");assert(flushed>0&&s_data.low==18&&s_data.high==34);
@@ -101,6 +104,10 @@ int main(int argc,char **argv){
     temperature=-12;low=-18;high=-2;humidity=100;code=71;tick(NULL);capture(folder,"weather-negative");
     watchface_select(0);network=false;battery_ok=false;snapshot(true);lv_obj_invalidate(wf_content);capture(folder,"network-power-unavailable");assert(!s_data.wifi&&!s_data.battery_valid&&!s_data.ip[0]);
     network=true;battery_ok=true;soc=0;memset(ssid,'W',32);ssid[32]=0;snapshot(true);lv_obj_invalidate(wf_content);capture(folder,"ssid-32-low-battery");assert(strlen(s_data.ssid)==32&&s_data.battery==0);
+    for(int theme=0;theme<3;++theme) {
+        watchface_select(theme*5);char name[32];snprintf(name,sizeof name,"ssid-32-theme-%d",theme);
+        capture(folder,name);assert(strlen(s_data.ssid)==32&&s_data.battery==0);
+    }
     watchface_select(14);loading=true;image=NULL;snapshot(true);lv_obj_invalidate(wf_content);capture(folder,"image-loading");assert(s_data.image_loading&&!s_data.image);
     image=&images[0];loading=false;tick(NULL);capture(folder,"custom-image");assert(s_data.image==image);
     for(unsigned i=0;i<466*466;++i)image_pixels[0][i]=0xffff;

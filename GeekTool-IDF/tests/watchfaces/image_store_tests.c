@@ -7,15 +7,26 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static bool custom,task_fail,allocation_fail,decode_fail,wrong_size;
+static bool custom,factory,modified_factory,task_fail,allocation_fail,decode_fail,wrong_size;
 static int created,finished,head,tail;
 static struct {void (*callback)(void *);void *arg;} jobs[16];
 static const uint8_t tags[3]={0,1,2};
 const watchface_jpeg_t watchface_backgrounds[3]={{tags,1},{tags+1,1},{tags+2,1}};
 static FILE *image_open(const char *path,const char *mode){
     assert(!strcmp(path,"/img/bg.jpg")&&!strcmp(mode,"rb"));
-    if(!custom)return NULL;
-    FILE *f=tmpfile();assert(f);assert(fwrite("xx",1,2,f)==2);rewind(f);return f;
+    if(!custom&&!factory)return NULL;
+    FILE *f=tmpfile();assert(f);
+    if(factory) {
+        FILE *original=fopen(FACTORY_IMAGE_PATH,"rb");assert(original);
+        int byte;unsigned position=0;
+        while((byte=fgetc(original))!=EOF) {
+            // Same length, different content must remain a user photo.
+            if(modified_factory&&position==100)byte^=1;
+            assert(fputc(byte,f)!=EOF);++position;
+        }
+        assert(fclose(original)==0);
+    } else assert(fwrite("xx",1,2,f)==2);
+    rewind(f);return f;
 }
 #define fopen(path,mode) image_open(path,mode)
 #include "../../main/img_store.c"
@@ -41,7 +52,7 @@ static void reset(void){
     free((void *)s_dsc.data);s_dsc=(lv_image_dsc_t){0};
     for(int i=0;i<3;++i){free((void *)s_defaults[i].data);s_defaults[i]=(lv_image_dsc_t){0};}
     memset(s_default_started,0,sizeof s_default_started);memset(s_default_done,0,sizeof s_default_done);memset(s_default_ok,0,sizeof s_default_ok);
-    s_started=s_done=s_ok=custom=task_fail=allocation_fail=decode_fail=wrong_size=false;head=tail=created=finished=0;
+    s_started=s_done=s_ok=custom=factory=modified_factory=task_fail=allocation_fail=decode_fail=wrong_size=false;head=tail=created=finished=0;
 }
 int main(void){
     assert(!img_store_face_image_for(-1)&&!img_store_face_loading(3));
@@ -49,6 +60,15 @@ int main(void){
     for(int i=0;i<3;++i){assert(!img_store_face_image_for(i));for(int j=0;j<5;++j)assert(!img_store_face_image_for(i));assert(created==i+2);}
     drain();for(int i=0;i<3;++i){const lv_image_dsc_t *d=img_store_face_image_for(i);assert(d&&d->header.w==466&&d->header.h==466&&d->data_size==466*466*2&&!img_store_face_loading(i));}
     assert(created==4&&finished==4);reset();
+    factory=true;assert(!img_store_face_image_for(0));drain();
+    // The actual shipped FAT image must not override all three embedded themes.
+    assert(!s_ok&&!s_dsc.data);
+    for(int i=0;i<3;++i)assert(!img_store_face_image_for(i));drain();
+    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==&s_defaults[i]&&s_defaults[i].data);
+    assert(created==4);reset();
+    factory=modified_factory=true;assert(!img_store_face_image_for(0));drain();
+    assert(s_ok&&s_dsc.data);
+    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==&s_dsc&&!s_default_started[i]);reset();
     custom=true;assert(!img_store_face_image_for(2));drain();
     const lv_image_dsc_t *d=img_store_face_image_for(2);assert(d);
     for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==d&&!s_default_started[i]);assert(created==1);reset();
@@ -56,5 +76,5 @@ int main(void){
     assert(!img_store_face_image_for(0));drain();allocation_fail=true;assert(!img_store_face_image_for(0));drain();assert(!img_store_face_image_for(0)&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();decode_fail=true;assert(!img_store_face_image_for(0));drain();assert(!s_defaults[0].data&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();wrong_size=true;assert(!img_store_face_image_for(0));drain();assert(!s_defaults[0].data&&!img_store_face_loading(0));reset();
-    puts("Default JPEG cache: custom priority, one task per theme, bounded buffers, allocation/task/decode/dimension failures and completed task cleanup passed.");return 0;
+    puts("Factory panda migration, genuine custom priority, one task per theme, bounded buffers, failure and task cleanup passed.");return 0;
 }

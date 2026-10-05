@@ -47,7 +47,8 @@ def main():
             board.save(args.out/f'{name.lower()}.png')
         overview.save(args.out/'overview.png')
         Image.open(temp/'settings/face-0-zh.ppm').save(args.out/'selector.png')
-        for name in ('ssid-32-low-battery','weather-negative','weather-unavailable','image-loading','custom-image-bright'):
+        for name in ('ssid-32-low-battery','ssid-32-theme-0','ssid-32-theme-1','ssid-32-theme-2',
+                     'weather-negative','weather-unavailable','image-loading','custom-image-bright'):
             Image.open(temp/f'faces/{name}.ppm').save(args.out/f'{name}.png')
         aod=Image.new('RGB',(1050,610),'#171719');draw=ImageDraw.Draw(aod)
         draw.text((50,25),'IMAGE / ACTIVE + AOD / NATIVE LVGL',fill='#eeeeee',font=font)
