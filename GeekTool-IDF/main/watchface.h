@@ -1,6 +1,6 @@
 #pragma once
-// 锁屏表盘框架(多表盘 + 低功耗 AOD)。各表盘实现 watchface_t,注册进 FACES[]。
-// 全屏黑底(AMOLED 省电),Nothing 单色 + 唯一红强调。表盘在设置 app 里选(不再左右滑切换)。
+// TYPE / ORBIT / SHIFT 三组，每组五款；前五个 NVS 索引保留原种类对应关系。
+// 黑底 AMOLED + 红色强调。设置页选择；BOOT 解锁和空闲策略由 lock.c 管理。
 #include "lvgl.h"
 #include <stdbool.h>
 
@@ -8,7 +8,7 @@ void watchface_init(void);        // 构建一次(隐藏)+ 载入上次选择的
 void watchface_show(void);
 void watchface_hide(void);
 bool watchface_visible(void);
-lv_obj_t *watchface_root(void);   // 顶层全屏对象,供 lock 挂上滑解锁手势
+lv_obj_t *watchface_root(void);   // 顶层全屏对象；不响应上滑解锁，解锁由 BOOT 侧键控制
 
 // 低功耗:AOD 态停止闪烁/秒点,只按分钟刷新(变暗由 lock.c 控亮度)
 void watchface_set_aod(bool aod);
@@ -20,5 +20,10 @@ void watchface_set_sleep(bool sleep);
 // 表盘选择(设置 app 调用;selected 返回当前索引)
 int         watchface_count(void);
 const char *watchface_name(int idx);
+const char *watchface_theme_name(int theme);
+const char *watchface_kind_name(int idx);
 int         watchface_selected(void);
-void        watchface_select(int idx);   // 钳到 [0,count) 并重建当前内容(隐藏时也可调,下次显示即生效)
+void        watchface_select(int idx);   // 钳到 [0,count)，刷新当前内容；隐藏时下次显示生效
+// 233px 原生缩略图，共用实际渲染。预览无独立计时器，设置页负责刷新/销毁。
+lv_obj_t *watchface_create_preview(lv_obj_t *parent, int idx);
+void watchface_refresh_preview(lv_obj_t *preview);

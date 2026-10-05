@@ -8,4 +8,5 @@
         -interlace none -sampling-factor 4:2:0 GeekTool-IDF/images/bg.jpg
 
 换图:替换 bg.jpg 后重新 flash 即可(只重烧 storage 分区也行)。
-没有 bg.jpg 时,image 表盘会显示提示文字,不影响其它表盘。
+没有 bg.jpg 或无法解码时,image 表盘使用所选 TYPE / ORBIT / SHIFT 的固件内置默认背景。
+三个图片款均优先使用用户的 bg.jpg；AOD 隐藏照片保留时间，不会覆盖本目录原文件。

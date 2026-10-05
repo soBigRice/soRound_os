@@ -4,9 +4,13 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-当前仓库 `main` 包含 `v1.7-beta.23` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
+当前仓库 `main` 包含 `v1.7-beta.24` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-beta.23 已发布至 GitHub/R2/国内 OTA；三个地址完整包与摘要一致，Range断点续传核对通过。
+beta.24 新增 TYPE/ORBIT/SHIFT 三组十五款表盘，TLS 使用获批的 PSRAM 分配并保留完整证书校验；
+无损字体压缩恢复约96KiB固件槽空间。同 tag 的本地构建后缀不再触发旧包覆盖。
+USB修复候选在更新页面打开时连续3次连接成功；实际跨版本OTA、重启和恢复验收见
+[OTA持续升级记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-05-ota-持续升级保障进行中)。
+上一次 beta.23 已发布至 GitHub/R2/国内 OTA；三个地址完整包与摘要一致，Range断点续传核对通过。
 新增每日联网星座运势与木鱼功德；天气页采用临时完整帧缓存与TE同步，保留现有首屏和滚动详情。
 答案之书继续联网翻页，屏幕与右上PWR计时键均可翻页；失败时明确标记备用答案。
 发布包适配两个4MiB OTA槽，设备上的滚动观感、音色与计数重启保留待验收。
@@ -55,6 +59,8 @@ beta.23 已发布至 GitHub/R2/国内 OTA；三个地址完整包与摘要一致
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
+TYPE / ORBIT / SHIFT三组十五款锁屏表盘、真实缩略图、默认/自定义背景和常显状态见
+[锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。当前实现与原生主机检查完成，真机效果待验收。
 抛硬币的双层币缘、中文大字、上抛翻面、暂停/退出及骰子回归见
 [硬币实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画)。
 系统信息三页布局、内存统计口径、刷新与字体容量防线见
@@ -69,6 +75,8 @@ beta.23 已发布至 GitHub/R2/国内 OTA；三个地址完整包与摘要一致
 [设置与Wi-Fi交互](./GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
+beta.23 的 TLS 内存不足、点阵控件直接绘制与错误码正负号修正见
+[TLS 故障记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-05-beta23-ota-tls-内存不足)。
 R2 保留发布包、服务器拉取并原子替换镜像的同步程序、部署配置及迁移状态见
 [OTA 服务器镜像](./GeekTool-IDF/tools/ota_mirror/README.md)。设备域名已切换到指定服务器直连。
 当前 OTA 页使用整屏点阵环、大点阵箭头向上动效和按状态配色的真实下载进度，布局与设置入口见

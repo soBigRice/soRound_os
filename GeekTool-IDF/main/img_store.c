@@ -1,6 +1,7 @@
 // 图片表盘存储 —— FAT(只读)挂载 + JPEG 解码到 PSRAM。见 img_store.h。
 // 内部 RAM 紧张(显存已降到 80 行),故输入/输出缓冲都放 PSRAM;解码用 espressif/esp_jpeg(tjpgd,仅基线 JPEG)。
 #include "img_store.h"
+#include "watchface_backgrounds.h"
 #include "esp_vfs_fat.h"
 #include "esp_heap_caps.h"
 #include "esp_log.h"
@@ -102,4 +103,47 @@ const lv_image_dsc_t *img_store_face_image(void) {
 bool img_store_loading(void) {
     portENTER_CRITICAL(&s_mux); bool loading = s_started && !s_done; portEXIT_CRITICAL(&s_mux);
     return loading;
+}
+
+static lv_image_dsc_t s_defaults[3];
+static bool s_default_started[3],s_default_done[3],s_default_ok[3];
+
+static void default_decode_task(void *arg) {
+    int theme=(int)(intptr_t)arg;
+    size_t size=(size_t)IMG_W*IMG_H*2;
+    uint8_t *out=heap_caps_malloc(size,MALLOC_CAP_SPIRAM);
+    bool ok=false;
+    if(out) {
+        esp_jpeg_image_cfg_t cfg={.indata=(uint8_t *)watchface_backgrounds[theme].data,
+            .indata_size=(uint32_t)watchface_backgrounds[theme].size,.outbuf=out,.outbuf_size=(uint32_t)size,
+            .out_format=JPEG_IMAGE_FORMAT_RGB565,.out_scale=JPEG_IMAGE_SCALE_0,.flags={.swap_color_bytes=IMG_SWAP}};
+        esp_jpeg_image_output_t info={0};
+        ok=esp_jpeg_decode(&cfg,&info)==ESP_OK&&info.width==IMG_W&&info.height==IMG_H;
+        if(ok)s_defaults[theme]=(lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,
+            .w=IMG_W,.h=IMG_H,.stride=IMG_W*2},.data=out,.data_size=size};
+        else free(out);
+    }
+    portENTER_CRITICAL(&s_mux);s_default_ok[theme]=ok;s_default_done[theme]=true;portEXIT_CRITICAL(&s_mux);
+    vTaskDelete(NULL);
+}
+const lv_image_dsc_t *img_store_face_image_for(int theme) {
+    if(theme<0||theme>=3)return NULL;
+    const lv_image_dsc_t *custom=img_store_face_image();
+    bool loading=img_store_loading();
+    if(!custom&&!loading)custom=img_store_face_image(); // Decoder may complete between these reads.
+    if(custom||loading)return custom;
+    portENTER_CRITICAL(&s_mux);
+    bool done=s_default_done[theme],ok=s_default_ok[theme],start=!s_default_started[theme];
+    s_default_started[theme]=true;portEXIT_CRITICAL(&s_mux);
+    if(start&&xTaskCreate(default_decode_task,"face_background",4096,(void *)(intptr_t)theme,2,NULL)!=pdPASS) {
+        ESP_LOGW(TAG,"default background task allocation failed");
+        portENTER_CRITICAL(&s_mux);s_default_done[theme]=true;portEXIT_CRITICAL(&s_mux);
+    }
+    return done&&ok?&s_defaults[theme]:NULL;
+}
+bool img_store_face_loading(int theme) {
+    if(theme<0||theme>=3)return false;
+    portENTER_CRITICAL(&s_mux);
+    bool loading=(s_started&&!s_done)||(!s_ok&&s_default_started[theme]&&!s_default_done[theme]);
+    portEXIT_CRITICAL(&s_mux);return loading;
 }

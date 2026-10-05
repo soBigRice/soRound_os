@@ -2,7 +2,7 @@
 #include "control_ui.h"
 #include "settings.h"
 #include "watchface.h"
-#include "weather_artwork.h"
+#include "watchface_ui.h"
 #include "glyph.h"
 #include "audio_out.h"
 #include "esp_app_desc.h"
@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 enum { SETTINGS_HOME, SETTINGS_DISPLAY, SETTINGS_FACE, SETTINGS_SOUND, SETTINGS_LANG, SETTINGS_ABOUT };
-static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute;
+static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute,*s_face_preview;
 static int s_page;
 static bool s_audio_ready;
 static const char *word(const char *zh,const char *en) {return settings_lang()?zh:en;}
@@ -49,24 +49,19 @@ static void pick_face(lv_event_t *e) {
     int count=watchface_count(),index=(watchface_selected()+(int)(intptr_t)lv_event_get_user_data(e)+count)%count;
     watchface_select(index);settings_set_face((uint8_t)index);settings_save();queue_rebuild();
 }
+static void pick_theme(lv_event_t *e) {
+    int theme=(int)(intptr_t)lv_event_get_user_data(e);
+    int index=theme*WATCHFACE_KIND_COUNT+watchface_selected()%WATCHFACE_KIND_COUNT;
+    watchface_select(index);settings_set_face((uint8_t)index);settings_save();queue_rebuild();
+}
 static void pick_lang(lv_event_t *e) {
     settings_set_lang((uint8_t)(uintptr_t)lv_event_get_user_data(e));settings_save();queue_rebuild();
-}
-static void draw_face(lv_event_t *e) {
-    lv_area_t a;lv_obj_get_coords(lv_event_get_target_obj(e),&a);
-    const weather_artwork_t *art=weather_artwork_for(3,true);if(!art)return;
-    const lv_image_dsc_t *source=watchface_selected()==4?img_store_face_image():art->image;if(!source)return;
-    lv_draw_image_dsc_t d;lv_draw_image_dsc_init(&d);d.src=source;d.pivot=(lv_point_t){0,0};
-    d.scale_x=d.scale_y=watchface_selected()==4?64:128;
-    int left=a.x1+(174-(source->header.w*d.scale_x/256))/2;
-    lv_area_t area={left,a.y1,left+source->header.w-1,a.y1+source->header.h-1};
-    lv_draw_image(lv_event_get_layer(e),&d,&area);
 }
 static void rebuild(void *arg) {
     (void)arg;if(!s_parent)return;
     if(s_audio_ready && s_page!=SETTINGS_SOUND){audio_out_deinit();s_audio_ready=false;}
     if(s_panel)lv_obj_delete(s_panel);
-    s_value=s_slider=s_aod=s_mute=NULL;s_panel=control_surface(s_parent,0,0,466,466);
+    s_value=s_slider=s_aod=s_mute=s_face_preview=NULL;s_panel=control_surface(s_parent,0,0,466,466);
     if(s_page==SETTINGS_HOME) {
         launcher_set_title(tr_app_name("settings"));
         char b[80];snprintf(b,sizeof b,word("亮度 %d%% · %s","%d%% brightness · %s"),
@@ -94,23 +89,21 @@ static void rebuild(void *arg) {
         }
     } else if(s_page==SETTINGS_FACE) {
         launcher_set_title(tr(S_FACE));int selected=watchface_selected();
-        center_text(word("选择即生效","Changes apply instantly"),112,286,CONTROL_GRAY,control_small_font());
-        if(selected==3 || selected==4) {
-            lv_obj_t *preview=control_surface(s_panel,146,178,174,120);
-            lv_obj_add_event_cb(preview,draw_face,LV_EVENT_DRAW_MAIN,NULL);
-            if(selected==4)center_text("12:34",224,170,CONTROL_WHITE,&lv_font_montserrat_20);
-        } else if(selected==1)center_text("12:34",214,240,CONTROL_WHITE,&lv_font_montserrat_40);
-        else {
-            lv_obj_t *digits=glyph_digits_create(s_panel,10,3);glyph_digits_set(digits,"12:34",CONTROL_WHITE,selected==2?COL_RED:COL_TXT2);
-            lv_obj_align(digits,LV_ALIGN_TOP_MID,0,206);
-            if(selected==2)glyph_circle(s_panel,233,239,74,16,2,COL_TXT2);
-        }
-        lv_obj_t *prev=control_button(s_panel,77,318,54,54,pick_face,(void *)(intptr_t)-1);
-        lv_obj_t *next=control_button(s_panel,335,318,54,54,pick_face,(void *)(intptr_t)1);
+        center_text(word("选择即生效","Changes apply instantly"),102,286,CONTROL_GRAY,control_small_font());
+        s_face_preview=watchface_create_preview(s_panel,selected);lv_obj_set_pos(s_face_preview,116,134);
+        lv_obj_t *prev=control_button(s_panel,52,218,50,50,pick_face,(void *)(intptr_t)-1);
+        lv_obj_t *next=control_button(s_panel,364,218,50,50,pick_face,(void *)(intptr_t)1);
         lv_obj_t *l=control_label(prev,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,30,CONTROL_WHITE);lv_obj_center(l);
         l=control_label(next,LV_SYMBOL_RIGHT,UI_FONT_SYM,0,0,30,CONTROL_WHITE);lv_obj_center(l);
-        center_text(watchface_name(selected),329,190,CONTROL_WHITE,&font_location_24);
-        for(int i=0;i<watchface_count();++i)glyph_dot(s_panel,233+(i-2)*16,399,3,i==selected?COL_RED:CONTROL_LINE);
+        char caption[64];snprintf(caption,sizeof caption,"%s   %d / %d",watchface_kind_name(selected),selected+1,watchface_count());
+        center_text(caption,344,260,CONTROL_WHITE,control_small_font());
+        for(int theme=0;theme<WATCHFACE_THEME_COUNT;++theme) {
+            lv_obj_t *b=control_button(s_panel,99+theme*92,381,84,38,pick_theme,(void *)(intptr_t)theme);
+            lv_obj_set_style_radius(b,12,0);
+            if(theme==selected/WATCHFACE_KIND_COUNT){lv_obj_set_style_border_width(b,1,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
+            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_18,0,0,76,theme==selected/WATCHFACE_KIND_COUNT?CONTROL_WHITE:CONTROL_GRAY);
+            lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);lv_obj_center(name);
+        }
     } else if(s_page==SETTINGS_LANG) {
         launcher_set_title(tr(S_LANGUAGE));
         center_text(word("界面语言","Interface language"),126,280,CONTROL_GRAY,control_small_font());
@@ -136,6 +129,7 @@ static bool settings_back(void) {
 static void settings_enter(lv_obj_t *parent) {s_parent=parent;s_page=SETTINGS_HOME;s_audio_ready=false;rebuild(NULL);}
 static void settings_exit(void) {
     lv_async_call_cancel(rebuild,NULL);if(s_audio_ready)audio_out_deinit();
-    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=NULL;s_audio_ready=false;
+    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=s_face_preview=NULL;s_audio_ready=false;
 }
-const app_t app_settings={.name="settings",.color=COL_TXT,.enter=settings_enter,.exit=settings_exit,.back=settings_back};
+static void settings_tick(void) {if(s_page==SETTINGS_FACE&&s_face_preview)watchface_refresh_preview(s_face_preview);}
+const app_t app_settings={.name="settings",.color=COL_TXT,.enter=settings_enter,.tick=settings_tick,.exit=settings_exit,.back=settings_back,.tick_period_ms=1000};

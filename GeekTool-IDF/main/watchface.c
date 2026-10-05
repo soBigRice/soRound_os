@@ -1,471 +1,124 @@
-// 锁屏表盘框架(多表盘 + 低功耗 AOD)+ 4 款表盘(dots/bold/rings/image)。
-// 全屏黑底(AMOLED 省电),Nothing 单色 + 唯一红强调。手绘 5×7 点阵数字。
-// 低运动:数字每分钟重建;活动态冒号 0.5Hz 闪 + 秒点沿环;AOD 态冒号常亮、秒点隐藏、只按分钟刷新。
+// Fifteen faces: TYPE / ORBIT / SHIFT, each with dots / bold / rings / weather / image.
+// NVS indices 0..4 retain the original kind mapping. BOOT and power policy belong to lock.c.
 #include "watchface.h"
-#include "app.h"
+#include "watchface_ui.h"
 #include "quickpanel.h"
 #include "power.h"
 #include "settings.h"
 #include "img_store.h"
-#include "glyph.h"
+#include "app.h"
 #include "ui_update.h"
+#include "lvgl_compat.h"
 #include "esp_wifi.h"
 #include "esp_netif.h"
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-#include <math.h>
 
-#define WF_CX   233
-#define WF_CY   233
-#define RING_R  213
-
-// 表盘接口:每款表盘实现 build/update/destroy,注册进 FACES[]
-typedef struct {
-    const char *name;                 // ASCII,切换时短暂显示
-    void (*build)(lv_obj_t *root);    // 在 root(wf_content)上建全部 UI
-    void (*update)(const struct tm *t, bool aod, bool min_changed);  // 周期刷新(框架按状态调度)
-    void (*destroy)(void);            // 清理表盘私有指针(内容已随 wf_content 销毁)
-} watchface_t;
-
-/* 5×7 点阵字模在 glyph_font5x7[](glyph.c),各表盘共用 */
-
-/* ===== 共用基元 ===== */
-static lv_obj_t *mkdot(lv_obj_t *par, int cx, int cy, int r, uint32_t color, lv_opa_t opa) {
-    lv_obj_t *d = lv_obj_create(par);
-    lv_obj_remove_style_all(d);
-    lv_obj_set_size(d, r * 2, r * 2);
-    lv_obj_set_pos(d, cx - r, cy - r);
-    lv_obj_set_style_radius(d, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(d, lv_color_hex(color), 0);
-    lv_obj_set_style_bg_opa(d, opa, 0);
-    lv_obj_remove_flag(d, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_remove_flag(d, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_add_flag(d, LV_OBJ_FLAG_EVENT_BUBBLE);
-    return d;
-}
-
-// 在 (ox,oy) 左上角画一个 5×7 点阵数字
-static void draw_digit_at(lv_obj_t *par, char ch, int ox, int oy, int pitch, int r, uint32_t color, lv_opa_t opa) {
-    if (ch < '0' || ch > '9') return;
-    const char *const *g = glyph_font5x7[ch - '0'];
-    for (int row = 0; row < 7; row++)
-        for (int c = 0; c < 5; c++)
-            if (g[row][c] == '1')
-                mkdot(par, ox + c * pitch + pitch / 2, oy + row * pitch + pitch / 2, r, color, opa);
-}
-
-// 居中画 HH:MM 的 4 个数字(不含冒号),返回冒号中心 x;冒号由调用方画(便于闪烁/着色)
-static lv_obj_t *time_digits(lv_obj_t *root, int cx, int cy, int pitch, int r) {
-    lv_obj_t *o = glyph_digits_create(root, pitch, r);
-    lv_obj_set_pos(o, cx - 25 * pitch / 2, cy - 7 * pitch / 2);
-    return o;
-}
-static void update_time(lv_obj_t *o, const struct tm *t, bool colon) {
-    char b[6]; snprintf(b, sizeof b, colon ? "%02d:%02d" : "%02d %02d", t->tm_hour, t->tm_min);
-    glyph_digits_set(o, b, COL_TXT, COL_RED);
-}
-
-static lv_obj_t *mklabel(lv_obj_t *par, const lv_font_t *font, uint32_t color, int y) {
-    lv_obj_t *l = lv_label_create(par);
-    lv_obj_set_style_text_font(l, font, 0);
-    lv_obj_set_style_text_color(l, lv_color_hex(color), 0);
-    lv_label_set_text(l, "");
-    lv_obj_align(l, LV_ALIGN_TOP_MID, 0, y);
-    lv_obj_add_flag(l, LV_OBJ_FLAG_EVENT_BUBBLE);
-    return l;
-}
-
-/* ============================================================ Dots 表盘 ============================================================ */
-#define D_P   13
-#define D_R   5
-#define D_Y0  150
-static lv_obj_t *d_time, *d_colon[2], *d_sec, *d_date, *d_wifi, *d_bat;
-static bool      d_colon_on;
-
-static void dots_date(const struct tm *t) {
-    static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
-    static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
-    char s[24];
-    snprintf(s, sizeof s, "%s  %02d  %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
-    lv_label_set_text(d_date, s);
-}
-
-static void dots_netbat(void) {
-    wifi_ap_record_t ap;
-    bool wifi_ok = (esp_wifi_sta_get_ap_info(&ap) == ESP_OK);
-    lv_label_set_text(d_wifi, wifi_ok ? (const char *)ap.ssid : "wifi off");
-    lv_obj_set_style_text_color(d_wifi, lv_color_hex(wifi_ok ? COL_WIFI : COL_TXT2), 0);
-
-    char ip[24] = "";
-    if (wifi_ok) {
-        esp_netif_t *nif = esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
-        esp_netif_ip_info_t ipi;
-        if (nif && esp_netif_get_ip_info(nif, &ipi) == ESP_OK && ipi.ip.addr)
-            snprintf(ip, sizeof ip, "  " IPSTR, IP2STR(&ipi.ip));
-    }
-    int soc; pwr_state_t st;
-    if (power_read(&soc, &st)) {
-        bool charging = (st == PWR_CHARGING || st == PWR_FULL);
-        char b[48];
-        snprintf(b, sizeof b, "%s bat %d%%%s", charging ? LV_SYMBOL_CHARGE : "", soc, ip);
-        lv_label_set_text(d_bat, b);
-        lv_obj_set_style_text_color(d_bat, lv_color_hex(charging ? COL_WIFI : COL_TXT2), 0);
-    }
-}
-
-static void dots_build(lv_obj_t *root) {
-    for (int i = 0; i < 60; i++) {            // 点阵外环(分钟刻度)
-        float a = i / 60.0f * 6.2832f - 1.5708f;
-        bool big = (i % 5 == 0);
-        mkdot(root, WF_CX + (int)(cosf(a) * RING_R), WF_CY + (int)(sinf(a) * RING_R),
-              big ? 3 : 2, COL_TXT, big ? LV_OPA_60 : LV_OPA_30);
-    }
-    d_time = time_digits(root, WF_CX, D_Y0 + (7 * D_P) / 2, D_P, D_R);
-
-    int oy = D_Y0;
-    d_colon[0] = mkdot(root, WF_CX, oy + 2 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
-    d_colon[1] = mkdot(root, WF_CX, oy + 4 * D_P + D_P / 2, D_R, COL_RED, LV_OPA_COVER);
-    d_sec      = mkdot(root, WF_CX, WF_CY - RING_R, 4, COL_TXT, LV_OPA_COVER);
-
-    d_date = mklabel(root, UI_FONT_M, COL_TXT2, 262);
-    d_wifi = mklabel(root, UI_FONT_M, COL_TXT2, 286);
-    d_bat  = mklabel(root, &lv_font_montserrat_14, COL_TXT2, 310);
-    d_colon_on = true;
-}
-
-static void dots_update(const struct tm *t, bool aod, bool mc) {
-    if (mc) {
-        update_time(d_time, t, false);
-        dots_date(t);
-        dots_netbat();
-    }
-    lv_opa_t copa;
-    if (aod) copa = LV_OPA_COVER;
-    else { d_colon_on = !d_colon_on; copa = d_colon_on ? LV_OPA_COVER : LV_OPA_TRANSP; }
-    lv_obj_set_style_bg_opa(d_colon[0], copa, 0);
-    lv_obj_set_style_bg_opa(d_colon[1], copa, 0);
-
-    if (aod) {
-        lv_obj_add_flag(d_sec, LV_OBJ_FLAG_HIDDEN);
-    } else {
-        lv_obj_remove_flag(d_sec, LV_OBJ_FLAG_HIDDEN);
-        float a = t->tm_sec / 60.0f * 6.2832f - 1.5708f;
-        lv_obj_set_pos(d_sec, WF_CX + (int)(cosf(a) * RING_R) - 4, WF_CY + (int)(sinf(a) * RING_R) - 4);
-    }
-}
-
-static void dots_destroy(void) { d_time = d_colon[0] = d_colon[1] = d_sec = d_date = d_wifi = d_bat = NULL; }
-
-/* ============================================================ Bold 表盘(极简大字,HH 上 / MM 下) ============================================================ */
-#define B_P   22
-#define B_R   8
-#define B_X0  112
-#define B_X1  244
-#define B_YH  64
-#define B_YM  248
-static lv_obj_t *b_time, *b_minutes, *b_dot, *b_date;
-static bool      b_on;
-
-static void bold_build(lv_obj_t *root) {
-    b_time = glyph_digits_create(root, B_P, B_R); lv_obj_set_pos(b_time, B_X0, B_YH);
-    b_minutes = glyph_digits_create(root, B_P, B_R); lv_obj_set_pos(b_minutes, B_X0, B_YM);
-
-    b_dot = mkdot(root, WF_CX, WF_CY, 7, COL_RED, LV_OPA_COVER);   // 两行之间居中的红心跳点
-    b_date = mklabel(root, UI_FONT_M, COL_TXT2, 0);
-    lv_obj_align(b_date, LV_ALIGN_BOTTOM_MID, 0, -36);
-    b_on = true;
-}
-
-static void bold_update(const struct tm *t, bool aod, bool mc) {
-    if (mc) {
-        char hh[3], mm[3];
-        snprintf(hh, sizeof hh, "%02d", t->tm_hour);
-        snprintf(mm, sizeof mm, "%02d", t->tm_min);
-        glyph_digits_set(b_time, hh, COL_TXT, COL_RED);
-        glyph_digits_set(b_minutes, mm, COL_TXT, COL_RED);
-        static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
-        static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
-        char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
-        lv_label_set_text(b_date, s);
-    }
-    lv_opa_t opa;
-    if (aod) opa = LV_OPA_COVER;
-    else { b_on = !b_on; opa = b_on ? LV_OPA_COVER : LV_OPA_30; }
-    lv_obj_set_style_bg_opa(b_dot, opa, 0);
-}
-
-static void bold_destroy(void) { b_time = b_minutes = b_dot = b_date = NULL; }
-
-/* ============================================================ Rings 表盘(同心点环:外=分钟,内=小时,中心数字) ============================================================ */
-#define RG_RO 205
-#define RG_RI 150
-static lv_obj_t *r_ring, *r_center, *r_minutes[60], *r_hours[12];
-static void rings_build(lv_obj_t *root) {
-    r_ring = lv_obj_create(root); lv_obj_remove_style_all(r_ring);
-    lv_obj_set_size(r_ring, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(r_ring, LV_OBJ_FLAG_SCROLLABLE); lv_obj_add_flag(r_ring, LV_OBJ_FLAG_EVENT_BUBBLE);
-    for (int i = 0; i < 60; i++) {
-        float a = i / 60.0f * 6.2832f - 1.5708f;
-        r_minutes[i] = mkdot(r_ring, WF_CX + (int)(cosf(a) * RG_RO), WF_CY + (int)(sinf(a) * RG_RO), 2, COL_TXT, LV_OPA_30);
-    }
-    for (int h = 0; h < 12; h++) {
-        float a = h / 12.0f * 6.2832f - 1.5708f;
-        r_hours[h] = mkdot(r_ring, WF_CX + (int)(cosf(a) * RG_RI), WF_CY + (int)(sinf(a) * RG_RI), 3, COL_TXT, LV_OPA_30);
-    }
-    r_center = time_digits(root, WF_CX, WF_CY, 9, 3);
-}
-static void rings_update(const struct tm *t, bool aod, bool mc) {
-    (void)aod;
-    if (!mc) return;
-    int mn = t->tm_min, hr = t->tm_hour % 12;
-    for (int i = 0; i < 72; i++) {
-        bool minute = i < 60;
-        int index = minute ? i : i - 60, progress = minute ? mn : hr;
-        int radius = minute ? (index < progress ? 3 : index == progress ? 4 : 2)
-                            : (index < progress ? 4 : index == progress ? 5 : 3);
-        lv_obj_t *o = minute ? r_minutes[index] : r_hours[index];
-        float a = index / (minute ? 60.0f : 12.0f) * 6.2832f - 1.5708f;
-        int ring_r = minute ? RG_RO : RG_RI;
-        lv_obj_set_size(o, radius * 2, radius * 2);
-        lv_obj_set_pos(o, WF_CX + (int)(cosf(a) * ring_r) - radius, WF_CY + (int)(sinf(a) * ring_r) - radius);
-        ui_bg_color(o, minute && index == progress ? COL_RED : COL_TXT);
-        ui_bg_opa(o, index <= progress ? LV_OPA_COVER : LV_OPA_30);
-    }
-    update_time(r_center, t, true);
-}
-static void rings_destroy(void) { r_ring = r_center = NULL; }
-
-/* ============================================================ Image 表盘(全屏 JPEG 背景 + 时间叠加) ============================================================ */
-#define IM_CY 392
-static lv_obj_t *im_time, *im_msg, *im_image, *im_scrim;
-static bool im_waiting;
-
-static void image_background(void) {
-    const lv_image_dsc_t *dsc = img_store_face_image();
-    im_waiting = img_store_loading();
-    // 解码可能在两次查询之间完成;再读一次已完成缓存,避免永久停留在“no image”。
-    if (!dsc && !im_waiting) dsc = img_store_face_image();
-    if (dsc) {
-        lv_image_set_src(im_image, dsc); lv_obj_center(im_image);
-        lv_obj_remove_flag(im_image, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_remove_flag(im_scrim, LV_OBJ_FLAG_HIDDEN);
-        lv_obj_add_flag(im_msg, LV_OBJ_FLAG_HIDDEN);
-    } else ui_text(im_msg, im_waiting ? "loading image..." : "no image\nput a 466x466\nbg.jpg in images/");
-}
-static void image_build(lv_obj_t *root) {
-    im_image = lv_image_create(root);
-    lv_obj_add_flag(im_image, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
-    im_scrim = lv_obj_create(root); lv_obj_remove_style_all(im_scrim);
-    lv_obj_set_size(im_scrim, 320, 96); lv_obj_align(im_scrim, LV_ALIGN_BOTTOM_MID, 0, -28);
-    lv_obj_set_style_radius(im_scrim, 16, 0); lv_obj_set_style_bg_color(im_scrim, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(im_scrim, LV_OPA_60, 0);
-    lv_obj_remove_flag(im_scrim, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(im_scrim, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);
-    im_msg = mklabel(root, UI_FONT_M, COL_TXT2, 0);
-    lv_obj_set_style_text_align(im_msg, LV_TEXT_ALIGN_CENTER, 0); lv_obj_center(im_msg);
-    image_background();
-    im_time = time_digits(root, WF_CX, IM_CY, 10, 4);
-}
-static void image_update(const struct tm *t, bool aod, bool mc) {
-    (void)aod;
-    if (im_waiting && !img_store_loading()) image_background();
-    if (mc) update_time(im_time, t, true);
-}
-static void image_destroy(void) { im_time = im_msg = im_image = im_scrim = NULL; im_waiting = false; }
-
-/* ============================================================ Weather 表盘(时间 + 实时天气,数据来自 app_weather) ============================================================ */
-// 以【时间为主】:大字 HH:MM 居中,天气退成顶部一个小组件(图标+温度+湿度)。
-#define WX_TOP_CY  108     // 顶部天气组件竖直中心
-#define WX_TIME_CY 238     // 大时间竖直中心(主角,基本居中)
-static lv_obj_t *wx_time, *wx_top, *wx_hum, *wx_date, *wx_range;
-static int       wx_shown;
-
-// 顶部小天气图标(点描,缩小版),中心 (cx,cy)
-static void wf_wx_icon_small(lv_obj_t *p, int code, int cx, int cy) {
-    if (code <= 1) {                                       // 晴
-        glyph_circle(p, cx, cy, 9, 6, 2, COL_TXT);
-        glyph_dot(p, cx, cy, 3, COL_RED);
-        for (int k = 0; k < 8; k++) { float a = k * 0.7854f; glyph_dot(p, cx + (int)(cosf(a) * 16), cy + (int)(sinf(a) * 16), 2, COL_TXT); }
-    } else if ((code >= 71 && code <= 77) || code == 85 || code == 86) {   // 雪
-        glyph_circle(p, cx, cy - 3, 11, 7, 2, COL_TXT);
-        for (int i = -1; i <= 1; i++) glyph_dot(p, cx + i * 9, cy + 13, 2, COL_TXT);
-    } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82) || code >= 95) {   // 雨/雷
-        glyph_circle(p, cx, cy - 3, 11, 7, 2, COL_TXT);
-        for (int i = -1; i <= 1; i++) glyph_line(p, cx + i * 9 + 2, cy + 8, cx + i * 9 - 2, cy + 18, 6, 2, COL_RED);
-    } else {                                               // 多云/雾
-        glyph_circle(p, cx, cy, 12, 7, 2, COL_TXT);
-        glyph_dot(p, cx, cy, 3, COL_TXT2);
-    }
-}
-
-// 顶部天气组件:[小图标]  [小号点阵温度]°  —— 整组在 WX_TOP_CY 处水平居中
-static void wf_wx_top(lv_obj_t *p, int code, int temp) {
-    char s[8]; int v = temp < 0 ? -temp : temp;
-    snprintf(s, sizeof s, "%d", v);
-    int n = (int)strlen(s), pitch = 7, r = 3, dw = 5 * pitch, gap = pitch;
-    int iconw = 42, icogap = 16;
-    int total = iconw + icogap + (temp < 0 ? dw + gap : 0) + n * (dw + gap) + 2 * pitch;
-    int x0 = WF_CX - total / 2;
-    wf_wx_icon_small(p, code, x0 + iconw / 2, WX_TOP_CY);
-    int oy = WX_TOP_CY - (7 * pitch) / 2, ox = x0 + iconw + icogap;
-    if (temp < 0) { for (int c = 1; c <= 3; c++) mkdot(p, ox + c * pitch + pitch / 2, oy + 3 * pitch + pitch / 2, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
-    for (int k = 0; k < n; k++) { draw_digit_at(p, s[k], ox, oy, pitch, r, COL_TXT, LV_OPA_COVER); ox += dw + gap; }
-    glyph_circle(p, ox + pitch, oy + pitch, pitch / 2 + 1, 5, 2, COL_TXT);   // 度环 °
-}
-
-static lv_obj_t *wx_full(lv_obj_t *root) {
-    lv_obj_t *c = lv_obj_create(root);
-    lv_obj_remove_style_all(c);
-    lv_obj_set_size(c, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(c, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(c, LV_OBJ_FLAG_EVENT_BUBBLE);
-    return c;
-}
-
-static void weather_build(lv_obj_t *root) {
-    wx_top  = wx_full(root);                               // 顶部天气组件(图标+温度,按需重画)
-    wx_time = time_digits(root, WF_CX, WX_TIME_CY, D_P, D_R);                               // 中心大时间(每分钟重画)
-    wx_hum   = mklabel(root, UI_FONT_M, COL_TXT2, 140);    // 湿度(组在天气下方)
-    wx_date  = mklabel(root, UI_FONT_M, COL_TXT2, 316);    // 日期
-    wx_range = mklabel(root, UI_FONT_M, COL_TXT2, 348);    // 当日低/高
-    wx_shown = -99999;
-}
-
-static void weather_update(const struct tm *t, bool aod, bool mc) {
-    (void)aod;
-    if (mc) {                                              // 中心大 HH:MM(主角)+ 日期,每分钟重画
-        update_time(wx_time, t, true);
-        static const char *const wd[7]  = { "sun","mon","tue","wed","thu","fri","sat" };
-        static const char *const mo[12] = { "jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec" };
-        char s[24]; snprintf(s, sizeof s, "%s  %02d %s", wd[t->tm_wday], t->tm_mday, mo[t->tm_mon]);
-        lv_label_set_text(wx_date, s);
-    }
-    weather_poll();                                        // 后台按需拉(连着 WiFi 才拉)
-    int temp, lo, hi, code, hum;
-    bool ok = weather_cached(&temp, &lo, &hi, &code, &hum);
-    int key = ok ? (code * 100000 + (temp + 60) * 100 + hum) : -1;
-    if (key != wx_shown) {                                 // 天气/温度/湿度变了才重画
-        wx_shown = key;
-        lv_obj_clean(wx_top);
-        if (ok) {
-            wf_wx_top(wx_top, code, temp);
-            char hb[16]; snprintf(hb, sizeof hb, "hum %d%%", hum);
-            lv_label_set_text(wx_hum, hb);
-            char rb[24]; snprintf(rb, sizeof rb, "%d / %d", lo, hi);
-            lv_label_set_text(wx_range, rb);
-        } else {
-            lv_label_set_text(wx_hum, "connect wifi");
-            lv_label_set_text(wx_range, "");
-        }
-    }
-}
-
-static void weather_destroy(void) { wx_time = wx_top = wx_hum = wx_date = wx_range = NULL; }
-
-/* ============================================================ 表盘注册表 ============================================================ */
-static const watchface_t WF_DOTS    = { "dots",    dots_build,    dots_update,    dots_destroy    };
-static const watchface_t WF_BOLD    = { "bold",    bold_build,    bold_update,    bold_destroy    };
-static const watchface_t WF_RINGS   = { "rings",   rings_build,   rings_update,   rings_destroy   };
-static const watchface_t WF_WEATHER = { "weather", weather_build, weather_update, weather_destroy };
-static const watchface_t WF_IMAGE   = { "image",   image_build,   image_update,   image_destroy   };
-static const watchface_t *const FACES[] = { &WF_DOTS, &WF_BOLD, &WF_RINGS, &WF_WEATHER, &WF_IMAGE };
-
-/* ============================================================ 框架 ============================================================ */
-static lv_obj_t *wf_screen, *wf_content, *wf_lockdot;
+static lv_obj_t *wf_screen,*wf_content;
 static lv_timer_t *wf_timer;
-static const watchface_t *cur_face;
-static int  s_idx;
-static bool s_aod;
-static int  s_last_min = -1;
+static int s_idx;
+static bool s_aod,s_sleep;
+static time_t s_last_minute=(time_t)-1;
+static watchface_data_t s_data;
+static const char *const themes[]={"TYPE","ORBIT","SHIFT"};
+static const char *const kinds[]={"dots","bold","rings","weather","image"};
+static const char *const names[]={
+    "TYPE / dots","TYPE / bold","TYPE / rings","TYPE / weather","TYPE / image",
+    "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
+    "SHIFT / dots","SHIFT / bold","SHIFT / rings","SHIFT / weather","SHIFT / image"
+};
+int watchface_count(void){return WATCHFACE_COUNT;}
+int watchface_selected(void){return s_idx;}
+const char *watchface_name(int i){return i>=0&&i<WATCHFACE_COUNT?names[i]:"";}
+const char *watchface_theme_name(int theme){return theme>=0&&theme<WATCHFACE_THEME_COUNT?themes[theme]:"";}
+const char *watchface_kind_name(int index){return index>=0&&index<WATCHFACE_COUNT?kinds[index%WATCHFACE_KIND_COUNT]:"";}
 
-int         watchface_count(void)      { return (int)(sizeof(FACES) / sizeof(FACES[0])); }
-const char *watchface_name(int idx)    { return (idx >= 0 && idx < watchface_count()) ? FACES[idx]->name : ""; }
-int         watchface_selected(void)   { return s_idx; }
-
-static void wf_tick(lv_timer_t *t) {
-    (void)t;
-    if (!cur_face) return;
-    time_t now = time(NULL);
-    struct tm tm;
-    localtime_r(&now, &tm);
-    bool mc = (tm.tm_min != s_last_min);
-    cur_face->update(&tm, s_aod, mc);
-    if (mc) s_last_min = tm.tm_min;
-}
-
-void watchface_select(int idx) {
-    int n = watchface_count();
-    if (idx < 0) idx = 0;
-    if (idx >= n) idx = n - 1;
-    if (cur_face && cur_face->destroy) cur_face->destroy();
-    lv_obj_clean(wf_content);
-    s_idx = idx;
-    cur_face = FACES[idx];
-    cur_face->build(wf_content);
-    s_last_min = -1;
-    if (watchface_visible()) wf_tick(NULL);    // 立即按当前状态(活动/AOD)画一帧
-}
-
-void watchface_set_aod(bool aod) {
-    if (aod == s_aod) return;
-    s_aod = aod;
-    s_last_min = -1;                            // 强制按新状态重画(去掉/恢复闪烁与秒点)
-    if (watchface_visible() && wf_timer) wf_tick(NULL);
-}
-
-void watchface_set_sleep(bool sleep) {
-    if (sleep) {
-        if (wf_timer) { lv_timer_delete(wf_timer); wf_timer = NULL; }
-    } else if (watchface_visible() && !wf_timer) {
-        wf_timer = lv_timer_create(wf_tick, 1000, NULL);
-        s_last_min = -1;                        // 唤醒立即补画(睡着期间分钟变了)
-        wf_tick(NULL);
+static bool snapshot(bool force) {
+    time_t now=time(NULL);struct tm t;localtime_r(&now,&t);
+    time_t minute=now/60;bool minute_changed=minute!=s_last_minute;
+    bool dirty=force||minute_changed||(!s_aod&&s_idx%5==0&&t.tm_sec!=s_data.time.tm_sec);
+    s_data.time=t;s_data.aod=s_aod;
+    if(force||minute_changed) {
+        wifi_ap_record_t ap;s_data.wifi=esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
+        s_data.ssid[0]=s_data.ip[0]=0;
+        if(s_data.wifi) {
+            memcpy(s_data.ssid,ap.ssid,32);s_data.ssid[32]=0;
+            esp_netif_t *n=esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");esp_netif_ip_info_t ip;
+            if(n&&esp_netif_get_ip_info(n,&ip)==ESP_OK&&ip.ip.addr)
+                snprintf(s_data.ip,sizeof s_data.ip,IPSTR,IP2STR(&ip.ip));
+        }
+        int battery=0;pwr_state_t state=PWR_UNKNOWN;
+        s_data.battery_valid=power_read(&battery,&state);
+        s_data.battery=LV_CLAMP(0,battery,100);s_data.charging=state==PWR_CHARGING||state==PWR_FULL;
+        s_last_minute=minute;
     }
+    if(s_idx%5==3) {
+        weather_poll();int temp=0,lo=0,hi=0,code=0,hum=0;
+        bool ok=weather_cached(&temp,&lo,&hi,&code,&hum);
+        dirty|=ok!=s_data.weather_valid||temp!=s_data.temperature||lo!=s_data.low||hi!=s_data.high||code!=s_data.code||hum!=s_data.humidity;
+        s_data.weather_valid=ok;s_data.temperature=temp;s_data.low=lo;s_data.high=hi;s_data.code=code;s_data.humidity=hum;
+    }
+    if(s_idx%5==4) {
+        const lv_image_dsc_t *image=img_store_face_image_for(s_idx/5);
+        bool loading=img_store_face_loading(s_idx/5);
+        dirty|=image!=s_data.image||loading!=s_data.image_loading;
+        s_data.image=image;s_data.image_loading=loading;
+    } else {s_data.image=NULL;s_data.image_loading=false;}
+    return dirty;
 }
-
+static void draw(lv_event_t *e) {
+    uintptr_t tag=(uintptr_t)lv_event_get_user_data(e);bool preview=(tag&0x100u)!=0;
+    int index=preview?(int)(tag&0xffu):s_idx;lv_area_t a;lv_obj_get_coords(lv_event_get_target_obj(e),&a);
+    watchface_data_t data=s_data;if(preview)data.aod=false;
+    watchface_render(lv_event_get_layer(e),&a,&data,index,preview);
+}
+static lv_obj_t *surface(lv_obj_t *parent,int size,uintptr_t tag) {
+    lv_obj_t *o=lv_obj_create(parent);lv_obj_remove_style_all(o);lv_obj_set_size(o,size,size);
+    lv_obj_set_style_bg_color(o,lv_color_black(),0);lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);
+    lv_obj_set_style_radius(o,LV_RADIUS_CIRCLE,0);ui_obj_set_scrollable(o,false);ui_obj_set_clickable(o,false);
+    ui_obj_set_event_bubble(o,true);lv_obj_add_event_cb(o,draw,LV_EVENT_DRAW_MAIN,(void *)tag);return o;
+}
+static void tick(lv_timer_t *timer) {
+    (void)timer;if(snapshot(false)&&wf_content)lv_obj_invalidate(wf_content);
+    // AOD refresh is aligned to the next minute, rather than drifting a minute from entry.
+    if(wf_timer)lv_timer_set_period(wf_timer,s_aod?(uint32_t)(60-s_data.time.tm_sec)*1000u:1000u);
+}
+void watchface_select(int index) {
+    s_idx=LV_CLAMP(0,index,WATCHFACE_COUNT-1);s_last_minute=(time_t)-1;
+    if(watchface_visible()){snapshot(true);lv_obj_invalidate(wf_content);}
+}
+lv_obj_t *watchface_create_preview(lv_obj_t *parent,int index) {
+    index=LV_CLAMP(0,index,WATCHFACE_COUNT-1);snapshot(true);
+    return surface(parent,233,0x100u|(uintptr_t)index);
+}
+void watchface_refresh_preview(lv_obj_t *preview) {if(preview&&snapshot(false))lv_obj_invalidate(preview);}
 void watchface_init(void) {
-    wf_screen = lv_obj_create(lv_layer_top());
-    lv_obj_remove_style_all(wf_screen);
-    lv_obj_set_size(wf_screen, lv_pct(100), lv_pct(100));
-    lv_obj_set_style_bg_color(wf_screen, lv_color_black(), 0);
-    lv_obj_set_style_bg_opa(wf_screen, LV_OPA_COVER, 0);
-    lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_SCROLLABLE);
-    // 锁屏不再响应手势:换表盘在设置 app,解锁用侧键(lock.c)。手势停在 wf_screen 即可。
-    lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_GESTURE_BUBBLE);
-    lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
-
-    wf_content = lv_obj_create(wf_screen);
-    lv_obj_remove_style_all(wf_content);
-    lv_obj_set_size(wf_content, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(wf_content, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(wf_content, LV_OBJ_FLAG_EVENT_BUBBLE);
-
-    wf_lockdot = mkdot(wf_screen, WF_CX, 40, 3, COL_RED, LV_OPA_COVER);   // 顶端"已锁定"红点(各表盘共用)
-
-    cur_face = NULL;
-    s_aod = false;
-    watchface_select(settings_face());
+    if(wf_screen)return;
+    wf_screen=lv_obj_create(lv_layer_top());lv_obj_remove_style_all(wf_screen);lv_obj_set_size(wf_screen,466,466);
+    lv_obj_set_style_bg_color(wf_screen,lv_color_black(),0);lv_obj_set_style_bg_opa(wf_screen,LV_OPA_COVER,0);
+    ui_obj_set_scrollable(wf_screen,false);ui_obj_set_gesture_bubble(wf_screen,false);ui_obj_set_hidden(wf_screen,true);
+    wf_content=surface(wf_screen,466,0);s_aod=s_sleep=false;watchface_select(settings_face());
 }
-
 void watchface_show(void) {
-    if (!wf_screen) return;
-    quickpanel_hide();                          // 进锁屏:收起全局下拉面板(锁屏不显示控制面板)
-    s_last_min = -1;
-    lv_obj_remove_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_move_foreground(wf_screen);
-    if (!wf_timer) wf_timer = lv_timer_create(wf_tick, 1000, NULL);
-    wf_tick(NULL);
+    if(!wf_screen)return;
+    quickpanel_hide();s_sleep=false;s_last_minute=(time_t)-1;ui_obj_set_hidden(wf_screen,false);lv_obj_move_foreground(wf_screen);
+    if(!wf_timer)wf_timer=lv_timer_create(tick,1000,NULL);
+    snapshot(true);tick(NULL);lv_obj_invalidate(wf_content);
 }
-
 void watchface_hide(void) {
-    if (!wf_screen) return;
-    lv_obj_add_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
-    if (wf_timer) { lv_timer_delete(wf_timer); wf_timer = NULL; }
+    if(!wf_screen)return;
+    ui_obj_set_hidden(wf_screen,true);if(wf_timer){lv_timer_delete(wf_timer);wf_timer=NULL;}
 }
-
-bool watchface_visible(void) {
-    return wf_screen && !lv_obj_has_flag(wf_screen, LV_OBJ_FLAG_HIDDEN);
+void watchface_set_aod(bool aod) {
+    if(aod==s_aod)return;
+    s_aod=aod;s_last_minute=(time_t)-1;
+    if(watchface_visible()&&!s_sleep){snapshot(true);tick(NULL);lv_obj_invalidate(wf_content);}
 }
-
-lv_obj_t *watchface_root(void) { return wf_screen; }
+void watchface_set_sleep(bool sleep) {
+    s_sleep=sleep;
+    if(sleep){if(wf_timer){lv_timer_delete(wf_timer);wf_timer=NULL;}}
+    else if(watchface_visible()){if(!wf_timer)wf_timer=lv_timer_create(tick,1000,NULL);snapshot(true);tick(NULL);lv_obj_invalidate(wf_content);}
+}
+bool watchface_visible(void){return wf_screen&&!ui_obj_is_hidden(wf_screen);}
+lv_obj_t *watchface_root(void){return wf_screen;}

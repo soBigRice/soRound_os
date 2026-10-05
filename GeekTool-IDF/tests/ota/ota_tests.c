@@ -9,6 +9,7 @@ enum scenario { NORMAL, DISCONNECT, NO_ETAG, FALLBACK, ALWAYS_DROP, CONNECT_ONCE
     CERTIFICATE, NO_MEMORY, HTTP404, REPLACED, WRONG_RANGE, HEADER_FAIL,
     BAD_PROJECT, SAME_VERSION, TOO_BIG, TRUNCATED, STALL, VERIFY_FAIL };
 static enum scenario scenario;
+static int injected_tls=MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, injected_flags=4;
 struct mock_client { esp_http_client_config_t config; int status, tls, flags; char if_match[96]; };
 static struct mock_client client;
 static esp_partition_t partition;
@@ -16,6 +17,7 @@ static esp_app_desc_t current, remote;
 static int begins, aborts, finishes, writes, progress, live;
 static int requested[OTA_UPDATE_ATTEMPTS], resumed_pct;
 static bool started;
+static const char *current_version, *remote_version;
 static int64_t clock_us;
 static unsigned char flash[SIZE], expected[SIZE];
 
@@ -49,7 +51,7 @@ esp_err_t esp_https_ota_begin(const esp_https_ota_config_t *cfg,esp_https_ota_ha
     if (cfg->ota_image_bytes_written) assert(strcmp(client.if_match,"\"image-1\"")==0);
     *h=NULL;
     if ((scenario==CONNECT_ONCE && begins==1) || scenario==CERTIFICATE || scenario==NO_MEMORY || scenario==HTTP404) {
-        if (scenario==CERTIFICATE) { client.tls=MBEDTLS_ERR_X509_CERT_VERIFY_FAILED; client.flags=4; }
+        if (scenario==CERTIFICATE) { client.tls=injected_tls; client.flags=injected_flags; }
         if (scenario==HTTP404) client.status=404;
         event(HTTP_EVENT_ERROR,NULL,NULL); event(HTTP_EVENT_DISCONNECTED,NULL,NULL);
         return scenario==NO_MEMORY ? ESP_ERR_NO_MEM : ESP_ERR_HTTP_CONNECT;
@@ -114,10 +116,20 @@ static ota_status_t run(enum scenario which) {
     partition=(esp_partition_t){ .size=which==TOO_BIG ? SIZE/2 : SIZE };
     current=(esp_app_desc_t){ .magic_word=ESP_APP_DESC_MAGIC_WORD, .version="v1.7-beta.7", .project_name="GeekTool" };
     remote=(esp_app_desc_t){ .magic_word=ESP_APP_DESC_MAGIC_WORD, .version="v1.7-beta.8", .project_name="GeekTool", .app_elf_sha256={1} };
+    if (current_version) snprintf(current.version,sizeof current.version,"%s",current_version);
+    if (remote_version) snprintf(remote.version,sizeof remote.version,"%s",remote_version);
     if (which==BAD_PROJECT) strcpy(remote.project_name,"other device");
     if (which==SAME_VERSION) strcpy(remote.version,current.version);
     ota_status_t s=ota_update_run("https://test.invalid/firmware.bin",observe,NULL);
     assert(!live); return s;
+}
+static void version_case(const char *from,const char *to,bool same) {
+    current_version=from;remote_version=to;
+    ota_status_t s=run(NORMAL);
+    current_version=remote_version=NULL;
+    assert(begins==1);
+    if (same) assert(s.state==OTA_UPTODATE && writes==0 && finishes==0 && aborts==1);
+    else assert(s.state==OTA_OK && writes==8 && finishes==1 && aborts==0);
 }
 int main(void) {
     for (int i=0;i<SIZE;i++) expected[i]=(unsigned char)(i*37+17);
@@ -128,6 +140,14 @@ int main(void) {
     s=run(ALWAYS_DROP); assert(s.state==OTA_FAIL && begins==3 && aborts==3 && finishes==0);
     s=run(CONNECT_ONCE); assert(s.state==OTA_OK && begins==2);
     s=run(CERTIFICATE); assert(s.state==OTA_FAIL && begins==1 && s.tls_flags==4 && finishes==0);
+    // The real ESP-TLS backend captures -ret, i.e. positive TLS magnitudes.
+    // Test both signs without flags so certificate/allocation errors never retry.
+    const int fatal_tls[]={0x2700,-0x2700,0x3000,-0x3000,141,-141};
+    injected_flags=0;
+    for (unsigned i=0;i<sizeof fatal_tls/sizeof fatal_tls[0];i++) {
+        injected_tls=fatal_tls[i]; s=run(CERTIFICATE);
+        assert(s.state==OTA_FAIL && begins==1 && s.tls_code==injected_tls && finishes==0 && writes==0);
+    }
     s=run(NO_MEMORY); assert(s.state==OTA_FAIL && begins==1 && s.error==ESP_ERR_NO_MEM);
     s=run(HTTP404); assert(s.state==OTA_FAIL && begins==1 && s.http_status==404);
     s=run(REPLACED); assert(s.state==OTA_FAIL && begins==2 && s.http_status==412 && finishes==0 && writes==3);
@@ -139,6 +159,18 @@ int main(void) {
     s=run(TRUNCATED); assert(s.state==OTA_FAIL && begins==3 && finishes==0);
     s=run(STALL); assert(s.state==OTA_FAIL && begins==3 && s.error==ESP_ERR_TIMEOUT && finishes==0);
     s=run(VERIFY_FAIL); assert(s.state==OTA_FAIL && begins==1 && finishes==1 && aborts==0 && s.failed_at==OTA_VERIFYING);
-    puts("18 OTA recovery groups passed");
+    // Local git-describe suffixes must not replace unpublished fixes with the tag's old image.
+    version_case("v1.7-beta.23-1-gfb70add-dirty","v1.7-beta.23",true);
+    version_case("v1.7-beta.23-dirty","v1.7-beta.23",true);
+    version_case("v1.7-beta.23-2-g0123abc","v1.7-beta.23",true);
+    version_case("v1.7-beta.23","v1.7-beta.23-2-g0123abc",true);
+    version_case("v1.7-15-gabcdef0-dirty","v1.7",true);
+    version_case("v1.7-beta.23-1-gfb70add-dirty","v1.7-beta.24",false);
+    version_case("v1.7-beta.23-1-gxyz","v1.7-beta.23",false);
+    version_case("v1.7-beta.23-x-g0123abc","v1.7-beta.23",false);
+    version_case("v1.7-beta.23-dirty-extra","v1.7-beta.23",false);
+    // Selecting a different release channel retains the existing update behavior.
+    version_case("v1.7-beta.23","v1.6.1",false);
+    puts("18 OTA recovery groups, six signed TLS errors and ten local-build version cases passed");
     return 0;
 }

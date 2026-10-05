@@ -9,6 +9,7 @@
 #include "sdk.h"
 #include "src/misc/lv_text_private.h"
 #include "tools_render.h"
+#include "watchface_ui.h"
 static uint8_t language,brightness=191,volume=65,idle,silent,face;
 static int saves,audio_starts,audio_stops,blips;
 static bool sensor_up=true;
@@ -25,10 +26,13 @@ uint8_t settings_silent(void) {return silent;}
 void settings_set_silent(uint8_t v) {silent=v;}
 void settings_set_face(uint8_t v) {face=v;}
 void settings_save(void) {++saves;}
-int watchface_count(void) {return 5;}
+int watchface_count(void) {return 15;}
 int watchface_selected(void) {return face;}
-const char *watchface_name(int i) {static const char *names[]={"dots","bold","rings","weather","image"};return names[i];}
-void watchface_select(int i) {assert(i>=0 && i<5);face=(uint8_t)i;}
+const char *watchface_kind_name(int i) {static const char *names[]={"dots","bold","rings","weather","image"};return names[i%5];}
+const char *watchface_theme_name(int i) {static const char *names[]={"TYPE","ORBIT","SHIFT"};return names[i];}
+const char *watchface_name(int i) {return watchface_kind_name(i);}
+void watchface_select(int i) {assert(i>=0 && i<15);face=(uint8_t)i;}
+void watchface_refresh_preview(lv_obj_t *preview) {(void)preview;}
 void audio_out_init(void) {++audio_starts;}
 void audio_out_deinit(void) {++audio_stops;}
 void audio_out_set_volume(uint8_t v) {assert(v==volume);}
@@ -40,6 +44,17 @@ void launcher_set_title(const char *t) {lv_label_set_text(heading,t);}
 static uint16_t image_pixels[466*466];
 static const lv_image_dsc_t face_image={.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,.w=466,.h=466,.stride=932},.data_size=sizeof image_pixels,.data=(const uint8_t *)image_pixels};
 const lv_image_dsc_t *img_store_face_image(void) {return &face_image;}
+static void preview_draw(lv_event_t *e) {
+    watchface_data_t data={.time={.tm_year=126,.tm_mon=9,.tm_mday=5,.tm_wday=1,.tm_hour=10,.tm_min=8},
+        .wifi=true,.ssid="soRound",.ip="192.168.1.24",.battery_valid=true,.battery=74,.weather_valid=true,
+        .temperature=26,.low=21,.high=28,.humidity=64,.code=3,.image=&face_image};
+    lv_area_t a;lv_obj_get_coords(lv_event_get_target_obj(e),&a);
+    watchface_render(lv_event_get_layer(e),&a,&data,(int)(intptr_t)lv_event_get_user_data(e),true);
+}
+lv_obj_t *watchface_create_preview(lv_obj_t *parent,int index) {
+    lv_obj_t *o=tools_surface(parent,0,0,233,233);lv_obj_set_style_bg_color(o,lv_color_black(),0);lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);
+    lv_obj_add_event_cb(o,preview_draw,LV_EVENT_DRAW_MAIN,(void *)(intptr_t)index);return o;
+}
 bool imu_init(void) {return sensor_up;}
 bool imu_read_tilt_z(float *x,float *y,float *z) {*x=tx;*y=ty;*z=az;return sensor_up;}
 #include "../../main/app_settings.c"
@@ -113,7 +128,11 @@ int main(int argc,char **argv) {
         }
         assert(audio_stops==audio_starts);
         s_page=SETTINGS_FACE;
-        for(face=0;face<5;++face) {rebuild(NULL);char name[32];snprintf(name,sizeof name,"face-%d",face);capture(page,directory,name);}
+        for(face=0;face<15;++face) {rebuild(NULL);char name[32];snprintf(name,sizeof name,"face-%d",face);capture(page,directory,name);}
+        face=2;rebuild(NULL);before=saves;
+        lv_obj_send_event(lv_obj_get_child(s_panel,6),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==7&&saves==before+1);
+        lv_obj_send_event(lv_obj_get_child(s_panel,7),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==12&&saves==before+2);
+        face=14;rebuild(NULL);lv_obj_send_event(lv_obj_get_child(s_panel,3),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==0);
         assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_DISPLAY);
         assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
         s_page=SETTINGS_SOUND;rebuild(NULL);assert(audio_starts==audio_stops+1);
@@ -165,5 +184,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Settings categories/nested back/5 previews EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
+    puts("Settings categories/nested back/15 native previews/theme switching/wrap EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
 }

@@ -1583,3 +1583,113 @@ LVGL9.5/9.6各22组回归通过；后续字体/UI修改复测相关答案之书�
 两个域名正式对象 `GeekTool.bin` 均仍1,872,192B，SHA256 `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，即v1.6.1，不受本次beta发布影响。证据位于忽略目录 `build/flash-records/zodiac-merit-beta23-20261005/`，包括两版本主机日志、真实API、CI日志、发布资产/描述符、完整/Range头及摘要。临时主机构建/导出/辅助发布脚本清理，最终原生PNG保留供评审。
 
 未连接USB，未烧入设备；天气TE边沿/刷新率、实际滚动观感、声音和重启后计数尚待设备验收。软件与分发验证通过不能替代该层结果。
+
+## 2026-10-05 beta.23 OTA TLS 内存不足
+
+用户设备为 beta.23，日期时间正常；只读 USB 日志复现了检查阶段失败，尚未开始下载。
+最初内部空闲 41,395B、最大连续块 23,552B，证书包回调解析可信公钥返回
+`-15104`（`MBEDTLS_ERR_PK_INVALID_PUBKEY`），上层报 `TLS=12288`（`-0x3000`）。
+保持相同设备、Wi-Fi、服务器和证书，再点更新并退出 OTA 页面释放其控件：
+前两次内部空闲约 40KiB，分别报 `-0x3B00` 与明确的 `-0x008D`
+（Mbed TLS 4 / PSA 的内存不足）；第三次内部空闲回升到 73,047B，握手成功并进入
+`esp_https_ota`。这确认了页面占用内部堆与 TLS 分配竞争；公钥错误本身不能直接当作证书损坏。
+握手成功不代表安装、启动或回滚验收。
+
+公网 DNS 指向 154.37.221.172，TLS 1.2、Python/OpenSSL 验证及 HEAD/Range 206 均通过；
+证书有效至 2027-01-02，实际完整链为 YE1 → Root YE → ISRG Root X2 → ISRG Root X1。
+范围读取的真实镜像描述符为 `v1.7-beta.23`；十五款表盘本地版本尚未发布。
+
+修正 `app_ota.c`：外环104点及箭头109点使用两个对象的绘制事件，保留原坐标、半径、
+色彩、进度、上行动画、成功/失败图形、触摸入口与页面退出后后台继续更新。
+`ota_update.h` 统一 SDK 的正数 TLS 幅值与原始 mbedTLS 负数；界面正确显示 `TLS -0x3000`，
+无 flags 的 X509 fatal/验证错误及两种符号的分配失败也不再无效重试。
+证书包、交叉签名、校验、TLS 内部分配配置、分区与 NVS 格式均保持原设置。
+
+最终本地验证：18组下载恢复及6个正负 TLS 边界通过；英/中文原生 UI 与生命周期通过。
+改为直接绘制前后30张466×466帧逐字节相同；对象数量上限回归防止重新堆积点阵控件。
+普通 UI 回归不再写入 PPM；需要导出时为 `ota_ui_tests` 设置已有目录 `OTA_CAPTURE_DIR`。
+ESP-IDF 6.0.1 构建通过，应用镜像4,142,880B，4MiB槽剩51,424B，SHA256
+`3399be25cecf7cbaac3f49e6ce90e4417d61dd48c4d780c4dbe0eab4ec5455df`。
+用户已授权 USB 应用分区刷入与 OTA 验证；真实分区表确认活动槽为 `ota_1`，
+地址 `0x420000`、容量 `0x400000`。首次候选写入哈希校验通过，分区表与
+8KiB otadata 刷前刷后逐字节一致，启动日志确认从 `0x420000` 启动。
+
+启动核对发现本地 `git describe` 自动附加了 `-1-gfb70add-dirty`；
+`ota_update_run` 按完整版本字符串判断相同版本，带后缀的候选会下载公网 beta.23 并覆盖新表盘。
+因此在用户点击前暂停检查，以 `idf.py -DPROJECT_VER=v1.7-beta.23 build` 重建本次 USB 候选，
+刷前直接检查镜像描述符的版本、项目与槽容量。该覆盖只用于本地同版本连接验证；
+正式发布仍由新 tag 与 CI 生成版本。以后验证未发布本地功能的 OTA 连接，优先核对
+真实镜像描述符与服务器版本及比较条件，不能只看源码基线的 tag。
+
+最终候选已写入同一 `ota_1`，esptool 再次确认写入哈希正确；分区表与 otadata
+刷前刷后及首次刷入前均逐字节一致。启动日志确认加载地址 `0x420000`、版本
+`v1.7-beta.23`、ESP-IDF 6.0.1，并正常执行完 `app_main`；尚未发布或提交。
+最终启动后的180秒串口窗口没有捕获 OTA 请求，已请用户保持内测通道开启并在页面打开时点更新；
+这次连接结果仍待设备操作，不能把 USB 写入/启动校验当作 OTA 通过。
+串口已关闭，候选副本及临时原始日志已清理；仅保留最小写入回执和过滤后的启动日志于
+`build/flash-records/ota-tls-beta23-20261005-usb/`。该已刷入镜像的哈希见本节；
+当前 `build/GeekTool.bin` 已由下节的新候选取代，不能把两个版本的验证混用。
+剩余验收：在页面打开时完成握手/镜像检查，遇到后续新版本再核对下载、校验、启动及回滚。
+
+依据已核对本机 ESP-IDF 6.0.1 的 `esp_tls_mbedtls.c`（记录 `-ret`）、
+`esp_crt_ca_cb_callback`、PSA公钥导入与分配器；官方说明见
+[ESP-TLS 错误接口](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/protocols/esp_tls.html)
+及 [Let’s Encrypt 证书链](https://letsencrypt.org/certificates/)。
+
+## 2026-10-05 OTA 持续升级保障（进行中）
+
+用户纠正：OTA 必须承担后续稳定升级，不能依赖退出页面、反复 USB 救援或减少既有功能。
+此前仅减少当前页面控件，仍缺少长期资源保障和完整实机升级验收。当前已核对的风险：
+修复前 Mbed TLS 强制内部 RAM；固件原剩51,424B；`main.c`在启动 UI、创建 Wi-Fi 任务后立即
+取消回滚，并没有证明新固件还能连 OTA 服务。网络任务已创建不等于连接/后续升级可用。
+
+本轮已完成的常规修复：
+
+- `ota_update.c:version_tag_length/same_version_tag`识别 SDK 的 `-<count>-g<hex>`、`-dirty`
+  本地构建后缀，避免用相同 tag 的旧发布镜像覆盖本地修复。真正不同版本及用户选择通道的
+  原行为保留。新增10个版本用例，首次在原比较逻辑失败、修复后通过；原18组恢复和6个
+  正负 TLS 用例仍通过。已取消上次仅供 USB 连接测试的 `PROJECT_VER` 缓存覆盖。
+- `tools/gen_watchface_fonts.py`在原4bpp像素与度量上使用固定commit的官方 LVGL MIT 编码器，
+  原生 RLE/XOR 解码，7/9px小字无压缩收益则保留原存储。全部501字形、13字号的像素与度量
+  摘要一致；38张466×466原生帧逐字节一致。表盘、设置缩略图、图片生命周期与 OTA UI 回归通过。
+  字体生成新增 Node 工具需求；固件/CI直接编译生成的 C，不引入 npm 或运行时依赖。
+
+用户已明确接受 ESP-IDF6.0.1 官方 `CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC`，使用板载8MB
+PSRAM，保留完整证书验证，减轻 UI/并发 HTTPS 对内部堆的竞争。该选择已写入
+`sdkconfig.defaults`，`ota_update.c`增加编译约束，防止既有配置或后续构建静默退回内部 RAM。
+每次 OTA 尝试记录内部堆与 PSRAM 的可用量和最大连续块，便于区分内存失败与证书失败。
+该选择影响所有 Mbed TLS HTTPS 动态分配（当前 OTA、答案之书、星座使用 HTTPS；
+天气当前请求 HTTP，不经过 TLS）；当前未启用硬件 Flash/PSRAM 加密，
+TLS 临时会话数据会进入未加密的 PSRAM，此取舍已获用户批准。
+依据：[官方 Kconfig](https://github.com/espressif/esp-idf/blob/v6.0.1/components/mbedtls/Kconfig)、
+[分配器实现](https://github.com/espressif/esp-idf/blob/v6.0.1/components/mbedtls/port/esp_mem.c)。
+
+最终 ESP-IDF6.0.1 构建通过：4,045,008B，4MiB 槽剩149,296B（约145.8KiB），版本
+`v1.7-beta.23-1-gfb70add-dirty`，SHA256
+`ee5940957fdfff9dbb1a4ceff74b15e89352dcc06a2fe4ec68d6f4aad1b2e72b`。
+已按此前 USB 授权写入实际活动 `ota_1`（`0x420000`），esptool 哈希校验通过；
+真实分区表与 OTA 元数据前后逐字节一致，未写 NVS、storage 或引导器。
+串口确认上述版本从 `0x420000`启动，8MiB PSRAM 测试通过，`app_main`正常返回。
+最终 OTA 回归仍通过，未提交或发布。用户保持 OTA 页面打开连续点更新3次，串口确认每次
+均为 `attempt 1/3` 后返回 `result state=8 version=v1.7-beta.23`，用户反馈“已经是最新版本”。
+三次内部可用量分别83,887/83,287/83,195B、最大块31,744B；请求前 PSRAM 可用量均
+7,930,776B、最大块7,864,320B；没有 TLS 错误或崩溃。这里只验证完整校验下的 HTTPS/固件头
+读取与同 tag 中止，不能代替跨版本下载、写入、重启与下一次升级。
+最小验证证据在 `build/flash-records/ota-stability-20261005/verification.json`。
+
+另已构建本地 `v1.7-beta.24` 候选（相同代码、只改变版本），4,045,008B，SHA256
+`582266d14995ca8cc6615dd0711c5b83d5aba284272c1cfe5b2418d7fc0b38f9`，
+位于 `build/ota-candidates/v1.7-beta.24/`；该本地包未上传、未刷入。用户随后明确要求“发布吧”，
+已授权当前表盘与 OTA 修复提交、推送、发布 `v1.7-beta.24`到内测通道并验证设备升级。
+采用既有 Tag→GitHub Actions→Release/R2→国内静态镜像链路；正式通道不在本次发布范围。
+线上实际包以 CI 产物为准，须单独记录真实哈希，不把本地候选哈希当作 CI 产物哈希。
+
+后续验收需覆盖：页面保持打开及相关 HTTPS 并发时的资源峰值；真实 A→B 下载、校验与重启；
+B 启动后仍能继续升级；断网/坏包与启动失败的恢复。发布前核对目标设备的两个真实槽容量，
+当前约145.8KiB余量仍有限，未来增长必须在现有槽内优化或另行评审分区迁移，不能直接发布超限包。
+仅显示“已是最新版本”、USB写入校验、主机测试或启动 UI 均不能代替连续实机 OTA 验收。
+启动确认条件和发布门槛尚未调整；正式/内测分发、分区、NVS 和安全校验均未改变。
+
+本轮构建曾因手动删除 CMake 缓存项留下孤立注释而失败；CMake 重新生成缓存后，使用
+官方 `export.sh` 与 SDK Python 3.14 PATH 构建通过。以后取消临时 `-D` 覆盖应使用 CMake
+的 `-U`/重新配置机制，避免手工裁剪缓存；系统 Python 3.9 不能用于本 SDK 导出。

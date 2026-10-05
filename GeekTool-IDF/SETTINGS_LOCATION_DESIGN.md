@@ -15,14 +15,15 @@
 
 - 显示：亮度读数/滑块、表盘入口和常显整行开关。亮度仍为64～255，拖动实时应用，松手才保存。
 - 声音：音量0～100、静音整行开关及试听。沿用铃声/提示音的全局静音语义；离开声音子页即释放音频。
-- 表盘：保留`dots/bold/rings/weather/image`五种、当前资源预览、左右选择和立即保存。
+- 表盘：TYPE/ORBIT/SHIFT各含`dots/bold/rings/weather/image`五款，原索引0–4保持用途对应；
+  233px真实缩略图、左右选择十五款、点击组名保留用途跳组，立即保存。详见[锁屏表盘](./WATCHFACES_UI.md)。
 - 语言立即应用并重建本页；关于读取真实`esp_app_get_description()->version`，长版本允许换行。
 - `settings_back`：表盘退到显示，其他子页退首页；首页再返回才由启动器退出。右滑沿用`app_t.back`调度。
 - `queue_rebuild`延后销毁输入对象，退出取消待执行回调；开关可点整行或实际switch，事件不重复保存。
 
 `control_ui.c/h`只供设置与Wi-Fi使用，统一卡片、单行文字、滑块和整行开关。
 `launcher.c:header_app_style`为这两个App采用24px紧凑标题/44px返回按钮，天气原有40px返回样式保持。
-`settings_level_tests`检查四分类入口、逐级返回、保存时机、整行开关、五种表盘、双语字形/圆形安全范围和音频释放。
+`settings_level_tests`检查四分类入口、逐级返回、保存时机、整行开关、十五种表盘/跳组/循环、双语字形/圆形安全范围和音频释放。
 
 ## Wi-Fi页（本轮重做）
 

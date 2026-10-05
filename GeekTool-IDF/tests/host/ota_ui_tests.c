@@ -1,6 +1,7 @@
 // 用真实 LVGL、OTA 页面、文案和字库检查布局及按钮状态,替换联网和任务创建。
 #include <assert.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "app.h"
 #include "ota_update.h"
@@ -58,7 +59,12 @@ static void flush(lv_display_t *display,const lv_area_t *area,uint8_t *map) {
 static void capture(lv_obj_t *page,const char *name) {
     lv_obj_update_layout(page); lv_obj_invalidate(page); lv_tick_inc(480); lv_timer_handler();
     lv_refr_now(lv_display_get_default()); // 每个状态都完成真实绘制,不能捕获上一帧
-    char path[128]; snprintf(path,sizeof path,"/tmp/wxesp32-ota-%s-%s.ppm",name,language?"zh":"en");
+    // Export only on request; ordinary regressions must not leave PPM caches.
+    const char *directory=getenv("OTA_CAPTURE_DIR");
+    if (!directory || !directory[0]) return;
+    char path[1024];
+    int n=snprintf(path,sizeof path,"%s/wxesp32-ota-%s-%s.ppm",directory,name,language?"zh":"en");
+    assert(n>0 && n<(int)sizeof path);
     FILE *f=fopen(path,"wb"); assert(f); fprintf(f,"P6\n466 466\n255\n");
     for (int i=0;i<W*W;i++) {
         unsigned p=pixels[i]; unsigned char rgb[]={ ((p>>11)&31)*255/31,((p>>5)&63)*255/63,(p&31)*255/31 };
@@ -68,7 +74,7 @@ static void capture(lv_obj_t *page,const char *name) {
 }
 static int colored_dots(uint32_t color) {
     int count=0;
-    for(int i=0;i<ORBIT_N;i++) if(lv_color_eq(lv_obj_get_style_bg_color(g_orbit[i],0),lv_color_hex(color))) count++;
+    for(int i=0;i<ORBIT_N;i++) if(s_orbit_colors[i]==color) count++;
     return count;
 }
 static void assert_round_screen(void) {
@@ -117,9 +123,8 @@ int main(void) {
         assert(!lv_obj_has_flag(g_icon,LV_OBJ_FLAG_HIDDEN));
         assert(lv_anim_get(g_icon,arrow_anim_exec));
         assert(!lv_anim_get(g_main,orbit_anim_exec));
-        assert(lv_obj_get_child_count(g_icon)==109); // 已确认的填充点阵箭头,防止退回稀疏三线图标。
-        for(uint32_t i=0;i<lv_obj_get_child_count(g_icon);i++) assert(lv_obj_check_type(lv_obj_get_child(g_icon,i),&lv_obj_class));
-        assert(lv_obj_get_x(g_orbit[0])==230 && lv_obj_get_y(g_orbit[0])==14);
+        // A bounded object count protects the internal heap used by TLS.
+        assert(lv_obj_get_child_count(g_icon)==0 && lv_obj_get_child_count(g_main)<=8);
         assert(colored_dots(ORBIT_IDLE)==ORBIT_N);
         capture(page,"idle");
         assert_round_screen();
@@ -149,8 +154,10 @@ int main(void) {
             {.state=OTA_UPTODATE,.version="v1.7-beta.10"},
             {.state=OTA_FAIL,.failed_at=OTA_RUNNING,.attempt=3,.error=ESP_ERR_TIMEOUT},
             {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_flags=4,.tls_code=MBEDTLS_ERR_X509_CERT_VERIFY_FAILED},
+            {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_code=0x3000},
+            {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_code=-0x3000},
         };
-        const char *names[]={"checking","header","download","retry","verify","success","uptodate","download-fail","tls-fail"};
+        const char *names[]={"checking","header","download","retry","verify","success","uptodate","download-fail","tls-fail","tls-positive","tls-negative"};
         for (unsigned i=0;i<sizeof states/sizeof states[0];i++) {
             s_shown=(ota_state_t)-1; status_publish(&states[i],NULL); ota_tick(); lv_obj_update_layout(page);
             assert(lv_obj_get_height(g_status)<=64);
@@ -172,6 +179,11 @@ int main(void) {
             if(states[i].state==OTA_VERIFYING) assert(colored_dots(OTA_BLUE)==102);
             if(states[i].state==OTA_OK || states[i].state==OTA_UPTODATE) assert(colored_dots(COL_CHARGE)==ORBIT_N);
             if(states[i].state==OTA_FAIL) assert(colored_dots(COL_RED)==ORBIT_N);
+            if(i>=9) {
+                const char *error_text=lv_label_get_text(g_status);
+                assert(strstr(error_text,tr(S_OTA_TLS_FAIL)) && strstr(error_text,"TLS -0x3000"));
+                assert(!strstr(error_text,"ffff"));
+            }
         }
         // 环进度的四分之一/一半/全部及异常百分比;不会因为动画把未下载部分点亮。
         const int percentages[]={-3,0,25,50,75,100,120}, expected[]={0,0,26,52,78,104,104};
@@ -180,9 +192,9 @@ int main(void) {
             assert(colored_dots(COL_RED)==expected[i]);
         }
         status_publish(&(ota_status_t){.state=OTA_CHECKING,.attempt=1},NULL); ota_tick();
-        uint32_t before=lv_color_to_u32(lv_obj_get_style_bg_color(g_orbit[0],0));
+        uint32_t before=s_orbit_colors[0];
         lv_tick_inc(600); lv_timer_handler();
-        assert(lv_color_to_u32(lv_obj_get_style_bg_color(g_orbit[0],0))!=before);
+        assert(s_orbit_colors[0]!=before);
         // 进度持续更新但保留箭头;重连也保留已下载的百分比。
         status_publish(&(ota_status_t){.state=OTA_RUNNING,.pct=43,.attempt=1},NULL); ota_tick();
         assert(lv_bar_get_value(g_progress)==43 && strcmp(lv_label_get_text(g_pctlbl),"43%")==0);

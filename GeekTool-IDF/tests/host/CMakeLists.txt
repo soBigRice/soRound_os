@@ -53,6 +53,19 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
+target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/font_watchface.c)
+add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/font_watchface.c
+               ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
+               ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(watchface_tests PRIVATE ../watchfaces/stubs ../../main)
+target_link_libraries(watchface_tests PRIVATE lvgl m)
+target_compile_options(watchface_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME watchface_collection_and_power COMMAND watchface_tests)
+add_executable(watchface_image_tests ../watchfaces/image_store_tests.c)
+target_include_directories(watchface_image_tests PRIVATE ../watchfaces/stubs ../../main)
+target_link_libraries(watchface_image_tests PRIVATE lvgl)
+target_compile_options(watchface_image_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME watchface_background_lifecycle COMMAND watchface_image_tests)
 add_executable(wifi_ui_tests ../wifi/wifi_ui_tests.c ../../main/control_ui.c ../../main/font_control.c
                ../../main/font_location_24.c ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(wifi_ui_tests PRIVATE ../wifi/stubs stubs ../../main)

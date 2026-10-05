@@ -1,0 +1,11 @@
+{
+  "repository": "https://github.com/google/fonts",
+  "commit": "6cdf01867df0813c2390f90dff7dc66c87f14cf7",
+  "license": "OFL-1.1",
+  "checked": "2026-10-05",
+  "files": {
+    "Barlow-Regular.ttf": "95aa02c7c43096e0dd44d787ba6216864a67157e402adab59b35572e0c1577ea",
+    "Barlow-Black.ttf": "fc4f74e8475b181003f7597450c62d630622b417e367a6842972b286c49f9440",
+    "OFL.txt": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f"
+  }
+}

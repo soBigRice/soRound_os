@@ -1,5 +1,18 @@
 #pragma once
+#include <stdbool.h>
 #include "esp_err.h"
+#include "mbedtls/x509.h"
+
+// ESP-TLS stores -ret (positive); normalize both backend and raw mbedTLS signs.
+// Unsigned subtraction also handles INT_MIN without signed overflow.
+static inline unsigned ota_tls_error_magnitude(int code) {
+    return code < 0 ? 0u - (unsigned)code : (unsigned)code;
+}
+static inline bool ota_tls_certificate_error(int code) {
+    unsigned magnitude = ota_tls_error_magnitude(code);
+    return magnitude == ota_tls_error_magnitude(MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) ||
+           magnitude == ota_tls_error_magnitude(MBEDTLS_ERR_X509_FATAL_ERROR);
+}
 
 #define OTA_UPDATE_ATTEMPTS 3
 typedef enum {

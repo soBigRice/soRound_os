@@ -20,11 +20,8 @@
 
 static const char *TAG = "ota";
 
-// 云 OTA:Cloudflare R2 自定义域名直链(国内可达,GitHub release 资产国内常被墙)。
-// 打 v* tag → Actions 构建 → 传 GeekTool.bin 到 R2 bucket(覆盖同名对象)→ 设备点 update 即拉最新。
-//   直链无跳转、无鉴权、HTTPS(Cloudflare 证书在 FULL crt_bundle 里)。
-//   上传时带 Cache-Control:no-store,边缘不缓存 → 永远拉最新(CI 那步已设,无需后台缓存规则)。
-//   本地测试想用局域网 HTTP,临时改回 http://<你电脑IP>:8000/GeekTool.bin(build 目录起 http.server)。
+// 云 OTA:Actions 发布 R2 → 专用镜像服务同步 → ota.miaozong.cc 的 HTTPS 静态直链。
+// 镜像保留可信证书、no-store 和 Range/If-Match;设备验证完整根证书包及镜像。
 // 双通道:stable=正式(v1.6 tag),beta=内测(v1.6-beta.1 tag)。CI 规则:正式 tag 两个对象都覆盖
 // (正式对内测用户也是"最新"),beta tag 只覆盖 beta 对象 → 设备只需按开关二选一,无需比较版本新旧。
 #define OTA_URL_STABLE "https://ota.miaozong.cc/GeekTool.bin"
@@ -69,8 +66,30 @@ static void status_publish(const ota_status_t *status, void *user) {
 #define ORBIT_IDLE   0x98989c
 #define ORBIT_DIM    0x343438
 
-static lv_obj_t *g_orbit[ORBIT_N];
+// Direct drawing avoids 213 styled dot objects competing with the TLS handshake heap.
+static uint32_t s_orbit_colors[ORBIT_N];
+static lv_opa_t s_orbit_opacity[ORBIT_N];
+static int s_icon_kind;
+static uint32_t s_icon_color;
 static int s_ring_pct, s_orbit_phase;
+
+static void draw_dot(lv_layer_t *layer, int x, int y, int r, uint32_t color, lv_opa_t opacity) {
+    lv_draw_rect_dsc_t d; lv_draw_rect_dsc_init(&d);
+    d.radius = LV_RADIUS_CIRCLE; d.bg_color = lv_color_hex(color); d.bg_opa = opacity;
+    lv_area_t a = {x-r, y-r, x+r-1, y+r-1};
+    lv_draw_rect(layer, &d, &a);
+}
+
+static void orbit_draw(lv_event_t *e) {
+    lv_layer_t *layer = lv_event_get_layer(e);
+    lv_area_t bounds; lv_obj_get_coords(lv_event_get_target_obj(e), &bounds);
+    for (int i = 0; i < ORBIT_N; i++) {
+        float a = -1.57079633f + 6.28318531f * i / ORBIT_N;
+        draw_dot(layer, bounds.x1 + OTA_CX + (int)(cosf(a) * ORBIT_R),
+                 bounds.y1 + OTA_CY + (int)(sinf(a) * ORBIT_R), 3,
+                 s_orbit_colors[i], s_orbit_opacity[i]);
+    }
+}
 
 static void set_visible(lv_obj_t *o, bool visible) {
     if (!o) return;
@@ -139,9 +158,10 @@ static void orbit_render(ota_state_t state) {
             // 只呼吸已经点亮的末端;不把未下载部分点亮成“假进度”。
             if (filled > 0 && i == head) opa = (lv_opa_t)(128 + pulse * 127 / ORBIT_N);
         }
-        ui_bg_color(g_orbit[i], col);
-        ui_bg_opa(g_orbit[i], opa);
+        s_orbit_colors[i] = col;
+        s_orbit_opacity[i] = opa;
     }
+    lv_obj_invalidate(g_main);
 }
 
 static void orbit_anim_exec(void *o, int32_t phase) {
@@ -165,33 +185,43 @@ static void start_orbit_anim(void) {
     lv_anim_start(&a);
 }
 
-static void draw_up_arrow(uint32_t col) {
+static void draw_up_arrow(lv_layer_t *layer, int x0, int y0, uint32_t col) {
     // 等间距点阵填充箭头:15 列的对称箭头头部,5 列宽杆身,不以三条细线拼轮廓。
     for (int row = 0; row < 17; row++) {
         int half = row < 8 ? row : 2;
         for (int x = -half; x <= half; x++)
-            glyph_dot(g_icon, IC_CX + x * 12, 15 + row * 12, 4, col);
+            draw_dot(layer, x0 + IC_CX + x * 12, y0 + 15 + row * 12, 4, col, LV_OPA_COVER);
     }
 }
-static void draw_check(uint32_t col) {             // 对勾
-    glyph_line(g_icon, IC_CX - 64, IC_CY, IC_CX - 20, IC_CY + 50, 12, 4, col);
-    glyph_line(g_icon, IC_CX - 20, IC_CY + 50, IC_CX + 72, IC_CY - 52, 12, 4, col);
+static void draw_line_dots(lv_layer_t *layer, int x0, int y0, int x1, int y1, uint32_t col) {
+    int count = (int)(sqrtf((float)((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0))) / 12);
+    if (count < 1) count = 1;
+    for (int i = 0; i <= count; i++)
+        draw_dot(layer, x0+(x1-x0)*i/count, y0+(y1-y0)*i/count, 4, col, LV_OPA_COVER);
 }
-static void draw_cross(uint32_t col) {             // 叉
-    glyph_line(g_icon, IC_CX - 62, IC_CY - 62, IC_CX + 62, IC_CY + 62, 12, 4, col);
-    glyph_line(g_icon, IC_CX + 62, IC_CY - 62, IC_CX - 62, IC_CY + 62, 12, 4, col);
+static void icon_draw(lv_event_t *e) {
+    lv_layer_t *layer = lv_event_get_layer(e);
+    lv_area_t bounds; lv_obj_get_coords(lv_event_get_target_obj(e), &bounds);
+    int x = bounds.x1 + IC_CX, y = bounds.y1 + IC_CY;
+    if (s_icon_kind == 0) draw_up_arrow(layer, bounds.x1, bounds.y1, s_icon_color);
+    else if (s_icon_kind == 1) {
+        draw_line_dots(layer, x-64, y, x-20, y+50, s_icon_color);
+        draw_line_dots(layer, x-20, y+50, x+72, y-52, s_icon_color);
+    } else {
+        draw_line_dots(layer, x-62, y-62, x+62, y+62, s_icon_color);
+        draw_line_dots(layer, x+62, y-62, x-62, y+62, s_icon_color);
+    }
 }
 static void set_icon(int kind, uint32_t col) {     // 0=上箭头 1=对勾 2=叉
-    lv_obj_clean(g_icon);
-    if (kind == 0) draw_up_arrow(col);
-    else if (kind == 1) draw_check(col);
-    else if (kind == 2) draw_cross(col);
+    s_icon_kind = kind; s_icon_color = col;
+    lv_obj_invalidate(g_icon);
 }
 
 static void ota_task(void *arg) {
     wifi_ps_type_t previous;
     bool restore = esp_wifi_get_ps(&previous) == ESP_OK && esp_wifi_set_ps(WIFI_PS_NONE) == ESP_OK;
     ota_status_t result = ota_update_run(arg, status_publish, NULL);
+    ESP_LOGI(TAG, "result state=%d version=%s", result.state, result.version);
     if (restore) {
         esp_err_t err = esp_wifi_set_ps(previous);
         if (err != ESP_OK) ESP_LOGW(TAG, "restore WiFi power save: %s", esp_err_to_name(err));
@@ -284,12 +314,7 @@ static void ota_enter(lv_obj_t *parent) {
     lv_obj_remove_flag(g_main, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(g_main, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    // 从十二点方向顺时针点亮,已点亮的数量只取决于真实下载进度。
-    for (int i = 0; i < ORBIT_N; i++) {
-        float a = -1.57079633f + 6.28318531f * i / ORBIT_N;
-        g_orbit[i] = glyph_dot(g_main, OTA_CX + (int)(cosf(a) * ORBIT_R),
-                              OTA_CY + (int)(sinf(a) * ORBIT_R), 3, ORBIT_IDLE);
-    }
+    lv_obj_add_event_cb(g_main, orbit_draw, LV_EVENT_DRAW_MAIN, NULL);
 
     g_icon = lv_obj_create(g_main);
     lv_obj_remove_style_all(g_icon);
@@ -297,6 +322,7 @@ static void ota_enter(lv_obj_t *parent) {
     lv_obj_align(g_icon, LV_ALIGN_TOP_MID, 0, ICON_Y);
     lv_obj_remove_flag(g_icon, LV_OBJ_FLAG_SCROLLABLE | LV_OBJ_FLAG_CLICKABLE);
     lv_obj_add_flag(g_icon, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_event_cb(g_icon, icon_draw, LV_EVENT_DRAW_MAIN, NULL);
 
     // 下载期间箭头保留;细横条和小百分比放在下方,仍处于外环内的圆屏安全区。
     g_progress = lv_bar_create(g_main);
@@ -480,12 +506,12 @@ static void ota_tick(void) {
             str_id_t message = status.failed_at == OTA_HEADER ? S_OTA_HEADER_FAIL :
                 status.failed_at == OTA_RUNNING ? S_OTA_DOWNLOAD_FAIL :
                 status.failed_at == OTA_VERIFYING ? S_OTA_VERIFY_FAIL : S_OTA_CONNECT_FAIL;
-            if (status.tls_flags) message = S_OTA_TLS_FAIL;
+            if (status.tls_flags || ota_tls_certificate_error(status.tls_code)) message = S_OTA_TLS_FAIL;
             char b[128];
             if (status.http_status >= 400)
                 snprintf(b, sizeof b, "%s\nHTTP %d", tr(message), status.http_status);
             else if (status.tls_code)
-                snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), 0u - (unsigned)status.tls_code);
+                snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), ota_tls_error_magnitude(status.tls_code));
             else snprintf(b, sizeof b, "%s\n0x%04x", tr(message), (unsigned)status.error);
             lv_label_set_text(g_status, b);
             lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
@@ -498,7 +524,6 @@ static void ota_tick(void) {
 static void ota_exit(void) {
     stop_arrow_anim();                           // 后台下载独立于页面,只停本页视觉动画。
     stop_orbit_anim();
-    memset(g_orbit, 0, sizeof g_orbit);
     g_status = g_ver = g_icon = g_pctlbl = g_progress = NULL;
     g_main = g_hit = g_switch = g_channelbox = g_gear = g_settings = NULL;
     s_settings_open = s_visible = false;

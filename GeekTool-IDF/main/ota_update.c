@@ -17,6 +17,13 @@
 #include <string.h>
 #include <strings.h>
 
+#ifdef ESP_PLATFORM
+#include "sdkconfig.h"
+#if !defined(CONFIG_MBEDTLS_EXTERNAL_MEM_ALLOC)
+#error "OTA requires TLS PSRAM allocation; preserve the approved OTA memory policy"
+#endif
+#endif
+
 static const char *TAG = "ota";
 #define OTA_RESUME_MIN 1024       // ESP-IDF DEFAULT_OTA_BUF_SIZE;头读入 RAM 不代表已经写入 Flash
 #define OTA_STALL_US (45LL * 1000000)
@@ -71,10 +78,34 @@ static void publish(ota_status_t *s, ota_state_t state, ota_status_cb cb, void *
     if (cb) cb(s, user);
 }
 
+// ESP-IDF's git describe adds -<commits>-g<hash> and -dirty to a local tag.
+// Compare that tag so a local fix cannot be replaced by its already-published image.
+// Other version differences still follow the selected release channel's behavior.
+static size_t version_tag_length(const char *version) {
+    size_t n = strnlen(version, sizeof(((esp_app_desc_t *)0)->version));
+    if (n > 6 && memcmp(version + n - 6, "-dirty", 6) == 0) n -= 6;
+    size_t hash = n;
+    while (hash && ((version[hash-1] >= '0' && version[hash-1] <= '9') ||
+                   (version[hash-1] >= 'a' && version[hash-1] <= 'f'))) hash--;
+    if (hash >= 2 && hash < n && version[hash-2] == '-' && version[hash-1] == 'g') {
+        size_t count_end = hash - 2, count = count_end;
+        while (count && version[count-1] >= '0' && version[count-1] <= '9') count--;
+        if (count > 1 && count < count_end && version[count-1] == '-') n = count - 1;
+    }
+    return n;
+}
+
+static bool same_version_tag(const char *left, const char *right) {
+    size_t n = version_tag_length(left);
+    return n && n == version_tag_length(right) && memcmp(left, right, n) == 0;
+}
+
 static bool can_retry(const ota_status_t *s) {
     if (s->attempt >= OTA_UPDATE_ATTEMPTS || s->failed_at == OTA_VERIFYING || s->tls_flags ||
-        s->tls_code == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED || s->tls_code == MBEDTLS_ERR_SSL_ALLOC_FAILED ||
-        s->tls_code == MBEDTLS_ERR_X509_ALLOC_FAILED || s->error == ESP_ERR_NO_MEM) return false;
+        ota_tls_certificate_error(s->tls_code) ||
+        ota_tls_error_magnitude(s->tls_code) == ota_tls_error_magnitude(MBEDTLS_ERR_SSL_ALLOC_FAILED) ||
+        ota_tls_error_magnitude(s->tls_code) == ota_tls_error_magnitude(MBEDTLS_ERR_X509_ALLOC_FAILED) ||
+        s->error == ESP_ERR_NO_MEM) return false;
     if (s->http_status >= 400 && s->http_status < 500 && s->http_status != 408 && s->http_status != 429) return false;
     // esp_https_ota 的断流/不完整数据均返回 ESP_FAIL;Flash/镜像/参数错误有各自错误码。
     return s->error == ESP_FAIL || s->error == ESP_ERR_TIMEOUT || s->error == ESP_ERR_HTTP_CONNECT ||
@@ -113,9 +144,11 @@ ota_status_t ota_update_run(const char *url, ota_status_cb cb, void *user) {
         s.http_status = s.tls_code = s.tls_flags = 0;
         s.failed_at = OTA_CHECKING;
         publish(&s, OTA_CHECKING, cb, user);
-        ESP_LOGI(TAG, "attempt %d/%d offset=%d internal free=%u largest=%u", s.attempt,
+        ESP_LOGI(TAG, "attempt %d/%d offset=%d internal free=%u largest=%u psram free=%u largest=%u", s.attempt,
                  OTA_UPDATE_ATTEMPTS, written, (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
-                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL));
+                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
+                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_SPIRAM),
+                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_SPIRAM));
         s.error = esp_https_ota_begin(&cfg, &h);
         if (s.error != ESP_OK) goto failed;
         response.http_status = esp_https_ota_get_status_code(h);
@@ -149,7 +182,7 @@ ota_status_t ota_update_run(const char *url, ota_status_cb cb, void *user) {
         identity = remote;
         memcpy(etag, response.etag, sizeof etag);
         memcpy(s.version, remote.version, sizeof s.version);
-        if (strncmp(remote.version, current->version, sizeof remote.version) == 0) {
+        if (same_version_tag(remote.version, current->version)) {
             esp_https_ota_abort(h);
             publish(&s, OTA_UPTODATE, cb, user); return s;
         }
