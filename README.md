@@ -7,7 +7,8 @@ BLE 数字孪生以及双分区云 OTA。
 当前仓库 `main` 包含 `v1.7-beta.19` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
 beta.19 已发布至 GitHub/R2/国内 OTA；镜像同步上限已对齐4MiB，三个地址完整文件核对一致。
-本轮新增答案之书，beta.20发布构建待完成；主机回归与本地构建通过，真机体验待验收。
+本轮答案之书按联网优先和PWR实体键翻页修订；纯离线beta.20构建已取消，没有发布新包。
+beta.21发布待完成，本地构建通过，真机联网/按键体验待验收。
 
 ## 功能概览
 
@@ -59,7 +60,7 @@ beta.19 已发布至 GitHub/R2/国内 OTA；镜像同步上限已对齐4MiB，�
 [系统信息 UI](./GeekTool-IDF/SYSTEM_UI.md)。
 启动器17个几何图标、原生圆屏预览及切换绘制逻辑见
 [启动器图标](./GeekTool-IDF/LAUNCHER_ICONS.md)。
-答案之书的离线中英文答案、翻页状态与生命周期见
+答案之书的联网中英文答案、断网备用、实体键翻页与生命周期见
 [答案之书](./GeekTool-IDF/ANSWERS_UI.md)。
 设置分类导航、Wi-Fi连接/密码页及真实数据/事件边界见
 [设置与Wi-Fi交互](./GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)。

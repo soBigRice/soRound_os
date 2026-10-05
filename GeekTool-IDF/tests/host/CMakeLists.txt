@@ -70,12 +70,17 @@ target_include_directories(dice_ui_tests PRIVATE ../dice/stubs ../weather/stubs 
 target_link_libraries(dice_ui_tests PRIVATE lvgl m)
 target_compile_options(dice_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME dice_coin_animation_and_layout COMMAND dice_ui_tests)
-add_executable(answers_ui_tests ../answers/answers_ui_tests.c ../../main/font_answer.c
+add_executable(answers_ui_tests ../answers/answers_ui_tests.c ../../main/font_answer.c ../../main/font_answer_cjk.c
                ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c)
 target_include_directories(answers_ui_tests PRIVATE ../dice/stubs ../weather/stubs stubs ../../main)
 target_link_libraries(answers_ui_tests PRIVATE lvgl m)
 target_compile_options(answers_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME answers_book_and_lifecycle COMMAND answers_ui_tests)
+add_executable(answers_network_tests ../answers/answers_network_tests.c ../../main/answers_data.c ../../main/answers_fetch.c
+               ../../managed_components/espressif__cjson/cJSON/cJSON.c)
+target_include_directories(answers_network_tests PRIVATE ../answers/stubs ../../main ../../managed_components/espressif__cjson/cJSON)
+target_compile_options(answers_network_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME answers_network_and_cleanup COMMAND answers_network_tests)
 add_executable(system_ui_tests ../system/system_ui_tests.c ../../main/tools_ui.c ../../main/font_tools.c
                ../../main/i18n.c ../../main/font_cn16.c ../../main/font_weather_16.c)
 target_include_directories(system_ui_tests PRIVATE ../system/stubs stubs ../ota/stubs ../../main)

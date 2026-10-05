@@ -1,9 +1,12 @@
 #include "app.h"
 #include "answer_messages.h"
+#include "answers_data.h"
+#include "buttons.h"
 #include "lvgl_compat.h"
 #include "settings.h"
 #include "esp_random.h"
 #include <stdio.h>
+#include <string.h>
 
 LV_FONT_DECLARE(font_answer_32);
 LV_FONT_DECLARE(font_location_24);
@@ -14,10 +17,13 @@ LV_FONT_DECLARE(font_location_24);
 #define MUTED 0xa0a0a6
 
 static lv_obj_t *g_cover, *g_reading, *g_answer, *g_page, *g_hint, *g_action, *g_action_label;
-static bool s_visible, s_turning, s_first, s_changed;
+static bool s_visible, s_turning, s_first, s_changed, s_waiting, s_online, s_opened;
 static uint32_t s_at, s_elapsed;
+static uint32_t s_token, s_wait_at;
 static unsigned s_pages, s_pending;
 static int s_last;
+static answer_fetch_state_t s_reason;
+static answer_response_t s_answer, s_previous;
 
 static const char *text(const char *en, const char *zh) { return settings_lang() ? zh : en; }
 
@@ -46,7 +52,7 @@ static lv_obj_t *block(lv_obj_t *parent, int x, int y, int width, int height, ui
 }
 
 static void apply_answer(void) {
-    lv_label_set_text(g_answer, settings_lang() ? ANSWERS[s_pending].zh : ANSWERS[s_pending].en);
+    lv_label_set_text(g_answer, settings_lang() ? s_answer.zh : s_answer.en);
     lv_obj_update_layout(g_answer);
     lv_obj_set_pos(g_answer, 7, 126 - lv_obj_get_height(g_answer) / 2);
     char page[24]; snprintf(page, sizeof page, "PAGE %02u", s_pages + 1);
@@ -61,19 +67,65 @@ static void start_turn(lv_event_t *event) {
     unsigned choices = (unsigned)ANSWER_COUNT - (s_last >= 0 ? 1u : 0u);
     s_pending = esp_random() % choices;
     if (s_last >= 0 && s_pending >= (unsigned)s_last) ++s_pending;
-    s_first = s_last < 0; s_turning = true; s_changed = false;
+    if (!strcmp(settings_lang() ? ANSWERS[s_pending].zh : ANSWERS[s_pending].en,
+                settings_lang() ? s_previous.zh : s_previous.en))
+        s_pending = (s_pending + 1) % ANSWER_COUNT;
+    snprintf(s_answer.en, sizeof s_answer.en, "%s", ANSWERS[s_pending].en);
+    snprintf(s_answer.zh, sizeof s_answer.zh, "%s", ANSWERS[s_pending].zh);
+    s_first = !s_opened; s_turning = true; s_changed = false; s_online = false;
+    s_reason = answers_fetch_begin(&s_token);
+    s_waiting = s_reason == ANSWER_FETCH_LOADING; s_wait_at = lv_tick_get();
     s_elapsed = 0; s_at = lv_tick_get();
     if (s_pages == 9999) s_pages = 0;
     lv_obj_add_state(g_action, LV_STATE_DISABLED);
     lv_obj_add_state(g_action_label, LV_STATE_DISABLED);
     lv_label_set_text(g_action_label, text("TURNING…", "翻页中"));
-    lv_label_set_text(g_hint, text("TURNING THE PAGE", "正在翻页…"));
+    lv_label_set_text(g_hint, s_waiting ? text("FETCHING AN ANSWER", "联网获取中…") : text("TURNING THE PAGE", "正在翻页…"));
+}
+
+static bool remote_fits(const char *value) {
+    if (!value[0]) return false;
+    const unsigned char *p = (const unsigned char *)value;
+    while (*p) {
+        uint32_t cp = *p++; unsigned extra = 0;
+        if (cp >= 0xf0) { cp &= 7; extra = 3; }
+        else if (cp >= 0xe0) { cp &= 15; extra = 2; }
+        else if (cp >= 0xc0) { cp &= 31; extra = 1; }
+        for (unsigned i = 0; i < extra; ++i) cp = (cp << 6) | (*p++ & 63);
+        lv_font_glyph_dsc_t glyph;
+        if (!lv_font_get_glyph_dsc(&font_answer_32, &glyph, cp, 0) || glyph.is_placeholder) return false;
+    }
+    lv_point_t size;
+    lv_text_get_size(&size, value, &font_answer_32, 0, 7, 288, LV_TEXT_FLAG_NONE);
+    return size.y <= 132;
+}
+
+static void poll_answer(void) {
+    if (!s_waiting) return;
+    answer_response_t result;
+    answer_fetch_state_t state = answers_fetch_poll(s_token, &result);
+    if (state == ANSWER_FETCH_READY) {
+        const char *value = settings_lang() ? result.zh : result.en;
+        const char *previous = settings_lang() ? s_previous.zh : s_previous.en;
+        bool fits = remote_fits(value), repeated = strcmp(value, previous) == 0;
+        s_online = fits && !repeated;
+        if (s_online) s_answer = result;
+        s_reason = !fits ? ANSWER_FETCH_UNSUPPORTED : repeated ? ANSWER_FETCH_REPEAT : ANSWER_FETCH_READY;
+        s_waiting = false;
+    } else if (state != ANSWER_FETCH_LOADING || lv_tick_get() - s_wait_at >= 8500) {
+        answers_fetch_cancel(); s_reason = ANSWER_FETCH_FAILED; s_waiting = false;
+    }
 }
 
 static void answers_tick(void) {
-    if (!g_cover || !s_visible || !s_turning) return;
+    if (!g_cover || !s_visible) return;
+    if (buttons_control_pressed()) start_turn(NULL);
+    if (!s_turning) return;
+    poll_answer();
     uint32_t now = lv_tick_get(), delta = now - s_at; s_at = now;
     s_elapsed += delta > TURN_MS - s_elapsed ? TURN_MS - s_elapsed : delta;
+    // Hold at the page edge while HTTP is pending; never replace an answer after it has appeared.
+    if (s_waiting && s_elapsed >= HALF_TURN_MS) s_elapsed = HALF_TURN_MS - 1;
     if (s_elapsed < HALF_TURN_MS) {
         if (s_first) {
             lv_obj_set_style_transform_scale_x(g_cover, 256 - 220 * s_elapsed / HALF_TURN_MS, 0);
@@ -89,22 +141,30 @@ static void answers_tick(void) {
         lv_obj_set_style_translate_y(g_reading, 8 - 8 * phase / HALF_TURN_MS, 0);
     }
     if (s_elapsed < TURN_MS) return;
-    s_turning = false; s_last = (int)s_pending; ++s_pages;
+    s_turning = false; s_last = s_online ? -1 : (int)s_pending;
+    s_previous = s_answer; s_opened = true; ++s_pages;
     lv_obj_remove_state(g_action, LV_STATE_DISABLED);
     lv_obj_remove_state(g_action_label, LV_STATE_DISABLED);
     lv_label_set_text(g_action_label, text("TURN A PAGE", "再翻一页"));
-    lv_label_set_text(g_hint, text("A NEW PERSPECTIVE", "换个角度，再想一想"));
+    lv_label_set_text(g_hint, s_online ? text("ONLINE ANSWER", "联网答案 · 按键翻页") :
+        s_reason == ANSWER_FETCH_OFFLINE ? text("OFFLINE BACKUP", "无网络 · 备用答案") :
+        s_reason == ANSWER_FETCH_UNSUPPORTED ? text("CONTENT · BACKUP", "内容不适用 · 备用") :
+        s_reason == ANSWER_FETCH_REPEAT ? text("NEW PAGE · BACKUP", "换个答案 · 备用") :
+        text("FETCH FAILED · BACKUP", "获取失败 · 备用答案"));
 }
 
 static void answers_visibility(bool visible) {
     s_visible = visible;
+    buttons_reset_control();
     // The launcher stops hidden ticks. Reset the clock so resuming cannot jump over a page turn.
     s_at = lv_tick_get();
 }
 
 static void answers_enter(lv_obj_t *parent) {
     s_last = -1; s_pages = 0; s_elapsed = 0;
-    s_turning = s_changed = false; s_visible = true; s_at = lv_tick_get();
+    s_turning = s_changed = s_waiting = s_online = s_opened = false;
+    s_previous = (answer_response_t){0}; s_visible = true; s_at = lv_tick_get();
+    buttons_reset_control();
     lv_obj_t *root = block(parent, 0, 0, 466, 466, COL_BG);
     g_cover = block(root, 144, 114, 178, 216, 0x16161a);
     ui_obj_set_clickable(g_cover, true);
@@ -144,7 +204,8 @@ static void answers_enter(lv_obj_t *parent) {
 }
 
 static void answers_exit(void) {
-    s_visible = s_turning = false;
+    s_visible = s_turning = s_waiting = false;
+    answers_fetch_cancel(); buttons_reset_control();
     g_cover = g_reading = g_answer = g_page = g_hint = g_action = g_action_label = NULL;
 }
 

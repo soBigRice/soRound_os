@@ -9,7 +9,7 @@ idf_component_register(
          "img_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c" "font_coin.c"
          "ble_twin.c" "app_twin.c" "ble_core.c" "ble_hid.c" "app_mouse.c"
-         "app_answers.c" "font_answer.c"
+         "app_answers.c" "answers_data.c" "answers_fetch.c" "font_answer.c" "font_answer_cjk.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common

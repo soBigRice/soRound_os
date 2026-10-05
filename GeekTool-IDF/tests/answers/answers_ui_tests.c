@@ -6,6 +6,7 @@
 #include <string.h>
 #include "app.h"
 #include "settings.h"
+#include "answers_data.h"
 #include "launcher_icons.h"
 #include "src/misc/lv_text_private.h"
 #include "../host/tools_render.h"
@@ -13,8 +14,26 @@
 static uint8_t language;
 static uint32_t random_value;
 static unsigned random_calls, flushed_pixels;
+static bool control, network, hold_response;
+static unsigned requests, cancellations;
+static uint32_t mock_token;
+static answer_fetch_state_t mock_state=ANSWER_FETCH_READY;
+static answer_response_t response={"Stay resilient.","保持弹性"};
 uint8_t settings_lang(void) { return language; }
 uint32_t esp_random(void) { ++random_calls; return random_value; }
+bool buttons_control_pressed(void) { bool hit=control;control=false;return hit; }
+void buttons_reset_control(void) { control=false; }
+answer_fetch_state_t answers_fetch_begin(uint32_t *token) {
+    if(!network)return ANSWER_FETCH_OFFLINE;
+    ++requests;*token=++mock_token;return ANSWER_FETCH_LOADING;
+}
+answer_fetch_state_t answers_fetch_poll(uint32_t token,answer_response_t *out) {
+    assert(token==mock_token);
+    if(hold_response)return ANSWER_FETCH_LOADING;
+    if(mock_state==ANSWER_FETCH_READY)*out=response;
+    return mock_state;
+}
+void answers_fetch_cancel(void) { ++cancellations; }
 #include "../../main/app_answers.c"
 
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466*48];
@@ -136,8 +155,35 @@ int main(int argc,char **argv) {
         assert(!g_cover&&!s_turning);
         page=enter();capture(NULL,"reentry");assert(s_last==-1&&!s_turning&&s_pages==0);
         app_answers.exit();lv_obj_delete(page);
+        // The timer's physical PWR key shares the tap path; old/hidden events cannot replay.
+        network=true;hold_response=true;mock_state=ANSWER_FETCH_READY;
+        response=(answer_response_t){"Stay resilient.","保持弹性"};
+        control=true;page=enter();advance(20);assert(!s_turning&&!control);
+        calls=requests;tap(g_action);advance(400);
+        assert(s_waiting&&s_turning&&!s_changed&&requests==calls+1);
+        capture(dir,"fetching");control=true;advance(20);assert(requests==calls+1&&!control);
+        hold_response=false;advance(20);advance(360);
+        assert(s_online&&!s_turning&&s_last==-1&&s_pages==1);
+        assert(!strcmp(lv_label_get_text(g_answer),language?response.zh:response.en));capture(dir,"online");
+        response=(answer_response_t){"Act with confidence.","果断行动"};
+        calls=requests;control=true;advance(20);assert(s_turning&&requests==calls+1);
+        advance(720);assert(s_online&&s_pages==2);capture(dir,"physical-key");
+        app_answers.visibility(false);control=true;advance(1000);assert(requests==calls+1);
+        app_answers.visibility(true);advance(20);assert(!control&&requests==calls+1);
+        // A duplicate, unsupported glyph, oversized layout or HTTP failure uses an explicit backup state.
+        tap(g_action);advance(720);assert(!s_online&&s_pages==3);capture(dir,"duplicate");
+        response=(answer_response_t){"🙂","🙂"};tap(g_action);advance(720);assert(!s_online);capture(NULL,"unsupported");
+        memset(response.en,'W',60);response.en[60]=0;snprintf(response.zh,sizeof response.zh,"%s",response.en);
+        tap(g_action);advance(720);assert(!s_online);capture(NULL,"oversized");
+        mock_state=ANSWER_FETCH_FAILED;tap(g_action);advance(720);assert(!s_online);capture(dir,"fetch-failed");
+        mock_state=ANSWER_FETCH_READY;hold_response=true;unsigned before=cancellations;
+        tap(g_action);advance(8500);assert(!s_turning&&!s_waiting&&cancellations==before+1);
+        capture(dir,"timeout");tap(g_action);advance(200);before=cancellations;
+        app_answers.exit();lv_obj_delete(page);advance(1000);assert(cancellations==before+1&&!g_cover);
+        network=false;hold_response=false;control=true;page=enter();advance(20);
+        assert(!s_turning&&!control);app_answers.exit();lv_obj_delete(page);
     }
     lv_deinit();
-    puts("answers: 48 original bilingual responses, glyph/circle coverage, cover and page turns, repeated-tap guard, no adjacent repeat, cover/resume, clock wrap/delays, counter bound, idle no-redraw and exit/reentry passed");
+    puts("answers: 48 bilingual backups, online/failed/duplicate/unsupported/long/timeout states, physical key/tap equivalence, glyph/circle coverage, page turns, repeated-tap guard, no adjacent repeat, cover/resume, clock wrap/delays, idle and exit/reentry passed");
     return 0;
 }

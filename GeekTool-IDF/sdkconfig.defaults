@@ -50,6 +50,8 @@ CONFIG_LV_FONT_MONTSERRAT_40=y
 # Nothing 点阵风格:内置 unscii 像素字 + 默认主题(全局单色用)
 CONFIG_LV_FONT_UNSCII_8=y
 CONFIG_LV_FONT_UNSCII_16=y
+# 答案之书的网络中文使用32px压缩扩展字库;既有UI/天气字形资源保持不变。
+CONFIG_LV_USE_FONT_COMPRESSED=y
 # 中文:自产精简字库 main/font_cn16.c(UI 用字子集,tools/gen_font_cn.swift 生成),
 # 不用 LVGL 内置思源 CJK —— 其字表是 demo 日繁混合集,简体覆盖差且白占 ~1.2MB flash。
 CONFIG_LV_USE_THEME_DEFAULT=y
