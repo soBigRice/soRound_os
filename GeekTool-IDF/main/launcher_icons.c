@@ -124,6 +124,10 @@ static void paint(ink_t *p,launcher_icon_t kind) {
         line(p,74,37,74,47,STROKE,COL_RED);break;
     case LAUNCHER_TWIN:
         cube(p,40);cube(p,108);line(p,67,75,81,75,5,COL_RED);dot(p,74,75,8,COL_RED);break;
+    case LAUNCHER_ANSWERS:
+        box(p,31,17,86,114,9,INK);stroke(p,48,22,48,126);
+        line(p,94,19,94,48,9,COL_RED);
+        stroke(p,65,73,99,73);stroke(p,65,92,89,92);break;
     case LAUNCHER_PREV:
         line(p,16,6,8,14,3,COL_TXT2);line(p,8,14,16,22,3,COL_TXT2);break;
     case LAUNCHER_NEXT:

@@ -23,7 +23,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -46,7 +46,8 @@ static void header_app_style(void) {
     bool ota = cur_app == &app_ota;
     bool weather = cur_app == &app_weather;
     bool controls = cur_app == &app_settings || cur_app == &app_wifi;
-    bool compact = weather || controls;
+    bool book = cur_app == &app_answers;
+    bool compact = weather || controls || book;
     bool tools = cur_app == &app_audio || cur_app == &app_level;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
@@ -57,8 +58,8 @@ static void header_app_style(void) {
     lv_label_set_long_mode(g_title,LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(g_title,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, compact ? 52 : 46);
-    lv_obj_set_size(g_back, controls ? 44 : (compact ? 40 : 48), controls ? 44 : (compact ? 40 : 48));
-    lv_obj_align(g_back, LV_ALIGN_TOP_MID, controls ? -110 : -100, compact ? 52 : 40);
+    lv_obj_set_size(g_back, (controls || book) ? 44 : (compact ? 40 : 48), (controls || book) ? 44 : (compact ? 40 : 48));
+    lv_obj_align(g_back, LV_ALIGN_TOP_MID, (controls || book) ? -110 : -100, compact ? 52 : 40);
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);

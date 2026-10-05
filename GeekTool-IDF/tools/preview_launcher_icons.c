@@ -19,7 +19,8 @@ static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
     lv_display_flush_ready(d);
 }
 static const char *const names[]={"WiFi","I2C","System","weather","calendar","countdown","stopwatch","settings",
-                                "ota","audio","level","maze","fluid","dice","mouse","twin"};
+                                "ota","audio","level","maze","fluid","dice","mouse","twin","Answers"};
+_Static_assert(sizeof(names)/sizeof(names[0]) == LAUNCHER_ICON_COUNT, "Preview every registered icon");
 static void battery(void) {
     lv_obj_t *ring=lv_arc_create(lv_layer_top());lv_obj_set_size(ring,458,458);lv_obj_center(ring);
     lv_arc_set_rotation(ring,270);lv_arc_set_bg_angles(ring,0,360);lv_arc_set_range(ring,0,100);lv_arc_set_value(ring,74);
@@ -63,5 +64,5 @@ int main(int argc,char **argv) {
         screen(i);export(argv[1],names[i]);
     }
     language=1;screen(LAUNCHER_SYSTEM);lv_obj_set_style_opa_layered(button,LV_OPA_50,0);export(argv[1],"system-fade");
-    printf("Exported 32 native launcher screens and one swap-opacity frame.\n");lv_deinit();return 0;
+    printf("Exported %u native launcher screens and one swap-opacity frame.\n",2u*LAUNCHER_ICON_COUNT);lv_deinit();return 0;
 }
