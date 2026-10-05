@@ -1543,4 +1543,17 @@ beta.21源码`e9689d9`和原tag保留，构建37255671917在发布/R2步骤前�
 其他16项回归和UI原生渲染输入未变，复用上面的有效结果。发布版本改为beta.22，原有tag不移动。
 随机附加值的实际三次请求均200，返回三个不同标题和request_id，仅属桌面接口验证。
 ESP-IDF6.0.1本地增量构建通过：`0x3a89c0`（3,836,352B），4MiB槽余`0x57640`（357,952B）。
-CI及完整公网包核对待记录，有效证据归 `build/flash-records/answers-beta22-20261005/`。
+beta.22源码`e41a2a8dcdc441e4d43d1d6842b005db8cef2f8d`已提交并推送，原tag不移动。
+CI构建37256261681成功，实际ESP-IDF6.0.1/LVGL9.6.0~1；GitHub prerelease/R2上传均成功。
+发布包3,869,872B（`0x3b0cb0`），4MiB槽余324,432B（`0x4f350`）；文件SHA-256为
+`d983885989ad9502d4d997697878ae59121f675f51ca8798bade7264f5f9b89e`，与GitHub资产digest一致。
+`image-info`确认ESP32-S3、GeekTool/v1.7-beta.22、7个段、校验和与附加SHA有效，
+ELF SHA-256为`3ad62c8096843f1983768a5dd04d099aaa8aef3f384225ed47ddf894f2f52a2f`。
+
+R2与国内beta完整GET均200、文件逐字节等同GitHub发布包，no-store和强ETag保留；
+If-Match条件下`bytes=131072-196607`均206、65,536B且与发布包同段一致。
+两个正式通道再次完整200，1,872,192B及摘要
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`仍等同已确认的v1.6.1。
+发布说明已注明联网/按键行为与设备待验收边界；没有对设备进行本轮USB烧录或OTA操作。
+最终原生PNG与有效证据保留，临时字体工具、测试构建和PPM已清理，无残留测试进程。
+有效证据归 `build/flash-records/answers-beta22-20261005/`；联网、实体键、触摸/锁屏及实际OTA体验待用户验收。
