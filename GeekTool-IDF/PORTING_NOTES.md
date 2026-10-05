@@ -1570,4 +1570,16 @@ If-Match条件下`bytes=131072-196607`均206、65,536B且与发布包同段一�
 
 LVGL9.5/9.6各22组回归通过；后续字体/UI修改复测相关答案之书、星座、木鱼与天气项目，未受影响结果复用。包括原20帧天气首屏、74组图标与字形像素基线；真实12星座字形检查两版本通过。木鱼真实NVS模块、2秒/20秒保存、错误保留RAM计数、全局静音与App开关分离已覆盖。扬声器硬件、断电/重启计数和主观UI需设备验收。
 
-发布仍沿用原Tag→ESP-IDF6.0.1 CI→GitHub→R2→国内同步流程。4MiB槽未修改，发布包容量、确切源码、SHA与完整/Range结果待CI完成后记录。
+发布仍沿用原Tag→ESP-IDF6.0.1 CI→GitHub→R2→国内同步流程。4MiB槽未修改，发布容量和下载结果见下文。
+
+## 2026-10-05 v1.7-beta.23 发布核对
+
+源码 `f2350536aa5fbb368cf7203b23a3a0fd7234513f`，annotated tag对象 `f13347954203b00619fcfa860d8f27a71374d9b6`；main与tag的精确Git对象通过GitHub API写入并验证，未移动旧tag。GitHub Actions [37260320814](https://github.com/soBigRice/soRound_os/actions/runs/37260320814)成功，构建/Release/R2上传全部完成。实际依赖ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0；后者与本地2.8.0~1存在版本差异，已核对官方2.9.0的内部DMA分配、SPI部分刷新和完成回调相同，本次刷新通过公共LVGL接口接入，没有引用私有结构。
+
+[GitHub Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.23)资产 `GeekTool.bin` 为3,889,248B（0x3b5860），4MiB OTA槽剩305,056B（0x4a7a0，约298KiB）。esptool确认项目GeekTool、版本v1.7-beta.23。SHA256 `f954d4a18e2ac7b2f160e21c4efa7da0b1d5e0a538d4e0a70aa46eec7d2479aa`，ELF SHA256 `2b9dff3dfcc412cbc447df205013676d873a4b8ab26045c3e01d114234d0c615`。
+
+`r2-ota.miaozong.cc/GeekTool-beta.bin` 和 `ota.miaozong.cc/GeekTool-beta.bin` 完整下载逐字节等于GitHub资产，均no-store与强ETag。使用ESP-IDF默认 `ESP32 HTTP Client/1.0` User-Agent和HTTP/1.1，If-Match+Range `131072-196607` 均206、65,536B、Content-Range总大小正确，并逐字节等于发布包切片。初次Python urllib验证遇到403，未据此改服务器；curl对照后按设备实际HTTP参数核对通过，不能将不同客户端结果混同。国内镜像自动同步，没有手工改服务器配置。
+
+两个域名正式对象 `GeekTool.bin` 均仍1,872,192B，SHA256 `703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`，即v1.6.1，不受本次beta发布影响。证据位于忽略目录 `build/flash-records/zodiac-merit-beta23-20261005/`，包括两版本主机日志、真实API、CI日志、发布资产/描述符、完整/Range头及摘要。临时主机构建/导出/辅助发布脚本清理，最终原生PNG保留供评审。
+
+未连接USB，未烧入设备；天气TE边沿/刷新率、实际滚动观感、声音和重启后计数尚待设备验收。软件与分发验证通过不能替代该层结果。
