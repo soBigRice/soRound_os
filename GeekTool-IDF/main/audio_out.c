@@ -60,6 +60,9 @@ static void hardware_init(void) {
     vTaskDelay(pdMS_TO_TICKS(40));
 
     i2s_chan_config_t chan = I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM_0, I2S_ROLE_MASTER);
+    // The worker sleeps between hits while TX stays enabled. Without this, DMA
+    // loops the last buffers forever, including any underrun during a tap burst.
+    chan.auto_clear_after_cb = true;
     if (i2s_new_channel(&chan, &s_tx, NULL) != ESP_OK) { ESP_LOGE(TAG, "i2s_new_channel"); return; }
 
     i2s_std_config_t std = {
@@ -151,14 +154,21 @@ static void write_knock(void) {
     _Static_assert(RATE==MERIT_SOUND_RATE,"Wooden-fish PCM must match the I2S sample rate");
     for(int done=0;done<n;) {
         if(cancelled())return;
-        // Replace the ringing tail at the next 8ms boundary; never queue stale knocks.
+        // Coalesce pending taps, then blend the old tail into the new attack.
+        // A hard phase reset here creates a click, especially during rapid taps.
         portENTER_CRITICAL(&s_mux);
-        if(s_req==3){s_req=0;done=0;}
+        bool retrigger=s_req==3;
+        if(retrigger)s_req=0;
         portEXIT_CRITICAL(&s_mux);
+        enum { BLEND_SAMPLES=32 }; // 2ms transition; stays within one 8ms PCM chunk.
+        int16_t tail[BLEND_SAMPLES];
+        if(retrigger){merit_sound_fill(tail,(size_t)done,BLEND_SAMPLES);done=0;}
         apply_volume();
         if(s_io_failed)return;
         int k=n-done<128?n-done:128;
         merit_sound_fill(s_buf,(size_t)done,(size_t)k);
+        if(retrigger)for(int i=0;i<BLEND_SAMPLES;++i)
+            s_buf[i]=(int16_t)(((int32_t)tail[i]*(BLEND_SAMPLES-1-i)+(int32_t)s_buf[i]*i)/(BLEND_SAMPLES-1));
         if(esp_codec_dev_write(s_dev,s_buf,k*sizeof(int16_t))!=ESP_CODEC_DEV_OK){s_io_failed=true;return;}
         done+=k;
     }
