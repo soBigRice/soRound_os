@@ -9,4 +9,4 @@ void audio_out_deinit(void);            // 异步停止并释放;写入结束后
 void audio_out_set_volume(uint8_t v);   // 0-100(硬件音量)
 void audio_out_alarm(void);             // 倒计时闹铃和弦(静音模式或未初始化则不响)
 void audio_out_blip(void);              // 短提示音(音量预览用)
-void audio_out_knock(void);             // 木鱼短敲击,共用异步输出与静音/音量约束
+void audio_out_knock(void);             // 木鱼空腔敲击;连敲替换余音,共用异步输出与静音/音量约束

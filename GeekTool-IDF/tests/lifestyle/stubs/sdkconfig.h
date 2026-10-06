@@ -1,0 +1,4 @@
+#pragma once
+#define CONFIG_JD_SZBUF 512
+#define CONFIG_JD_FORMAT 0
+#define CONFIG_JD_FASTDECODE 0

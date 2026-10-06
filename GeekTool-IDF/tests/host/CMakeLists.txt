@@ -142,3 +142,12 @@ foreach(tool merit zodiac)
   target_compile_definitions(${tool}_ui_tests PRIVATE ZODIAC_GLYPHS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../lifestyle/horoscope_glyphs.txt" ZODIAC_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../lifestyle/horoscope_fixture.json")
   add_test(NAME ${tool}_controls_and_lifecycle COMMAND ${tool}_ui_tests)
 endforeach()
+target_sources(merit_ui_tests PRIVATE ../lifestyle/merit_artwork_decode.c ../../main/merit_artwork.c
+               ../../managed_components/espressif__esp_jpeg/tjpgd/tjpgd.c)
+target_include_directories(merit_ui_tests PRIVATE ../lifestyle/stubs ../watchfaces/stubs
+                           ../../managed_components/espressif__esp_jpeg/tjpgd)
+add_executable(merit_audio_tests ../lifestyle/merit_audio_tests.c ../../main/merit_sound.c)
+target_include_directories(merit_audio_tests PRIVATE ../lifestyle/audio_stubs stubs ../../main)
+target_link_libraries(merit_audio_tests PRIVATE m)
+target_compile_options(merit_audio_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME merit_sound_and_output_worker COMMAND merit_audio_tests)

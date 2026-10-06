@@ -6,6 +6,7 @@
 #include "board_config.h"
 #include "settings.h"
 #include "power.h"
+#include "merit_sound.h"
 #include "driver/i2s_std.h"
 #include "esp_codec_dev.h"
 #include "esp_codec_dev_defaults.h"
@@ -29,7 +30,7 @@ static TaskHandle_t s_worker;
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static bool s_wanted, s_busy;
 static uint32_t s_generation, s_play_generation;
-static int s_req;
+static int s_req,s_playing_req;
 static uint8_t s_volume, s_applied_volume = UINT8_MAX;
 static bool s_io_failed;
 
@@ -146,17 +147,18 @@ static void write_silence(int ms) {
     }
 }
 static void write_knock(void) {
-    const int n=RATE*95/1000;
+    const int n=MERIT_SOUND_SAMPLES;
+    _Static_assert(RATE==MERIT_SOUND_RATE,"Wooden-fish PCM must match the I2S sample rate");
     for(int done=0;done<n;) {
         if(cancelled())return;
+        // Replace the ringing tail at the next 8ms boundary; never queue stale knocks.
+        portENTER_CRITICAL(&s_mux);
+        if(s_req==3){s_req=0;done=0;}
+        portEXIT_CRITICAL(&s_mux);
         apply_volume();
         if(s_io_failed)return;
-        int k=n-done<CHUNK?n-done:CHUNK;
-        for(int i=0;i<k;++i) {
-            float t=(done+i)/(float)RATE;
-            float wood=sinf(6.2831853f*720*t)*expf(-55*t)+.45f*sinf(6.2831853f*1340*t)*expf(-90*t);
-            s_buf[i]=(int16_t)(wood*18000.0f);
-        }
+        int k=n-done<128?n-done:128;
+        merit_sound_fill(s_buf,(size_t)done,(size_t)k);
         if(esp_codec_dev_write(s_dev,s_buf,k*sizeof(int16_t))!=ESP_CODEC_DEV_OK){s_io_failed=true;return;}
         done+=k;
     }
@@ -197,6 +199,7 @@ static void output_worker(void *arg) {
         int req = s_req;
         s_req = 0;
         s_busy = req != 0;
+        s_playing_req=req;
         s_play_generation = s_generation;
         portEXIT_CRITICAL(&s_mux);
         if (req && !settings_silent() && !cancelled()) {
@@ -212,6 +215,7 @@ static void output_worker(void *arg) {
         }
         portENTER_CRITICAL(&s_mux);
         s_busy = false;
+        s_playing_req=0;
         portEXIT_CRITICAL(&s_mux);
         if (s_io_failed) {
             hardware_deinit(); audio_bus_release(); owns_bus = false; failed_generation = generation;
@@ -248,7 +252,7 @@ void audio_out_set_volume(uint8_t v) {
 static void play(int req) {
     if (settings_silent()) return;
     portENTER_CRITICAL(&s_mux);
-    if (s_wanted && !s_busy && !s_req) s_req = req;
+    if (s_wanted && ((!s_busy && !s_req) || (req==3 && s_busy && s_playing_req==3))) s_req = req;
     portEXIT_CRITICAL(&s_mux);
     notify_worker();
 }
