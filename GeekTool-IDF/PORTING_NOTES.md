@@ -1793,3 +1793,37 @@ HTTP/1.1与设备默认User-Agent的完整GET成功；没有关闭TLS校验或�
 实际CI包保存于 `build/releases/v1.7-beta.26/GeekTool.bin`，最小验证回执位于
 `build/flash-records/beta26-release-20261006/`；任务创建的临时主机构建、完整下载副本及原始CI日志结束后清理。
 本轮未执行USB写入。设备OTA下载/重启、新星座视觉、木鱼扬声器音色、连敲手感及计数重启保留待真机验收。
+
+## 2026-10-06 v1.7-beta.27 木鱼音频修复发布
+
+用户明确授权“提交发版”，本任务4个文件提交为 `f889f8dfa03a89ed0da3796a3171db0c39f8f5d6`。
+I2S TX已消费DMA缓冲自动清零，消除空闲时循环旧音；木鱼重触发使用2ms线性交叉淡化，
+避免波形硬切。沿用计数、图片、音色、音量/静音、按键及NVS，不修改分区、依赖或发布流程。
+两项缺陷回归在旧实现分别失败，修复后实际worker主机回归通过，覆盖4000次密集请求、
+停手后保持页面的DMA静音、再敲恢复、取消、写失败释放、静音/音量、闹钟和试听原时长。
+源代码、官方来源与测试缺口见 [星座与木鱼](./ZODIAC_MERIT_UI.md#2026-10-06-连敲杂音与持续播放修复beta27)。
+
+HTTPS Git原子推送源码与标签成功，发布标签目标为 `f889f8d`，annotated tag对象为
+`1920894d9dad74ca145b700d3aed542b41fb6d9a`。
+[CI 37421187465](https://github.com/soBigRice/soRound_os/actions/runs/37421187465) 构建、Release和R2上传均成功，
+实际ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.27) 为prerelease，
+实际包4,125,280B，4MiB槽余69,024B（约67.4KiB）；本地候选4,091,808B不是发布包。
+GitHub资产、R2源及国内 `ota.miaozong.cc/GeekTool-beta.bin` 完整包均为 `v1.7-beta.27`，SHA256均为
+`e56bd7c72e479e022cf6d507d17712774ed658cf9b74f6e6fb650fb9eb49f301`。
+ESP32-S3项目/版本、镜像段边界、XOR校验和、附加SHA256及GitHub资产摘要检查通过；ELF摘要为
+`30ccdedfcc51cc96c90fd67579aed91f4b16152ca142e3dab6964bfb4838fb16`。
+GitHub资产下载首轮55秒收到2,951,217B后超时；从同一Release地址Range续传返回206，
+收到剩余1,174,063B，完整摘要与GitHub资产声明及两个OTA源一致。
+
+本机默认DNS的普通HTTPS请求连接103.73.220.215，证书主机名不匹配。
+发布后公共DNS1.1.1.1返回154.37.221.172，按该地址 `curl --resolve` 验证国内完整下载，
+保留域名/SNI、受信任证书与主机名校验；未关闭TLS验证或改动系统DNS/服务器配置。
+国内beta同ETag `"6ac48f38-3ef260"` 的If-Match+Range返回206，65536–131071的65,536B与CI对应切片一致。
+这证明镜像包已同步与条件读取可用，不等于本机默认DNS恢复或设备OTA已经通过。
+
+发布前R2正式包及发布后R2/国内正式包均为v1.6.1、1,872,192B，SHA256均为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+实际CI包保存于 `build/releases/v1.7-beta.27/GeekTool.bin`，最小回执位于
+`build/flash-records/beta27-release-20261006/`；临时整包下载、原始CI日志和本轮CLI日志缓存结束后清理。
+本轮未执行USB写入。设备升级/重启、扬声器音色、连续敲击后停止与再敲恢复仍待真机复验。
