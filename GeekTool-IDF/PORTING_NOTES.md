@@ -1760,3 +1760,36 @@ ESP32-S3镜像段边界、XOR校验和、附加SHA256及项目/版本检查通�
 实际CI包保留于`build/releases/v1.7-beta.25/GeekTool.bin`，最小回执位于
 `build/flash-records/beta25-release-20261006/`；其余临时下载、日志及本轮watcher结束后清理。
 本次未执行USB写入；beta.25设备下载、启动、背景效果、触摸/功耗及既有恢复边界仍待真机验收。
+
+## 2026-10-06 v1.7-beta.26 星座与木鱼修订发布
+
+用户明确要求发布，本任务28个文件提交为 `a6d1db0952dd8bbf686f4d1bdd3b2bba815c30cb`。
+重新设计466×466星座页的符号、五分类、评分与正文；木鱼使用有鱼眼/雕纹/空腔开口的JPEG，
+每次敲击显示完整“功德+1”，木槌与木鱼联动，180ms空腔合成声音支持连敲重触发。
+保留星座数据/解析、NVS计数、音量/静音、实体键、表盘及现有OTA流程；没有分区或依赖策略修改。
+LVGL9.5/9.6各五组目标回归通过，覆盖实际UI/音频worker、联网清理、NVS、图片失败和资源释放。
+素材来源、转换及逻辑见 [星座与木鱼](./ZODIAC_MERIT_UI.md)。
+
+本次HTTPS Git原子推送成功，远端main与tag目标均为 `a6d1db0`；
+annotated tag对象为 `598d6dd473a88f6cc988ee6d686f7b3e979a7175`。
+[CI 37410358339](https://github.com/soBigRice/soRound_os/actions/runs/37410358339) 的构建、Release和R2上传均成功，
+实际使用ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.26) 为prerelease，
+实际CI包4,125,168B，4MiB槽余69,136B（约67.5KiB）；本地旧依赖候选4,091,696B不能代替发布包。
+GitHub资产、R2源及国内 `ota.miaozong.cc/GeekTool-beta.bin` 三份完整包均为 `v1.7-beta.26`，SHA256均为
+`b8e29bfe6165ece89c5aaa2247d27f6197cbb85c711d6a0621e00f12fe7e09cb`。
+镜像段边界、ESP32-S3项目/版本、XOR校验和、附加SHA256及GitHub资产摘要检查通过，ELF摘要为
+`c551ef0dc28cef1281f7cfa4ed002ca482b677c3f3b120ba9cd2fd3e56218dc8`。
+
+普通本机下载首次失败：系统解析返回103.73.220.77/215/188和191.101.132.214，证书SAN不匹配。
+Cloudflare(1.1.1.1)、阿里(223.5.5.5)、腾讯(119.29.29.29)公共DNS均返回154.37.221.172。
+按该公共DNS结果使用 `curl --resolve` 连接镜像，保留域名/SNI、受信任证书及主机名校验，
+HTTP/1.1与设备默认User-Agent的完整GET成功；没有关闭TLS校验或修改系统DNS/服务器配置。
+国内beta同ETag `"6ac46fd3-3ef1f0"` 的If-Match+Range返回206，65536–131071的65,536B与CI对应切片一致。
+以上核对确认国内镜像已同步；不能据此认定本机默认DNS恢复或设备网络下载已通过。
+
+发布前R2正式包及发布后R2/国内正式包均为v1.6.1、1,872,192B，SHA256均为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+实际CI包保存于 `build/releases/v1.7-beta.26/GeekTool.bin`，最小验证回执位于
+`build/flash-records/beta26-release-20261006/`；任务创建的临时主机构建、完整下载副本及原始CI日志结束后清理。
+本轮未执行USB写入。设备OTA下载/重启、新星座视觉、木鱼扬声器音色、连敲手感及计数重启保留待真机验收。
