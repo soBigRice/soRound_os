@@ -32,6 +32,8 @@ site/index.html + styles.css + script.js + assets/
 - `main` 上的官网相关修改、GitHub Release 发布/编辑、手动运行都会触发部署。
   发布事件仍明确取 `main` 的官网，不取可能尚无官网的旧固件 Tag。
 - Pages 使用 GitHub Actions 发布源；无需 `gh-pages` 分支和额外构建框架。
+- `github-pages` 环境允许 `main` 分支和 `v*` Tag。Release 事件的执行 ref 是 Tag，
+  即使 checkout 了 `main`，只有分支策略仍会阻止部署；Tag 策略用于已有固件发布事件。
 - CI 读取公开 GitHub Releases，以发布时间区分最新正式版和内测版。API 失败时
   构建失败，已上线版本保留；本地离线预览使用 `releases.json` 中的已核查快照。
 - `build_site.py` 只删除和重建本项目 `build/site/`，不接受其他清理目标。
@@ -102,3 +104,11 @@ Space 选择主题、Enter 选择用途通过，主题切换保留用途。浏�
 构建脚本拒绝 `--out build`，未删除其他构建目录。
 核心交互和主体视觉已按设计基线核对；上述事实补充与真实固件素材替换是有意差异。
 网站主观效果仍由用户确认，未将自动检查表述为用户验收。
+
+### 首次上线核对
+
+2026-10-07：GitHub Pages 已设为 `workflow` 发布源并强制 HTTPS；
+官网实现提交 `c3c0590` 的 [Actions 部署](https://github.com/soBigRice/soRound_os/actions/runs/37596692357)
+成功。公开站点14个文件均返回 HTTPS 200，SHA-256 与本地发布目录一致；
+README 与仓库 About 的 homepage 已补上官网链接。线上文件核验与本地浏览器功能检查
+分别执行，不将部署状态代替真实访问。
