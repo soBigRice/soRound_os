@@ -2017,4 +2017,12 @@ ELF摘要 `00d25ce36f0021beae60c93b0e586805c7fb009d1a66525d6060f54bad8c8cda`。
 
 GitHub直链整包下载单次45秒超时，未重复CDN下载，不声称本轮GitHub完整下载通过；R2/国内完整包与资产声明摘要已独立核对。
 CI发布包保存于 `build/releases/v1.7-beta.30/GeekTool.bin`；薄回执在 `build/flash-records/beta30-release-20261007/`。
-官网最新链接随发布更新另行核对；未USB烧录，真实OTA升级、重启、自检/回滚和联网体验仍待设备验收。
+[官网发布部署 37644392182](https://github.com/soBigRice/soRound_os/actions/runs/37644392182)和
+[快照更新部署 37645186113](https://github.com/soBigRice/soRound_os/actions/runs/37645186113)均success。
+公开 [中文首页](https://sobigrice.github.io/soRound_os/) 与 [英文首页](https://sobigrice.github.io/soRound_os/en/)
+均包含beta.30 Release链接，正式入口仍为v1.6.1；本地离线发布快照也已更新。
+未USB烧录，真实OTA升级、重启、自检/回滚和联网体验仍待设备验收。
+
+Git API核验经验：先将HEAD/标签解析为完整SHA再比较。临时上传助手首次处理说明提交时将字面HEAD与返回SHA比较，
+防线在更新ref前拒绝；参数归一化后exact SHA通过，未改写本地commit或强制更新分支。
+后续复用此路径仍需保留原作者/时间/消息并核对最终tree/commit/tag，而不能只凭API成功状态判断对象一致。
