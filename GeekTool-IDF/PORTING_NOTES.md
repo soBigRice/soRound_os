@@ -1828,7 +1828,6 @@ GitHub资产下载首轮55秒收到2,951,217B后超时；从同一Release地址R
 `build/flash-records/beta27-release-20261006/`；临时整包下载、原始CI日志和本轮CLI日志缓存结束后清理。
 本轮未执行USB写入。设备升级/重启、扬声器音色、连续敲击后停止与再敲恢复仍待真机复验。
 
-
 ## 2026-10-07 v1.7-beta.28 系统标志与开机动画发布
 
 用户明确授权“开始接入”与“发版本”，本次仅发布系统标志、关于本机与开机动画相关实现、素材、回归和说明。
@@ -1841,5 +1840,24 @@ Logo保留用户原图的圆环/右上红点，重绘透明SVG，生成原生LVG
 候选为 `v1.7-beta.27-4-g76d8a18-dirty`，4,097,520B，SHA256
 `72a279b263291b5767448b2449d0634ddda2f4ceb7556724473c314c5fc40dbf`；此候选不是beta.28发布包。
 
-发布目标为 `v1.7-beta.28` prerelease，沿用Tag→CI→GitHub/R2→定时镜像同步流程；CI包与完整下载证据待本节补齐。
+HTTPS Git原子推送源码与标签成功；源码提交及标签目标为 `3398ac2b76032bb44cbdd7b03a9b9d75af0940b5`，
+annotated tag对象为 `cb00b4d37e5bddae03a977ad633269537fb0e21d`。
+[CI 37609008369](https://github.com/soBigRice/soRound_os/actions/runs/37609008369) 构建、Release及R2上传均成功，实际ESP-IDF6.0.1。
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.28) 为prerelease，实际版本 `v1.7-beta.28`，
+包4,131,024B，4MiB槽余63,280B（约61.8KiB）。GitHub资产、R2源和OTA镜像完整包均通过ESP32-S3项目/版本、
+镜像段边界、XOR校验和及附加SHA256检查；三个完整包SHA256及GitHub资产声明均为
+`49a8c5fe7ca7f0100cb51f22fff764da10342f1f701760839b7acdf40029dd0a`，ELF摘要为
+`3b51b3a9125c64fdf60dc867850210b8400326b4d9cdb87a4e2af7cab3539800`。
+
+GitHub首轮50秒超时收到997,488B，续传206保留至1,493,104B；四段并发Range各返回206、同一强ETag，
+补齐至4,131,024B后与GitHub声明摘要及两个OTA完整包一致。临时分段不会当作完整发布包。
+OTA镜像首轮仍为beta.27，定时同步后再完整下载为beta.28；本轮普通HTTPS请求连接 `154.37.221.172`，
+公共DNS1.1.1.1同样返回该IP，无需`--resolve`或关闭TLS校验；不修改本机DNS、镜像服务或发布流程。
+R2与OTA镜像均验证完整GET 200、长度/强ETag/no-store；同ETag的If-Match+Range 65536–131071返回206，
+65,536B与CI对应切片一致，错误If-Match均返回412。
+
+发布前R2正式包及发布后R2/OTA正式包均为v1.6.1、1,872,192B，SHA256均为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+CI包保存于 `build/releases/v1.7-beta.28/GeekTool.bin`，最小回执位于
+`build/flash-records/beta28-release-20261007/`；任务临时整包副本、分段、核验脚本和请求头结束后清理。
 未执行USB写入；设备OTA升级/重启、开机流畅度、真实关于页/电量、自动重连、常显与实体键仍待真机验收。
