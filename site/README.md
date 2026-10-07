@@ -36,6 +36,15 @@ hreflang 与默认入口，sitemap 包含两个地址。
 README 本地链接、公开版本查询、资源尺寸、JS语法和最终补丁空白检查通过。
 上述是网站与离线渲染验证，不替代设备验收。本轮临时源码副本、构建、原始PPM与服务结束后清理。
 
+英文实现提交 `68402a7` 的 [Pages CI 37628150016](https://github.com/soBigRice/soRound_os/actions/runs/37628150016)
+部署成功；54个公开文件（含两个页面、19张英文预览）HTTPS 200，SHA-256 与本地发布目录一致。
+`.nojekyll` 是 Pages 控制文件，不作为公开路由核验；英文 README 的远端 blob SHA 也与本地一致。
+本机 GitHub HTTPS Git 连接超时时，通过官方 [Git commits API](https://docs.github.com/en/rest/git/commits#create-a-commit)
+与 [Git refs API](https://docs.github.com/en/rest/git/refs#update-a-reference) 发布相同对象，逐项核对 blob、tree、commit SHA，
+再以 `force:false` 前进 main。创建 commit 必须保留原始消息末尾换行，不能 `rstrip`；GitHub 按消息原字节计算对象。
+首个缺换行候选因 SHA 不同而被检查阻止，未更新分支；补回原始换行后与本地 SHA 完全一致。
+未修改 Git 身份、DNS、全局网络或部署配置。核对日期2026-10-07。
+
 ## 功能 UI 与硬件图片
 
 `index.html:#explore` 展示全部19个应用，`script.js` 的第二个控制器只管理功能选项、
