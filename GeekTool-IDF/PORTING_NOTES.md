@@ -1873,4 +1873,24 @@ CI包保存于 `build/releases/v1.7-beta.28/GeekTool.bin`，最小回执位于
 本地ESP-IDF6.0.1候选构建及镜像校验通过，4,099,536B，SHA256
 `54914e36a581c8207484dc2382a0cece18b06a38671ab23d390e985169f21b2d`；此候选不是beta.29正式CI发布包。
 
-当前按现有标签CI流程发布beta.29，实际源码SHA、CI、包摘要和OTA校验将在发布后补齐。未执行USB烧录，真机OTA/重启和滑动手感待验收。
+源码与标签目标为`cbec9e09d34eedf612b4d860521cb25866366090`，annotated tag对象为`af558dae5a918e907a6eefb29c1129db343536b5`。
+本机GitHub网页/HTTPS Git默认地址`20.205.243.166`连接超时，GitHub API正常；按官方[Git commits](https://docs.github.com/en/rest/git/commits)和[Git tags](https://docs.github.com/en/rest/git/tags)接口上传对象。
+逐项核对blob、根tree、commit和tag SHA与本地一致后，以非强制fast-forward更新main，再创建标签ref；未改Git身份、本机DNS、CI、发布或分区配置。
+
+[CI 37618825183](https://github.com/soBigRice/soRound_os/actions/runs/37618825183)构建、Release和R2上传全部成功。
+[beta.29 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29)为非draft的prerelease，实际版本`v1.7-beta.29`、IDF`v6.0.1`。
+发布包4,133,184B，4MiB槽余61,120B；R2和OTA镜像完整包均通过ESP32-S3项目/版本、段边界、XOR checksum和附加SHA256检查，
+与GitHub资产声明摘要一致：`1ccc3b68727008995e9f7a47efe925e37648e5af717277c4e6f55809c505fb91`。
+应用ELF摘要：`9b435ceae2df7c8efadd70f525706c28a010b74df7dc317f43f78de4c10a0bd0`。
+
+R2与OTA均验证完整GET200、精确长度、强ETag/no-store；If-Match+Range65536–131071为206，65,536B与完整包切片一致；错误If-Match为412。
+镜像描述符已更新为beta.29，未修改服务器或同步配置。发布前R2正式包及发布后R2/OTA正式包仍为v1.6.1、1,872,192B，
+SHA256均为`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+
+GitHub资产API支持Range206；本机CDN完整下载仍未完成。四段及续传已收到3,812,496B，尚缺320,688B；已响应范围均为同一强ETag。
+首轮60秒超时，续传45秒仍有超时及未收到HTTP响应的分段；最后补齐程序未处理无落盘分段而停止。分段未当成完整包，不声称GitHub资产整包下载校验通过。
+该限制不影响已完成的CI发布及完整R2/OTA包核验；不继续修改本机网络或反复重试CDN。
+
+[官网CI 37619519617](https://github.com/soBigRice/soRound_os/actions/runs/37619519617)部署成功，公开首页已包含beta.29 Release链接，正式入口保持v1.6.1。
+完整CI发布包（从R2取得，与GitHub声明摘要及OTA一致）保存于`build/releases/v1.7-beta.29/GeekTool.bin`；最小回执位于`build/flash-records/beta29-release-20261007/`。
+本轮临时整包副本、分段、原始响应头及核验脚本结束后清理。未执行USB烧录，真机OTA升级/重启和滑动手感待验收。
