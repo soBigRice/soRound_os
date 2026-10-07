@@ -1,4 +1,4 @@
-name: Restore beta OTA
+name: Restore beta.29 after beta.30 withdrawal
 
 # Operational rollback uses the archived bytes, never rebuilds a historical tag.
 on:

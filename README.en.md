@@ -8,12 +8,18 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
+**October 8, 2026: beta.30 has been withdrawn.** A device showed a white screen after an OTA reboot.
+The release is now a draft. R2 and domestic beta OTA serve the original beta.29 image again,
+with matching complete SHA-256 hashes; the website beta link also points to beta.29.
+Device boot logs are still needed to diagnose the white screen. Local builds and rendering
+tests do not establish a device fix; a revised release has not been published.
+
 As of October 7, 2026, `main` includes **v1.7-beta.30**; the latest stable release is
 **v1.6.1**. Use `GeekTool-IDF/` for current development. The Arduino projects are earlier
 prototypes and hardware stress tests. The full feature gallery reflects the beta branch;
 check the release notes for the features available in each stable release.
 
-[Beta.30](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.30) gives each of the seven
+Beta.30 (withdrawn) gives each of the seven
 Settings options its own adjustment page and centers the watch-face preview. It improves
 IP readiness, recovery, cancellation, response completeness and error reporting across
 Weather, Answers, Zodiac and OTA. The boot animation lasts at least four seconds and
