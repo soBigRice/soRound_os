@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="466" height="466" viewBox="0 0 466 466" role="img" aria-label="soRound OS About设计稿">
+<circle cx="233" cy="233" r="233" fill="#000"/>
+<circle cx="233" cy="233" r="225" fill="none" stroke="#101517" stroke-width="8"/>
+<path d="M233 8 A225 225 0 1 1 8.44 247.13" fill="none" stroke="#f4f5f5" stroke-width="8" stroke-linecap="round"/>
+<g font-family="Helvetica Neue, Arial, PingFang SC, sans-serif" text-anchor="middle">
+<circle cx="123" cy="74" r="22" fill="#181818"/>
+<path d="M126 67 L119 74 L126 81" fill="none" stroke="#f4f5f5" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="233" y="77" font-size="24" fill="#f4f5f5">About</text>
+<g transform="translate(163 105) scale(1.75)"><circle cx="37.25" cy="42.75" r="22.375" fill="none" stroke="#f4f5f5" stroke-width="10.25"/>
+<circle cx="62.75" cy="17.25" r="7.5" fill="#e54230"/></g>
+<text x="233" y="279" font-size="34" font-weight="500" letter-spacing="-.6" fill="#f4f5f5">soRound OS</text>
+<text x="233" y="315" font-size="19" fill="#a1a4a6">v1.7-beta.27</text>
+<path d="M180 342 H286" stroke="#24282a" stroke-width="1"/>
+<text x="233" y="376" font-size="19" fill="#a1a4a6">ESP32-S3</text>
+<text x="233" y="406" font-size="16" fill="#757b7e">466 × 466 AMOLED</text>
+</g>
+</svg>

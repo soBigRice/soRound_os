@@ -20,6 +20,7 @@
 #include "audio_bus.h"
 #include "img_store.h"
 #include "imu.h"
+#include "identity_ui.h"
 
 static const char *TAG = "main";
 
@@ -74,6 +75,8 @@ void app_main(void) {
                                                lv_color_hex(COL_TXT), true, UI_FONT_SYM);
         lv_display_set_theme(disp, th);
         launcher_start();
+        if(!identity_boot_create(lv_layer_top()))
+            ESP_LOGW(TAG,"Boot animation allocation failed; showing the ready lockscreen");
         lvgl_port_unlock();
     }
 

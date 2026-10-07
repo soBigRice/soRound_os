@@ -53,7 +53,13 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
-target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/font_watchface.c)
+target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/font_watchface.c
+               ../../main/identity_ui.c ../../main/font_identity.c)
+add_executable(identity_ui_tests identity_ui_tests.c ../../main/identity_ui.c ../../main/font_identity.c)
+target_include_directories(identity_ui_tests PRIVATE ../../main)
+target_link_libraries(identity_ui_tests PRIVATE lvgl m)
+target_compile_options(identity_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME identity_geometry_and_boot_lifecycle COMMAND identity_ui_tests)
 add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/font_watchface.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)

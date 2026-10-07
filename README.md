@@ -8,15 +8,16 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-当前仓库 `main` 包含 `v1.7-beta.27` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
+当前仓库 `main` 包含 `v1.7-beta.28` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-[beta.27](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.27) 修复木鱼连续快速敲击的杂音和持续响：
-已消费I2S缓冲自动清零，新敲击用2ms平滑过渡接入。4000次密集请求、停手后空闲静音和再次敲击回归通过；
-CI构建及GitHub/R2/国内镜像完整包核对通过，正式通道保持v1.6.1。
-此前beta.26重新设计星座运势页，木鱼使用木质插画，逐次提示“功德+1”并播放空腔合成敲击声。
-本机默认DNS与公共DNS有差异，国内下载核验按公共DNS指向的IP执行，保留完整HTTPS证书校验。
-在设备OTA页面开启内测后检查更新；升级后快速连敲再完全停手，保持页面至少2秒，检查声音停止及再敲恢复。
-本轮设备升级与扬声器表现仍待实机验收，详见
+beta.28 将圆环与红点 Logo 接入系统，重新设计中英文关于本机页，增加1.8秒原生开机动画；
+版本与电量继续读取实际状态，动画结束回到原锁屏，服务初始化与动画并行。
+26组主机回归、原生466×466渲染与本地构建通过，发布包与OTA入口正在核验。
+在设备OTA页面开启内测后检查更新；升级后重启检查动画只播放一次，并打开设置→关于本机核对版本、语言与返回。
+设备升级/重启、动画流畅度及触摸仍待真机验收，详见
+[系统标志与启动](GeekTool-IDF/artwork/identity/README.md)。
+此前 [beta.27](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.27) 修复木鱼连续快速敲击的杂音和持续响：
+已消费I2S缓冲自动清零，新敲击用2ms平滑过渡接入；发布与4000次密集请求回归证据见
 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-06-v17-beta27-木鱼音频修复发布)。
 
 此前 beta.24 新增 TYPE/ORBIT/SHIFT 三组十五款表盘，TLS 使用获批的 PSRAM 分配并保留完整证书校验；
@@ -93,6 +94,8 @@ TYPE / ORBIT / SHIFT三组十五款锁屏表盘、真实缩略图、默认/自�
 [星座与木鱼](./GeekTool-IDF/ZODIAC_MERIT_UI.md)。
 设置分类导航、Wi-Fi连接/密码页及真实数据/事件边界见
 [设置与Wi-Fi交互](./GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md)。
+系统标志、关于本机的真实版本布局、1.8秒原生开机动画及锁屏恢复见
+[系统标志与启动](./GeekTool-IDF/artwork/identity/README.md)。本地构建和原生回归通过，设备效果待验收。
 OTA 下载恢复、状态同步和故障排查见
 [OTA 实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-ota-失败恢复修复)。
 beta.23 的 TLS 内存不足、点阵控件直接绘制与错误码正负号修正见

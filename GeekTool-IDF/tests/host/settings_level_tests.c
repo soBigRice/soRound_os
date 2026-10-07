@@ -37,7 +37,7 @@ void audio_out_init(void) {++audio_starts;}
 void audio_out_deinit(void) {++audio_stops;}
 void audio_out_set_volume(uint8_t v) {assert(v==volume);}
 void audio_out_blip(void) {++blips;}
-static const esp_app_desc_t descriptor={.version="v1.7-beta.11-1-g4371a46-dirty"};
+static esp_app_desc_t descriptor={.version="v1.7-beta.11-1-g4371a46-dirty"};
 const esp_app_desc_t *esp_app_get_description(void) {return &descriptor;}
 static lv_obj_t *heading;
 void launcher_set_title(const char *t) {lv_label_set_text(heading,t);}
@@ -73,7 +73,9 @@ static void check_labels(lv_obj_t *o) {
     if(lv_obj_check_type(o,&lv_label_class)) {
         const lv_font_t *font=lv_obj_get_style_text_font(o,0);const char *str=lv_label_get_text(o);uint32_t at=0;
         while(str[at]) {uint32_t cp=lv_text_encoded_next(str,&at);lv_font_glyph_dsc_t glyph;
-            assert(lv_font_get_glyph_dsc(font,&glyph,cp,0) && !glyph.is_placeholder);}
+            bool covered=lv_font_get_glyph_dsc(font,&glyph,cp,0);
+            if(!covered||glyph.is_placeholder)fprintf(stderr,"missing glyph U+%04X in '%s'\n",(unsigned)cp,str);
+            assert(covered && !glyph.is_placeholder);}
         lv_area_t a;lv_obj_get_coords(o,&a);
         for(int i=0;i<4;++i) {
             int x=(i&1)?a.x2:a.x1,y=(i&2)?a.y2:a.y1;
@@ -127,6 +129,18 @@ int main(int argc,char **argv) {
             }
         }
         assert(audio_stops==audio_starts);
+        // The about page uses the descriptor verbatim, including the maximum 31-byte version.
+        s_page=SETTINGS_ABOUT;
+        const char *versions[]={"v1.7-beta.27","MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"};
+        for(unsigned i=0;i<2;++i) {
+            snprintf(descriptor.version,sizeof descriptor.version,"%s",versions[i]);rebuild(NULL);
+            lv_obj_t *version=lv_obj_get_child(s_panel,2),*chip=lv_obj_get_child(s_panel,4);
+            assert(strcmp(lv_label_get_text(version),versions[i])==0);
+            assert(lv_label_get_long_mode(version)==LV_LABEL_LONG_MODE_WRAP);
+            capture(page,directory,i?"about-long":"about-native");
+            lv_area_t a,b;lv_obj_get_coords(version,&a);lv_obj_get_coords(chip,&b);assert(a.y2<b.y1);
+        }
+        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
         s_page=SETTINGS_FACE;
         for(face=0;face<15;++face) {rebuild(NULL);char name[32];snprintf(name,sizeof name,"face-%d",face);capture(page,directory,name);}
         face=2;rebuild(NULL);before=saves;

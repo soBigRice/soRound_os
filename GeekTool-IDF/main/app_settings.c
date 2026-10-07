@@ -7,6 +7,8 @@
 #include "audio_out.h"
 #include "esp_app_desc.h"
 #include "img_store.h"
+#include "identity_ui.h"
+#include "identity_geometry.h"
 #include <stdio.h>
 
 enum { SETTINGS_HOME, SETTINGS_DISPLAY, SETTINGS_FACE, SETTINGS_SOUND, SETTINGS_LANG, SETTINGS_ABOUT };
@@ -70,7 +72,7 @@ static void rebuild(void *arg) {
         snprintf(b,sizeof b,word("音量 %d%% · %s","%d%% volume · %s"),settings_volume(),word(settings_silent()?"静音":"声音开启",settings_silent()?"Muted":"Sound on"));
         menu_row(SETTINGS_SOUND,word("声音","Sound"),b,188,350);
         menu_row(SETTINGS_LANG,word("语言","Language"),settings_lang()?"中文":"English",264,342);
-        menu_row(SETTINGS_ABOUT,word("关于设备","About"),"soRound OS",340,270);
+        menu_row(SETTINGS_ABOUT,word("关于本机","About"),"soRound OS",340,270);
     } else if(s_page==SETTINGS_DISPLAY || s_page==SETTINGS_SOUND) {
         bool display=s_page==SETTINGS_DISPLAY;
         launcher_set_title(word(display?"显示":"声音",display?"Display":"Sound"));
@@ -113,13 +115,20 @@ static void rebuild(void *arg) {
             if(settings_lang()==i){lv_obj_set_style_border_width(b,2,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
         }
     } else {
-        launcher_set_title(word("关于设备","About"));
-        center_text("soRound OS",142,300,CONTROL_WHITE,&font_location_24);
-        center_text(word("当前固件","Firmware"),207,260,CONTROL_GRAY,control_small_font());
-        lv_obj_t *version=center_text(esp_app_get_description()->version,239,282,CONTROL_WHITE,control_small_font());
+        launcher_set_title(word("关于本机","About"));
+        lv_obj_t *logo=identity_logo_create(s_panel,140);
+        if(logo)lv_obj_set_pos(logo,163,105);
+        lv_obj_t *name=center_text("soRound OS",243,300,IDENTITY_WHITE,&font_identity_34);
+        lv_obj_set_style_text_letter_space(name,-1,0);
+        lv_obj_t *version=center_text(esp_app_get_description()->version,296,282,0xa1a4a6,control_small_font());
         lv_label_set_long_mode(version,LV_LABEL_LONG_MODE_WRAP);
         lv_obj_set_height(version,LV_SIZE_CONTENT);
-        center_text("ESP32-S3 / 466 × 466",337,286,CONTROL_GRAY,control_small_font());
+        // Leave room for a two-line, 31-byte descriptor version without colliding with hardware.
+        lv_obj_t *line=control_surface(s_panel,180,347,106,1);
+        lv_obj_set_style_bg_color(line,lv_color_hex(0x24282a),0);lv_obj_set_style_bg_opa(line,LV_OPA_COVER,0);
+        ui_obj_set_clickable(line,false);
+        center_text("ESP32-S3",357,240,0xa1a4a6,control_small_font());
+        center_text("466 × 466 AMOLED",388,220,0x757b7e,&font_identity_16);
     }
 }
 static bool settings_back(void) {
