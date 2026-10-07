@@ -1,0 +1,29 @@
+name: Restore beta OTA
+
+# Operational rollback uses the archived bytes, never rebuilds a historical tag.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download and verify last working beta
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v1.7-beta.29 --repo soBigRice/soRound_os --pattern GeekTool.bin
+          echo '1ccc3b68727008995e9f7a47efe925e37648e5af717277c4e6f55809c505fb91  GeekTool.bin' | sha256sum --check --strict
+      - name: Restore beta object only
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: auto
+        run: |
+          aws s3api put-object \
+            --endpoint-url https://cd87480e09b939c24f041bc003e5391d.r2.cloudflarestorage.com \
+            --bucket geektool-fw --key GeekTool-beta.bin --body GeekTool.bin \
+            --content-type application/octet-stream --cache-control 'no-store, max-age=0'
