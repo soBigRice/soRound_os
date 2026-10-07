@@ -50,9 +50,12 @@ class PageCheck(HTMLParser):
         self.fragments = []
         self.local_files = []
         self.h1_count = 0
+        self.app_ids = []
 
     def handle_starttag(self, tag, attributes):
         attrs = dict(attributes)
+        if "data-app" in attrs:
+            self.app_ids.append(attrs["data-app"])
         if "id" in attrs:
             if attrs["id"] in self.ids:
                 raise ValueError(f"Duplicate element id: {attrs['id']}")
@@ -87,11 +90,20 @@ def validate(output):
         data = (output / f"assets/{theme}.png").read_bytes()
         if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (1680, 1220):
             raise ValueError(f"Native {theme} contact-sheet coordinates no longer match; update web crops")
+    expected_apps = {"weather", "calendar", "countdown", "stopwatch", "settings", "ota", "wifi",
+                     "i2c", "system", "audio", "level", "remote", "twin", "maze", "fluid", "dice",
+                     "answers", "zodiac", "merit"}
+    if len(check.app_ids) != 19 or set(check.app_ids) != expected_apps:
+        raise ValueError("Website must expose all 19 app previews exactly once")
+    for app in check.app_ids:
+        data = (output / f"assets/apps/{app}.png").read_bytes()
+        if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (466, 466):
+            raise ValueError(f"Native {app} preview must preserve 466 × 466 pixels")
     css = (output / "styles.css").read_text()
     for asset in re.findall(r'url\("([^\"]+)"\)', css):
         if not (output / asset).is_file():
             raise ValueError(f"Missing CSS asset: {asset}")
-    print(f"Website verified: {len(check.fragments)} anchors, {len(check.local_files)} references, 15 native previews")
+    print(f"Website verified: {len(check.fragments)} anchors, {len(check.local_files)} references, 15 faces + 19 app previews")
 
 
 def main():

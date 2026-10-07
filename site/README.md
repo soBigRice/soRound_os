@@ -5,6 +5,49 @@
 本目录只维护产品官网，现有 `web/` 仍是独立的 GeekTwin 蓝牙校准器。
 官网不请求设备权限，也不连接设备；表盘展示使用固定样例数据。
 
+## 功能 UI 与硬件图片
+
+`index.html:#explore` 展示全部19个应用，`script.js` 的第二个控制器只管理功能选项、
+图片、标题、描述、序号和 `aria-pressed`，与表盘状态独立。默认天气预览；
+天气、音频、木鱼另在黑色功能区直接展示。无 JavaScript 时保留这些图片和设备图。
+`build_site.py` 检查19个选项不缺项、不重复，并校验每张应用 PNG 为466×466。
+
+`assets/apps/` 使用当前 `main` 的真实 LVGL 控制器与既有主机夹具导出。
+天气/设置/水平仪/音频/骰子/答案/系统/Wi-Fi/遥控台/木鱼/星座/OTA 复用现有原生回归导出；
+`scripts/site_native/renderer.c` 链接真实日历、倒计时、秒表、迷宫、流体、I2C、数字孪生。
+设备服务固定为离线夹具，应用 UI 不另画一套。额外 renderer 复用正式的 i18n 字体主题
+与启动器标题/返回键/电量布局；遗漏主题 fallback 会使秒表“归零”变成缺字方框，生成前须检查。
+日历固定2026-10-07，电量74%为夹具；Twin 为等待连接状态，截图不证明蓝牙或传感器连接。
+既有夹具里的版本、天气和运势日期也都是样例，不代表当前发布版或实时数据。
+
+需要更新界面时，从仓库根目录执行（沿用已有 CMake、Python/Pillow）：
+
+```bash
+cmake -S scripts/site_native -B /tmp/soround-site-previews -DCMAKE_BUILD_TYPE=Debug
+cmake --build /tmp/soround-site-previews --target site_native weather_ui_tests settings_level_tests audio_ui_tests dice_ui_tests answers_ui_tests system_ui_tests wifi_ui_tests remote_ui_tests merit_ui_tests zodiac_ui_tests ota_ui_tests -j 8
+python3 scripts/render_site_apps.py --build-dir /tmp/soround-site-previews
+```
+
+导出脚本仅做 PPM→PNG 格式转换，不缩放或改画固件像素；临时原始图自动删除。
+核对19张图片后删除本次 `/tmp/soround-site-previews`，不要删除其他任务的主机构建。
+
+`assets/waveshare-1.75c.jpg` 原样保存微雪官方产品照片（460×345），来源：
+[ESP32-S3-Touch-AMOLED-1.75C 产品页](https://www.waveshare.com/esp32-s3-touch-amoled-1.75c.htm)，
+[原始图片](https://www.waveshare.com/img/devkit/ESP32-S3-Touch-AMOLED-1.75C/ESP32-S3-Touch-AMOLED-1.75C-8_460.jpg)。
+版权归 Waveshare；官网图注明确标注“屏幕为出厂演示界面”，并链接官方产品页。
+没有将官方照片中的出厂 AI/音乐 UI 改称 soRound OS 功能。
+
+2026-10-07 用户补充：官网需要其他功能 UI 和实际微雪设备图。
+此前完整功能文字列表仍不足以满足产品视觉展示；现补全可切换原生截图和官方硬件照片。
+后续官网内容核对要同时检查表盘、功能 UI、硬件外观与素材来源，不以功能名列表代替 UI 展示。
+
+本轮验证：既有11个原生 UI 目标全部通过并导出所需12个应用界面；另7个真实控制器
+离线渲染成功。补齐正式字体主题后，秒表“归零”字形再次逐图核对。
+Codex IAB 在1505×1045、390×844、320×740检查，无横向溢出；19个选项逐个点击，
+图片路径、标题、序号与唯一选中状态匹配，Space/Enter 操作通过，无浏览器 error/warn。
+手机选中后带回圆屏预览，缩略图进入对应应用，设备照片加载为原始460×345。
+静态构建、PNG尺寸与完整目录、JavaScript语法、最终Diff检查通过。
+
 ## 本地预览
 
 从仓库根目录执行（Python 3 标准库，无需安装依赖）：

@@ -73,7 +73,7 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 | `.github/workflows/firmware.yml` | Tag 构建、GitHub Release 和 R2 上传 | 发布流程 |
 | `.github/workflows/pages.yml` | 官网构建和 GitHub Pages 部署 | 网站发布 |
 
-官网本地预览、静态资源、十五款表盘交互和自动部署说明见 [site/README.md](./site/README.md)。
+官网本地预览、十九个应用 UI、十五款表盘交互、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。

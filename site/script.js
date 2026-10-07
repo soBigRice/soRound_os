@@ -43,3 +43,34 @@
   sheet.addEventListener("error", () => { error.hidden = false; });
   sheet.addEventListener("load", () => { error.hidden = true; });
 })();
+
+(() => {
+  const buttons = [...document.querySelectorAll("[data-app]")];
+  const screen = document.querySelector("#app-screen");
+  const title = document.querySelector("#app-title");
+  const description = document.querySelector("#app-description");
+  const position = document.querySelector("#app-position");
+  const error = document.querySelector("#app-error");
+
+  function select(button, index) {
+    screen.src = `assets/apps/${button.dataset.app}.png`;
+    screen.alt = `${button.textContent}的 LVGL 原生界面预览`;
+    title.textContent = button.textContent;
+    description.textContent = button.dataset.description;
+    position.textContent = `${String(index + 1).padStart(2, "0")} / ${buttons.length}`;
+    buttons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
+    error.hidden = true;
+  }
+  buttons.forEach((button, index) => button.addEventListener("click", () => {
+    select(button, index);
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      screen.scrollIntoView({block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
+    }
+  }));
+  document.querySelectorAll("[data-preview-app]").forEach(link => link.addEventListener("click", () => {
+    const index = buttons.findIndex(button => button.dataset.app === link.dataset.previewApp);
+    select(buttons[index], index);
+  }));
+  screen.addEventListener("error", () => { error.hidden = false; });
+  screen.addEventListener("load", () => { error.hidden = true; });
+})();

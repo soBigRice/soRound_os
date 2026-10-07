@@ -92,24 +92,82 @@
           </div>
         </div>
 
-        <div class="feature-columns" id="explore">
+        <div class="feature-columns">
           <article>
+            <a class="feature-preview" href="#explore" data-preview-app="weather" aria-label="查看天气等日常应用界面"><img src="assets/apps/weather.png" width="466" height="466" alt="天气界面：彩色点阵雨云、温度与湿度" loading="lazy"></a>
             <h3>日常，好用。</h3>
             <p>天气 · 日历 · 倒计时 · 秒表<br>设置 · OTA 更新</p>
             <p class="feature-detail">出门看天气，专注时计时。<br>让每天的小事，触手可及。</p>
           </article>
           <article>
+            <a class="feature-preview" href="#explore" data-preview-app="audio" aria-label="查看音频等工具应用界面"><img src="assets/apps/audio.png" width="466" height="466" alt="音频可视化界面：彩色点阵频谱" loading="lazy"></a>
             <h3>工具，随手。</h3>
             <p>Wi-Fi · I2C · 系统信息<br>音频可视化 · 水平仪 · 蓝牙遥控台 · 数字孪生</p>
             <p class="feature-detail">看见声音，感受姿态。<br>也可以成为电脑的蓝牙遥控器。</p>
           </article>
           <article>
+            <a class="feature-preview" href="#explore" data-preview-app="merit" aria-label="查看木鱼等灵感应用界面"><img src="assets/apps/merit.png" width="466" height="466" alt="木鱼界面：木鱼、槌与累计功德" loading="lazy"></a>
             <h3>灵感，有趣。</h3>
             <p>迷宫 · 流体 · 骰子与硬币<br>答案之书 · 星座运势 · 木鱼</p>
             <p class="feature-detail">找个答案，敲一下木鱼。<br>留一点时间，给没有目的的好玩。</p>
           </article>
         </div>
         <p class="channel-note">完整功能展示以 v1.7 内测主线为准；正式版功能请查看<a href="https://github.com/soBigRice/soRound_os/releases/latest" target="_blank" rel="noopener noreferrer">对应发布说明<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>。</p>
+      </div>
+    </section>
+
+    <section class="applications" id="explore" aria-labelledby="apps-heading">
+      <div class="wrap">
+        <div class="section-lead">
+          <h2 id="apps-heading">不止时间，<br>还有生活。</h2>
+          <p>十九个应用，各有自己的界面。<br>选一个，看看圆屏里有什么。</p>
+        </div>
+        <div class="app-explorer">
+          <figure class="app-visual">
+            <img id="app-screen" class="app-screen" src="assets/apps/weather.png" width="466" height="466" alt="天气的 LVGL 原生界面预览" loading="lazy" decoding="async">
+            <figcaption><span class="mono" id="app-position">01 / 19</span><span>466 × 466 · 原生界面</span></figcaption>
+            <p class="app-error" id="app-error" role="status" hidden>界面图片暂时无法加载，请选择其他应用或刷新页面。</p>
+          </figure>
+          <div class="app-controls">
+            <div class="app-description" aria-live="polite" aria-atomic="true"><h3 id="app-title">天气</h3><p id="app-description">彩色点阵天气、逐日预报与更多详情。出门前，先看一眼。</p></div>
+            <div class="app-picker" role="group" aria-label="日常应用">
+              <h4>日常，好用。</h4>
+              <div>
+                <button type="button" data-app="weather" data-description="彩色点阵天气、逐日预报与更多详情。出门前，先看一眼。" aria-pressed="true">天气</button>
+                <button type="button" data-app="calendar" data-description="一屏看清整个月，红色圆点标出今天。" aria-pressed="false">日历</button>
+                <button type="button" data-app="countdown" data-description="选一个时长，让点阵数字和环形刻度陪你专注。" aria-pressed="false">倒计时</button>
+                <button type="button" data-app="stopwatch" data-description="开始、暂停、记圈，用侧边按键记录每一次计时。" aria-pressed="false">秒表</button>
+                <button type="button" data-app="settings" data-description="亮度、表盘、声音和语言，按自己的习惯设置。" aria-pressed="false">设置</button>
+                <button type="button" data-app="ota" data-description="连接 Wi-Fi 后检查固件更新，在圆屏上查看下载进度。" aria-pressed="false">OTA 更新</button>
+              </div>
+            </div>
+            <div class="app-picker" role="group" aria-label="工具应用">
+              <h4>工具，随手。</h4>
+              <div>
+                <button type="button" data-app="wifi" data-description="查看连接状态、扫描附近网络，在设备上输入密码。" aria-pressed="false">Wi-Fi</button>
+                <button type="button" data-app="i2c" data-description="扫描 I2C 总线，在弧形列表中查看地址和已知芯片名称。" aria-pressed="false">I2C 扫描</button>
+                <button type="button" data-app="system" data-description="查看内存使用、设备信息和运行状态。预览中的数值是样例。" aria-pressed="false">系统信息</button>
+                <button type="button" data-app="audio" data-description="把麦克风采集的声音变成十八段彩色点阵频谱。" aria-pressed="false">音频可视化</button>
+                <button type="button" data-app="level" data-description="靶心、气泡与角度读数，让水平和倾斜一眼可见。" aria-pressed="false">水平仪</button>
+                <button type="button" data-app="remote" data-description="通过蓝牙控制鼠标、演示和媒体。预览展示媒体模式。" aria-pressed="false">蓝牙遥控台</button>
+                <button type="button" data-app="twin" data-description="通过 BLE 将姿态与电量发送给浏览器。预览是等待连接状态。" aria-pressed="false">数字孪生</button>
+              </div>
+            </div>
+            <div class="app-picker" role="group" aria-label="灵感应用">
+              <h4>灵感，有趣。</h4>
+              <div>
+                <button type="button" data-app="maze" data-description="倾斜设备，带着小球穿过迷宫，找到红色终点。" aria-pressed="false">迷宫</button>
+                <button type="button" data-app="fluid" data-description="随设备倾斜而流动的黑白红粒子，感受重力的形状。" aria-pressed="false">流体</button>
+                <button type="button" data-app="dice" data-description="摇一摇掷骰子，也可以切换硬币模式，给选择一个随机答案。" aria-pressed="false">骰子与硬币</button>
+                <button type="button" data-app="answers" data-description="轻触翻页，读一句答案。没有网络时也有备用内容。" aria-pressed="false">答案之书</button>
+                <button type="button" data-app="zodiac" data-description="十二星座与综合、爱情、事业、财富、健康五类内容，支持滑动阅读。" aria-pressed="false">星座运势</button>
+                <button type="button" data-app="merit" data-description="轻敲木鱼，听一声回应，把片刻安静留在手边。" aria-pressed="false">木鱼</button>
+              </div>
+            </div>
+            <p class="app-note">图像由当前固件的 LVGL 界面渲染，天气、日期、网络和传感器数值为固定样例。这里展示界面，实际操作在设备上完成。</p>
+            <noscript><p class="app-note">启用 JavaScript 后可切换十九个应用界面。</p></noscript>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -123,6 +181,11 @@
           <div class="hardware">
             <h3>为这块开发板而做</h3>
             <p class="board-name">Waveshare ESP32-S3-Touch-AMOLED-1.75C</p>
+            <figure class="hardware-photo">
+              <img src="assets/waveshare-1.75c.jpg" width="460" height="345" alt="微雪 ESP32-S3-Touch-AMOLED-1.75C：银色金属外壳、圆形屏幕和侧边按键" loading="lazy" decoding="async">
+              <figcaption>微雪官方产品图，屏幕为出厂演示界面。</figcaption>
+            </figure>
+            <a class="hardware-link text-link" href="https://www.waveshare.com/esp32-s3-touch-amoled-1.75c.htm" target="_blank" rel="noopener noreferrer">查看微雪官方产品<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
             <dl class="hardware-specs">
               <div><dt>屏幕</dt><dd>1.75 英寸 · 466 × 466</dd></div>
               <div><dt>内存</dt><dd>32 MB Flash · 8 MB PSRAM</dd></div>
