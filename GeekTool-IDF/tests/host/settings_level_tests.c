@@ -63,6 +63,26 @@ bool imu_read_tilt_z(float *x,float *y,float *z) {*x=tx;*y=ty;*z=az;return senso
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[W*W];
 static uint16_t pixels[W*W];
 static lv_display_t *display;
+static lv_indev_t *touch;
+static lv_indev_data_t touch_data={.state=LV_INDEV_STATE_RELEASED};
+static int right_backs;
+static void read_touch(lv_indev_t *indev,lv_indev_data_t *data) {(void)indev;*data=touch_data;}
+static void touch_at(int x,int y,bool down) {
+    touch_data.point=(lv_point_t){x,y};touch_data.state=down?LV_INDEV_STATE_PRESSED:LV_INDEV_STATE_RELEASED;
+    lv_tick_inc(20);lv_timer_handler();
+}
+static void drag(int x1,int y1,int x2,int y2) {
+    touch_at(x1,y1,true);
+    for(int step=1;step<=6;++step)touch_at(x1+(x2-x1)*step/6,y1+(y2-y1)*step/6,true);
+    touch_at(x2,y2,false);
+}
+static void settle(void) {for(int i=0;i<60;++i){lv_tick_inc(20);lv_timer_handler();}}
+static void back_gesture(lv_event_t *event) {
+    (void)event;
+    if(lv_indev_get_gesture_dir(lv_indev_active())==LV_DIR_RIGHT) {
+        ++right_backs;settings_back();
+    }
+}
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map) {
     int width=lv_area_get_width(a);
     for(int y=a->y1;y<=a->y2;++y) {memcpy(pixels+y*W+a->x1,map,(size_t)width*2);map+=width*2;}
@@ -77,7 +97,16 @@ static void check_labels(lv_obj_t *o) {
             if(!covered||glyph.is_placeholder)fprintf(stderr,"missing glyph U+%04X in '%s'\n",(unsigned)cp,str);
             assert(covered && !glyph.is_placeholder);}
         lv_area_t a;lv_obj_get_coords(o,&a);
-        for(int i=0;i<4;++i) {
+        // Scrolled-out labels still require all glyphs; only their painted intersection has screen bounds.
+        bool visible=true;
+        for(lv_obj_t *parent=lv_obj_get_parent(o);parent;parent=lv_obj_get_parent(parent)) {
+            if(lv_obj_has_flag(parent,LV_OBJ_FLAG_OVERFLOW_VISIBLE))continue;
+            lv_area_t clip;lv_obj_get_coords(parent,&clip);
+            a.x1=LV_MAX(a.x1,clip.x1);a.y1=LV_MAX(a.y1,clip.y1);
+            a.x2=LV_MIN(a.x2,clip.x2);a.y2=LV_MIN(a.y2,clip.y2);
+            if(a.x1>a.x2 || a.y1>a.y2){visible=false;break;}
+        }
+        for(int i=0;visible && i<4;++i) {
             int x=(i&1)?a.x2:a.x1,y=(i&2)?a.y2:a.y1;
             if(hypot(x-232.5,y-232.5)>225)fprintf(stderr,"label outside circle: %s (%d,%d)\n",str,x,y);
             assert(hypot(x-232.5,y-232.5)<=225);
@@ -94,6 +123,12 @@ static void capture(lv_obj_t *page,const char *directory,const char *name) {
     for(int i=0;i<W*W;++i) {uint16_t p=pixels[i];uint8_t rgb[]={((p>>11)&31)*255/31,((p>>5)&63)*255/63,(p&31)*255/31};fwrite(rgb,1,3,f);}
     assert(fclose(f)==0);
 }
+static lv_obj_t *settings_screen(void) {
+    // Match launcher enter_app: gestures terminate at a parentless, non-scrolling screen.
+    lv_obj_t *page=lv_obj_create(NULL);lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
+    lv_obj_set_style_bg_color(page,lv_color_black(),0);lv_obj_set_style_bg_opa(page,LV_OPA_COVER,0);
+    ui_obj_set_scrollable(page,false);lv_screen_load(page);return page;
+}
 int main(int argc,char **argv) {
     const char *directory=argc>1?argv[1]:NULL;
     if(argc>2) {FILE *f=fopen(argv[2],"rb");assert(f);assert(fread(image_pixels,1,sizeof image_pixels,f)==sizeof image_pixels);fclose(f);}
@@ -105,11 +140,38 @@ int main(int argc,char **argv) {
     tools_test_battery();
     lv_obj_t *back=control_button(lv_layer_top(),101,52,44,44,NULL,NULL);
     lv_obj_t *arrow=control_label(back,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,20,CONTROL_WHITE);lv_obj_center(arrow);
+    touch=lv_indev_create();lv_indev_set_type(touch,LV_INDEV_TYPE_POINTER);
+    lv_indev_set_display(touch,display);lv_indev_set_read_cb(touch,read_touch);
+    // One native timer sample per step; manual event reads also resume a timer and duplicate stationary samples.
+    lv_timer_set_period(lv_indev_get_read_timer(touch),20);lv_indev_set_gesture_min_distance(touch,64);
+    lv_obj_t *stage=lv_screen_active();
     for(language=0;language<2;++language) {
-        lv_obj_t *page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
-        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_panel)==4);
+        lv_obj_t *page=settings_screen();
+        lv_obj_add_event_cb(page,back_gesture,LV_EVENT_GESTURE,NULL);
+        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_home_list)==4);
         assert(!settings_back());capture(page,directory,"settings-home");
-        lv_obj_send_event(lv_obj_get_child(s_panel,0),LV_EVENT_CLICKED,NULL);lv_timer_handler();
+        lv_area_t title_before,title_after,viewport,last;
+        lv_obj_get_coords(heading,&title_before);lv_obj_get_coords(s_home_list,&viewport);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,3),&last);assert(last.y1>viewport.y2);
+        int max_scroll=lv_obj_get_scroll_bottom(s_home_list);assert(max_scroll>0);
+        drag(220,200,220,130);
+        assert(s_page==SETTINGS_HOME && lv_obj_get_scroll_y(s_home_list)>0);settle();
+        lv_obj_scroll_to_y(s_home_list,max_scroll,LV_ANIM_OFF);
+        capture(page,directory,"settings-home-bottom");
+        lv_obj_get_coords(heading,&title_after);assert(title_before.y1==title_after.y1 && title_before.y2==title_after.y2);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,3),&last);
+        assert(last.y1>=viewport.y1 && last.y2<=viewport.y2);
+        int position=lv_obj_get_scroll_y(s_home_list);
+        touch_at(220,(last.y1+last.y2)/2,true);touch_at(220,(last.y1+last.y2)/2,false);
+        assert(s_page==SETTINGS_ABOUT);
+        int backs=right_backs;drag(170,270,290,270);settle();
+        assert(right_backs==backs+1 && s_page==SETTINGS_HOME);
+        assert(lv_obj_get_scroll_y(s_home_list)==position);
+        capture(page,directory,"settings-home-return");
+        drag(220,230,220,295);settle();
+        assert(s_page==SETTINGS_HOME && lv_obj_get_scroll_y(s_home_list)<position);
+        lv_obj_scroll_to_y(s_home_list,0,LV_ANIM_OFF);
+        lv_obj_send_event(lv_obj_get_child(s_home_list,0),LV_EVENT_CLICKED,NULL);lv_timer_handler();
         assert(s_page==SETTINGS_DISPLAY && lv_slider_get_min_value(s_slider)==64);
         int before=saves;lv_slider_set_value(s_slider,64,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
         assert(brightness==64 && saves==before);lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==before+1);
@@ -150,9 +212,18 @@ int main(int argc,char **argv) {
         assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_DISPLAY);
         assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
         s_page=SETTINGS_SOUND;rebuild(NULL);assert(audio_starts==audio_stops+1);
-        queue_rebuild();settings_exit();lv_obj_delete(page);lv_timer_handler();assert(!s_panel && audio_stops==audio_starts);
+        queue_rebuild();settings_exit();lv_screen_load(stage);lv_obj_delete(page);lv_timer_handler();assert(!s_panel && audio_stops==audio_starts);
         idle=0;silent=0;face=0;
     }
+    // Deleting a scrolling page resets LVGL's input target; reopening starts at the top.
+    language=0;
+    for(int cycle=0;cycle<4;++cycle) {
+        lv_obj_t *page=settings_screen();
+        settings_enter(page);assert(lv_obj_get_scroll_y(s_home_list)==0);
+        drag(220,200,220,140);assert(s_page==SETTINGS_HOME);
+        settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();assert(!s_home_list && !lv_indev_get_scroll_obj(touch));
+    }
+    lv_indev_delete(touch);touch=NULL;
     // Every direction, near-vertical and inverted readings stay bounded and recover.
     language=0;lv_obj_t *page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
     level_enter(page);
@@ -198,5 +269,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Settings categories/nested back/15 native previews/theme switching/wrap EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
+    puts("Settings native pointer scroll up/down/no accidental taps, fixed heading, bottom click/right-swipe back/position restore/scrolling exit; categories/nested back/15 native previews/theme switching/wrap EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
 }

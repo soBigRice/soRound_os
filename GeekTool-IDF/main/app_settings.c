@@ -13,6 +13,8 @@
 
 enum { SETTINGS_HOME, SETTINGS_DISPLAY, SETTINGS_FACE, SETTINGS_SOUND, SETTINGS_LANG, SETTINGS_ABOUT };
 static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute,*s_face_preview;
+static lv_obj_t *s_home_list;
+static int32_t s_home_y;
 static int s_page;
 static bool s_audio_ready;
 static const char *word(const char *zh,const char *en) {return settings_lang()?zh:en;}
@@ -23,6 +25,86 @@ static lv_obj_t *center_text(const char *value,int y,int width,uint32_t color,co
     lv_obj_set_style_text_align(l,LV_TEXT_ALIGN_CENTER,0);return l;
 }
 static void open_page(lv_event_t *e) {s_page=(int)(intptr_t)lv_event_get_user_data(e);queue_rebuild();}
+typedef struct {lv_obj_t *obj;lv_layer_t *layer;int x,y;} settings_ink_t;
+static void home_line(settings_ink_t *ink,int x1,int y1,int x2,int y2,uint32_t color) {
+    lv_draw_line_dsc_t line;lv_draw_line_dsc_init(&line);
+    line.base.obj=ink->obj;line.width=2;line.color=lv_color_hex(color);line.round_start=line.round_end=true;
+    line.p1=(lv_point_precise_t){ink->x+x1,ink->y+y1};line.p2=(lv_point_precise_t){ink->x+x2,ink->y+y2};
+    lv_draw_line(ink->layer,&line);
+}
+static void home_arc(settings_ink_t *ink,int x,int y,int radius,int start,int end,uint32_t color) {
+    lv_draw_arc_dsc_t arc;lv_draw_arc_dsc_init(&arc);
+    arc.base.obj=ink->obj;arc.center=(lv_point_t){ink->x+x,ink->y+y};arc.radius=radius;
+    arc.start_angle=start;arc.end_angle=end;arc.width=2;arc.color=lv_color_hex(color);arc.rounded=true;
+    lv_draw_arc(ink->layer,&arc);
+}
+static void home_icon_draw(lv_event_t *event) {
+    lv_obj_t *obj=lv_event_get_target_obj(event);lv_area_t area;lv_obj_get_coords(obj,&area);
+    settings_ink_t ink={obj,lv_event_get_layer(event),area.x1,area.y1};
+    int kind=(int)(intptr_t)lv_event_get_user_data(event);
+    if(kind<0) {
+        home_line(&ink,2,9,8,15,0x858d91);home_line(&ink,8,15,2,21,0x858d91);
+    } else if(kind==SETTINGS_DISPLAY) {
+        lv_draw_rect_dsc_t frame;lv_draw_rect_dsc_init(&frame);
+        frame.base.obj=obj;frame.bg_opa=LV_OPA_TRANSP;frame.border_width=2;
+        frame.border_color=lv_color_hex(CONTROL_WHITE);frame.radius=4;
+        lv_area_t screen={ink.x+3,ink.y+6,ink.x+32,ink.y+26};lv_draw_rect(ink.layer,&frame,&screen);
+        home_line(&ink,18,27,18,31,CONTROL_WHITE);home_line(&ink,12,31,24,31,CONTROL_WHITE);
+        home_line(&ink,9,21,15,21,IDENTITY_RED);
+    } else if(kind==SETTINGS_SOUND) {
+        const int points[][2]={{4,14},{10,14},{18,8},{18,28},{10,22},{4,22},{4,14}};
+        for(unsigned i=1;i<sizeof points/sizeof points[0];++i)
+            home_line(&ink,points[i-1][0],points[i-1][1],points[i][0],points[i][1],CONTROL_WHITE);
+        home_arc(&ink,16,18,15,320,40,IDENTITY_RED);
+    } else if(kind==SETTINGS_LANG) {
+        home_arc(&ink,18,18,14,0,360,CONTROL_WHITE);
+        home_line(&ink,18,5,18,31,CONTROL_WHITE);
+        home_line(&ink,6,18,30,18,IDENTITY_RED);
+        home_line(&ink,8,10,28,10,CONTROL_WHITE);home_line(&ink,8,26,28,26,CONTROL_WHITE);
+    }
+}
+static void home_icon(lv_obj_t *parent,int kind,int x,int y) {
+    lv_obj_t *icon=control_surface(parent,x,y,kind<0?12:36,kind<0?30:36);
+    ui_obj_set_clickable(icon,false);
+    lv_obj_add_event_cb(icon,home_icon_draw,LV_EVENT_DRAW_MAIN,(void *)(intptr_t)kind);
+}
+static void home_scroll_draw(lv_event_t *event) {
+    if(!s_home_list || s_page!=SETTINGS_HOME)return;
+    int32_t y=lv_obj_get_scroll_y(s_home_list),total=y+lv_obj_get_scroll_bottom(s_home_list);
+    if(total<=0)return;
+    lv_obj_t *obj=lv_event_get_target_obj(event);lv_area_t area;lv_obj_get_coords(obj,&area);
+    settings_ink_t ink={obj,lv_event_get_layer(event),area.x1,area.y1};
+    int height=lv_obj_get_height(s_home_list),thumb=100*height/(height+total);
+    int start=310+(100-thumb)*LV_CLAMP(0,y,total)/total;
+    home_arc(&ink,233,233,209,310,410,0x252d31);
+    home_arc(&ink,233,233,209,start,start+thumb,IDENTITY_RED);
+}
+static void home_scrolled(lv_event_t *event) {
+    if(!s_home_list || lv_event_get_target_obj(event)!=s_home_list)return;
+    s_home_y=lv_obj_get_scroll_y(s_home_list);
+    lv_area_t area;lv_obj_get_coords(s_panel,&area);
+    lv_area_t dirty={area.x1+363,area.y1+65,area.x1+445,area.y1+402};
+    lv_obj_invalidate_area(s_panel,&dirty);
+}
+static void home_row(int page,const char *name,const char *detail) {
+    // A centered, fixed-width row stays inside the round surface throughout scrolling.
+    lv_obj_t *row=control_button(s_home_list,0,0,278,88,open_page,(void *)(intptr_t)page);
+    lv_obj_set_style_bg_opa(row,LV_OPA_TRANSP,0);
+    lv_obj_set_style_bg_opa(row,LV_OPA_COVER,LV_STATE_PRESSED);
+    lv_obj_set_style_bg_color(row,lv_color_hex(0x171b1d),LV_STATE_PRESSED);
+    if(page==SETTINGS_ABOUT) {
+        lv_obj_t *logo=identity_logo_create(row,36);if(logo)lv_obj_set_pos(logo,0,26);
+    } else home_icon(row,page,0,25);
+    control_label(row,name,&font_location_24,52,10,206,CONTROL_WHITE);
+    control_label(row,detail,control_small_font(),52,46,206,0x8b9398);
+    home_icon(row,-1,261,29);
+    if(page!=SETTINGS_ABOUT) {
+        lv_obj_t *line=control_surface(row,52,87,220,1);
+        ui_obj_set_clickable(line,false);lv_obj_set_style_bg_opa(line,LV_OPA_COVER,0);
+        lv_obj_set_style_bg_color(line,lv_color_hex(0x202629),0);
+    }
+}
+
 static void menu_row(int page,const char *name,const char *detail,int y,int width) {
     lv_obj_t *row=control_button(s_panel,(466-width)/2,y,width,64,open_page,(void *)(intptr_t)page);
     control_label(row,name,&font_location_24,20,5,width-66,CONTROL_WHITE);
@@ -61,18 +143,32 @@ static void pick_lang(lv_event_t *e) {
 }
 static void rebuild(void *arg) {
     (void)arg;if(!s_parent)return;
+    if(s_home_list)s_home_y=lv_obj_get_scroll_y(s_home_list);
+    int32_t home_y=s_home_y;s_home_list=NULL;
     if(s_audio_ready && s_page!=SETTINGS_SOUND){audio_out_deinit();s_audio_ready=false;}
     if(s_panel)lv_obj_delete(s_panel);
     s_value=s_slider=s_aod=s_mute=s_face_preview=NULL;s_panel=control_surface(s_parent,0,0,466,466);
     if(s_page==SETTINGS_HOME) {
         launcher_set_title(tr_app_name("settings"));
-        char b[80];snprintf(b,sizeof b,word("亮度 %d%% · %s","%d%% brightness · %s"),
+        s_home_list=control_surface(s_panel,0,110,466,298);
+        ui_obj_set_scrollable(s_home_list,true);lv_obj_set_scroll_dir(s_home_list,LV_DIR_VER);
+        ui_obj_set_scroll_chain_hor(s_home_list,false);ui_obj_set_scroll_chain_ver(s_home_list,false);
+        ui_obj_set_scroll_elastic(s_home_list,false);ui_obj_set_scroll_momentum(s_home_list,true);
+        lv_obj_set_scrollbar_mode(s_home_list,LV_SCROLLBAR_MODE_OFF);
+        lv_obj_set_flex_flow(s_home_list,LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_flex_align(s_home_list,LV_FLEX_ALIGN_START,LV_FLEX_ALIGN_CENTER,LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_style_pad_ver(s_home_list,14,0);lv_obj_set_style_pad_row(s_home_list,16,0);
+        char b[80];snprintf(b,sizeof b,"%d%% · %s",
             settings_brightness()*100/255,word(settings_idle_mode()==IDLE_AOD?"常显":"自动熄屏",settings_idle_mode()==IDLE_AOD?"Always-on":"Auto off"));
-        menu_row(SETTINGS_DISPLAY,word("显示与表盘","Display"),b,112,306);
-        snprintf(b,sizeof b,word("音量 %d%% · %s","%d%% volume · %s"),settings_volume(),word(settings_silent()?"静音":"声音开启",settings_silent()?"Muted":"Sound on"));
-        menu_row(SETTINGS_SOUND,word("声音","Sound"),b,188,350);
-        menu_row(SETTINGS_LANG,word("语言","Language"),settings_lang()?"中文":"English",264,342);
-        menu_row(SETTINGS_ABOUT,word("关于本机","About"),"soRound OS",340,270);
+        home_row(SETTINGS_DISPLAY,word("显示与表盘","Display"),b);
+        snprintf(b,sizeof b,"%d%% · %s",settings_volume(),word(settings_silent()?"静音":"声音开启",settings_silent()?"Muted":"Sound on"));
+        home_row(SETTINGS_SOUND,word("声音","Sound"),b);
+        home_row(SETTINGS_LANG,word("语言","Language"),settings_lang()?"中文":"English");
+        home_row(SETTINGS_ABOUT,word("关于本机","About"),"soRound OS");
+        lv_obj_update_layout(s_home_list);
+        lv_obj_add_event_cb(s_home_list,home_scrolled,LV_EVENT_SCROLL,NULL);
+        lv_obj_add_event_cb(s_panel,home_scroll_draw,LV_EVENT_DRAW_POST,NULL);
+        lv_obj_scroll_to_y(s_home_list,home_y,LV_ANIM_OFF);s_home_y=lv_obj_get_scroll_y(s_home_list);
     } else if(s_page==SETTINGS_DISPLAY || s_page==SETTINGS_SOUND) {
         bool display=s_page==SETTINGS_DISPLAY;
         launcher_set_title(word(display?"显示":"声音",display?"Display":"Sound"));
@@ -135,10 +231,10 @@ static bool settings_back(void) {
     if(s_page==SETTINGS_HOME)return false;
     s_page=s_page==SETTINGS_FACE?SETTINGS_DISPLAY:SETTINGS_HOME;queue_rebuild();return true;
 }
-static void settings_enter(lv_obj_t *parent) {s_parent=parent;s_page=SETTINGS_HOME;s_audio_ready=false;rebuild(NULL);}
+static void settings_enter(lv_obj_t *parent) {s_parent=parent;s_page=SETTINGS_HOME;s_home_y=0;s_audio_ready=false;rebuild(NULL);}
 static void settings_exit(void) {
     lv_async_call_cancel(rebuild,NULL);if(s_audio_ready)audio_out_deinit();
-    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=s_face_preview=NULL;s_audio_ready=false;
+    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=s_face_preview=s_home_list=NULL;s_home_y=0;s_audio_ready=false;
 }
 static void settings_tick(void) {if(s_page==SETTINGS_FACE&&s_face_preview)watchface_refresh_preview(s_face_preview);}
 const app_t app_settings={.name="settings",.color=COL_TXT,.enter=settings_enter,.tick=settings_tick,.exit=settings_exit,.back=settings_back,.tick_period_ms=1000};
