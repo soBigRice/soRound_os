@@ -1,5 +1,9 @@
 # soRound OS（GeekTool）
 
+**[项目官网](https://sobigrice.github.io/soRound_os/)** ·
+[固件下载](https://github.com/soBigRice/soRound_os/releases) ·
+[安装指南](#快速开始主线固件)
+
 面向 **ESP32-S3-Touch-AMOLED-1.75C** 圆形 AMOLED 开发板的轻量多功能系统。项目以
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
@@ -62,9 +66,14 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 | `GeekTool-IDF/main/` | 启动器、系统服务、硬件驱动和各 App | 主要开发目录 |
 | `GeekTool-IDF/images/` | 随固件写入 FAT 分区的表盘图片 | 固件资源 |
 | `web/` | GeekTwin React/Three.js Web Bluetooth 校准器 | 配套前端 |
+| `site/` | soRound OS 产品官网、功能与表盘展示 | GitHub Pages |
+| `scripts/build_site.py` | 官网生成、资源检查及公开版本链接更新 | 网站构建 |
 | `GeekTool/` | Arduino + LVGL 8 多工具原型 | 早期版本 |
 | `WiFiList_StressTest/` | Arduino 圆屏 Wi-Fi 列表压力测试 | 硬件验证 |
 | `.github/workflows/firmware.yml` | Tag 构建、GitHub Release 和 R2 上传 | 发布流程 |
+| `.github/workflows/pages.yml` | 官网构建和 GitHub Pages 部署 | 网站发布 |
+
+官网本地预览、静态资源、十五款表盘交互和自动部署说明见 [site/README.md](./site/README.md)。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。

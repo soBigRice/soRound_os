@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f5f5">
+  <meta name="description" content="soRound OS，为 Waveshare ESP32-S3-Touch-AMOLED-1.75C 圆屏开发板而做的轻量多功能系统。探索表盘、日常工具与灵感应用，获取固件与安装指南。">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="soRound OS · 把灵感，装进圆里。">
+  <meta property="og:description" content="为 1.75 英寸圆形 AMOLED 而生。一个屏幕，时间、工具和一点好玩的灵感。">
+  <meta property="og:url" content="https://sobigrice.github.io/soRound_os/">
+  <link rel="canonical" href="https://sobigrice.github.io/soRound_os/">
+  <link rel="icon" type="image/svg+xml" href="assets/mark.svg">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+  <title>soRound OS · 把灵感，装进圆里。</title>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到内容</a>
+  <header class="site-header wrap">
+    <a class="brand" href="#" aria-label="soRound OS 首页">
+      <svg class="brand-mark" width="34" height="34" viewBox="0 0 40 40" aria-hidden="true"><circle cx="18" cy="22" r="13" fill="none" stroke="currentColor" stroke-width="6"/><circle cx="33" cy="7" r="4.5" fill="#e54330"/></svg>
+      <span>soRound OS</span>
+    </a>
+    <nav aria-label="主导航">
+      <a href="#explore">探索</a>
+      <a href="#watchfaces">表盘</a>
+      <a href="#start">开始使用</a>
+      <a class="github-link" href="https://github.com/soBigRice/soRound_os" target="_blank" rel="noopener noreferrer">GitHub<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero wrap" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <h1 id="hero-title">把灵感，<br>装进圆里<span class="red">。</span></h1>
+        <p>为 1.75 英寸圆形 AMOLED 而生。<br>一个屏幕，时间、工具和一点好玩的灵感。</p>
+        <div class="actions">
+          <a class="button" href="#start">开始使用<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6"/></svg></a>
+          <a class="text-link" href="#explore">探索功能</a>
+        </div>
+      </div>
+      <figure class="hero-visual">
+        <div class="hero-orbit">
+          <div class="native-screen hero-screen" role="img" aria-label="TYPE 大字表盘：黑色圆屏中上下排列的白色数字 10 和 08，红色短线与日期">
+            <img class="native-sheet" src="assets/type.png" width="1680" height="1220" alt="" fetchpriority="high" style="--crop-x: -130.257511%; --crop-y: -31.11588%;">
+          </div>
+        </div>
+        <figcaption><span class="mono">TYPE / BOLD</span><span>LVGL 原生界面预览</span></figcaption>
+      </figure>
+    </section>
+
+    <dl class="spec-strip wrap" aria-label="系统概览">
+      <div><dt>466 × 466</dt><dd>圆形 AMOLED</dd></div>
+      <div><dt>19</dt><dd>内置应用</dd></div>
+      <div><dt>15</dt><dd>风格表盘</dd></div>
+      <div><dt>ESP32-S3</dt><dd>专为这块开发板</dd></div>
+    </dl>
+
+    <section class="showcase" id="watchfaces" aria-labelledby="showcase-title">
+      <div class="wrap">
+        <div class="section-lead">
+          <h2 id="showcase-title">小小屏幕，<br>认真表达。</h2>
+          <p>三组视觉语言，十五款表盘。<br>让时间有自己的样子。</p>
+        </div>
+        <div class="face-explorer">
+          <figure class="face-visual">
+            <div class="native-screen explorer-screen" role="img" aria-label="ORBIT 环形表盘的原生界面预览" id="face-preview">
+              <img id="face-sheet" class="native-sheet" src="assets/orbit.png" width="1680" height="1220" alt="" loading="lazy" decoding="async" style="--crop-x: -247.639485%; --crop-y: -31.11588%;">
+            </div>
+          </figure>
+          <div class="face-controls">
+            <div class="theme-picker" role="group" aria-label="选择表盘主题">
+              <button type="button" data-theme="type" aria-pressed="false">TYPE</button>
+              <button type="button" data-theme="orbit" aria-pressed="true">ORBIT</button>
+              <button type="button" data-theme="shift" aria-pressed="false">SHIFT</button>
+            </div>
+            <div class="face-description" aria-live="polite" aria-atomic="true">
+              <h3 id="face-title">ORBIT</h3>
+              <p id="face-description">环形刻度，把时间放回轨道。</p>
+            </div>
+            <div class="kind-picker" role="group" aria-label="选择表盘样式">
+              <button type="button" data-kind="0" aria-pressed="false">点阵</button>
+              <button type="button" data-kind="1" aria-pressed="false">大字</button>
+              <button type="button" data-kind="2" aria-pressed="true">环形</button>
+              <button type="button" data-kind="3" aria-pressed="false">天气</button>
+              <button type="button" data-kind="4" aria-pressed="false">图片</button>
+            </div>
+            <p class="preview-note">界面为原生渲染，示例数据不代表实时设备状态。</p>
+            <p class="preview-error" id="preview-error" role="status" hidden>预览图片暂时无法加载，请切换其他主题或刷新页面。</p>
+            <noscript><p class="preview-note">启用 JavaScript 后可切换全部十五款表盘。</p></noscript>
+          </div>
+        </div>
+
+        <div class="feature-columns" id="explore">
+          <article>
+            <h3>日常，好用。</h3>
+            <p>天气 · 日历 · 倒计时 · 秒表<br>设置 · OTA 更新</p>
+            <p class="feature-detail">出门看天气，专注时计时。<br>让每天的小事，触手可及。</p>
+          </article>
+          <article>
+            <h3>工具，随手。</h3>
+            <p>Wi-Fi · I2C · 系统信息<br>音频可视化 · 水平仪 · 蓝牙遥控台 · 数字孪生</p>
+            <p class="feature-detail">看见声音，感受姿态。<br>也可以成为电脑的蓝牙遥控器。</p>
+          </article>
+          <article>
+            <h3>灵感，有趣。</h3>
+            <p>迷宫 · 流体 · 骰子与硬币<br>答案之书 · 星座运势 · 木鱼</p>
+            <p class="feature-detail">找个答案，敲一下木鱼。<br>留一点时间，给没有目的的好玩。</p>
+          </article>
+        </div>
+        <p class="channel-note">完整功能展示以 v1.7 内测主线为准；正式版功能请查看<a href="https://github.com/soBigRice/soRound_os/releases/latest" target="_blank" rel="noopener noreferrer">对应发布说明<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>。</p>
+      </div>
+    </section>
+
+    <section class="getting-started" id="start" aria-labelledby="start-title">
+      <div class="wrap">
+        <div class="section-lead">
+          <h2 id="start-title">准备好，<br>让圆屏醒来。</h2>
+          <p>一块开发板，一次烧录。<br>从这里开始你的 soRound。</p>
+        </div>
+        <div class="start-grid">
+          <div class="hardware">
+            <h3>为这块开发板而做</h3>
+            <p class="board-name">Waveshare ESP32-S3-Touch-AMOLED-1.75C</p>
+            <dl class="hardware-specs">
+              <div><dt>屏幕</dt><dd>1.75 英寸 · 466 × 466</dd></div>
+              <div><dt>内存</dt><dd>32 MB Flash · 8 MB PSRAM</dd></div>
+              <div><dt>传感器</dt><dd>QMI8658 六轴 IMU</dd></div>
+              <div><dt>无线</dt><dd>2.4 GHz Wi-Fi · BLE</dd></div>
+              <div><dt>开发</dt><dd>ESP-IDF · LVGL 9</dd></div>
+            </dl>
+          </div>
+          <div class="installation">
+            <ol class="steps">
+              <li><span class="step-number" aria-hidden="true">01</span><div><h3>确认开发板</h3><p>仅面向 1.75C 型号，先核对硬件。</p></div></li>
+              <li><span class="step-number" aria-hidden="true">02</span><div><h3>安装固件</h3><p>通过 USB 完成首次烧录，查看完整指南。</p></div></li>
+              <li><span class="step-number" aria-hidden="true">03</span><div><h3>保持更新</h3><p>连接 Wi-Fi，在设备 OTA 页面检查更新。</p></div></li>
+            </ol>
+            <div class="actions install-actions">
+              <a class="button" href="https://github.com/soBigRice/soRound_os#快速开始主线固件" target="_blank" rel="noopener noreferrer">安装指南<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+              <a class="button button-outline" href="https://github.com/soBigRice/soRound_os/releases" target="_blank" rel="noopener noreferrer">固件下载<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+            </div>
+            <p class="installation-note">内测功能需开启设备内测通道；升级前核对<a href="https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移" target="_blank" rel="noopener noreferrer">分区说明</a>。Release 的应用镜像不能代替首次安装所需的完整烧录。</p>
+            <div class="release-links" aria-label="固件版本">
+              <a href="{{stable_url}}" target="_blank" rel="noopener noreferrer">正式版 <span class="mono">{{stable_tag}}</span><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+              <a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">内测版 <span class="mono">{{beta_tag}}</span><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-main">
+        <div><a class="brand footer-brand" href="#">soRound OS</a><p>把灵感，装进圆里。</p></div>
+        <nav aria-label="页脚导航">
+          <a href="https://github.com/soBigRice/soRound_os" target="_blank" rel="noopener noreferrer">源码</a>
+          <a href="https://github.com/soBigRice/soRound_os/releases" target="_blank" rel="noopener noreferrer">发布记录</a>
+          <a href="https://github.com/soBigRice/soRound_os/issues" target="_blank" rel="noopener noreferrer">反馈问题</a>
+        </nav>
+      </div>
+      <div class="footer-bottom"><span>© 2026 soBigRice</span><span>Made for the round.</span></div>
+    </div>
+  </footer>
+</body>
+</html>
