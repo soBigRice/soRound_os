@@ -1,5 +1,16 @@
 "use strict";
 
+const siteMessages = JSON.parse(document.querySelector("#site-messages").textContent);
+const siteEnglish = document.documentElement.lang === "en";
+const assetRoot = siteEnglish ? "../assets/" : "assets/";
+const appRoot = assetRoot + (siteEnglish ? "apps/en/" : "apps/");
+function translate(message, values = {}) {
+  return (siteMessages[message] ?? message).replace(/\{(\w+)\}/g, (_, key) => values[key]);
+}
+document.querySelector(".language-switch").addEventListener("click", event => {
+  event.currentTarget.hash = window.location.hash;
+});
+
 (() => {
   const themes = {
     type: { title: "TYPE", description: "让数字，直接成为主角。" },
@@ -21,12 +32,14 @@
 
   function render() {
     const [x, y] = coordinates[kind];
-    sheet.src = `assets/${theme}.png`;
+    sheet.src = `${assetRoot}${theme}.png`;
     sheet.style.setProperty("--crop-x", `${-x / 466 * 100}%`);
     sheet.style.setProperty("--crop-y", `${-y / 466 * 100}%`);
-    preview.setAttribute("aria-label", `${themes[theme].title} ${kinds[kind]}表盘的原生界面预览`);
+    preview.setAttribute("aria-label", translate("{theme} {kind}表盘的原生界面预览", {
+      theme: themes[theme].title, kind: translate(kinds[kind]),
+    }));
     title.textContent = themes[theme].title;
-    description.textContent = themes[theme].description;
+    description.textContent = translate(themes[theme].description);
     themeButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.theme === theme)));
     kindButtons.forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.kind) === kind)));
     error.hidden = true;
@@ -53,8 +66,8 @@
   const error = document.querySelector("#app-error");
 
   function select(button, index) {
-    screen.src = `assets/apps/${button.dataset.app}.png`;
-    screen.alt = `${button.textContent}的 LVGL 原生界面预览`;
+    screen.src = `${appRoot}${button.dataset.app}.png`;
+    screen.alt = translate("{name}的 LVGL 原生界面预览", {name: button.textContent});
     title.textContent = button.textContent;
     description.textContent = button.dataset.description;
     position.textContent = `${String(index + 1).padStart(2, "0")} / ${buttons.length}`;

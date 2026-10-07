@@ -21,10 +21,14 @@ TARGETS = ("weather_ui_tests", "settings_level_tests", "audio_ui_tests", "dice_u
            "merit_ui_tests", "zodiac_ui_tests", "ota_ui_tests")
 
 
-def export(directory):
+def export(directory, language):
     output = ROOT / "site/assets/apps"
+    if language == "en":
+        output /= "en"
     output.mkdir(parents=True, exist_ok=True)
     for name, capture in CAPTURES.items():
+        if capture.endswith("-zh"):
+            capture = capture[:-3] + "-" + language
         with Image.open(directory / (capture + ".ppm")) as image:
             if image.size != (466, 466):
                 raise ValueError(f"{name}: expected native 466 × 466")
@@ -35,12 +39,13 @@ def export(directory):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--language", choices=("zh", "en"), default="zh")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--build-dir", type=Path, help="CMake build of scripts/site_native")
     group.add_argument("--captures", type=Path, help="Reuse already verified native PPM exports")
     args = parser.parse_args()
     if args.captures:
-        export(args.captures)
+        export(args.captures, args.language)
         return
     build = args.build_dir.resolve()
     with tempfile.TemporaryDirectory(prefix="soround-site-captures-") as temporary:
@@ -48,8 +53,11 @@ def main():
         for target in TARGETS:
             subprocess.run([str(build / "host" / target), str(directory)], check=True,
                            env=dict(os.environ, OTA_CAPTURE_DIR=str(directory)))
-        subprocess.run([str(build / "site_native"), str(directory)], check=True)
-        export(directory)
+        command = [str(build / "site_native"), str(directory)]
+        if args.language == "en":
+            command.append("--english")
+        subprocess.run(command, check=True)
+        export(directory, args.language)
 
 
 if __name__ == "__main__":

@@ -1,9 +1,40 @@
 # soRound OS 官网
 
 正式入口：**https://sobigrice.github.io/soRound_os/**。
+英文入口：**https://sobigrice.github.io/soRound_os/en/**，页首 `EN / 中文` 可互相切换。
 
 本目录只维护产品官网，现有 `web/` 仍是独立的 GeekTwin 蓝牙校准器。
 官网不请求设备权限，也不连接设备；表盘展示使用固定样例数据。
+
+## 中英文内容
+
+`index.html` 是两种语言共用的唯一结构，中文为默认入口，`locales/en.json` 按原文维护英文文案。
+`build_site.py:EnglishPage` 同时翻译文字、描述、无障碍名称、元数据和应用按钮描述，生成
+`en/index.html`；英文页的安装指南指向根目录 `README.en.md#quick-start-firmware`。
+本地资源按英文子目录重写为 `../` 路径，站内锚点保留当前语言。语言切换保留当前 section 锚点；
+不按浏览器语言强制跳转，不需要 localStorage。canonical 各指自己的页面，两页都声明中英文
+hreflang 与默认入口，sitemap 包含两个地址。
+
+`script.js:translate` 从页面内的 `site-messages` JSON 读取同一份翻译，切换表盘时更新英文描述
+与名称；应用标题/说明由已翻译的按钮数据提供。构建拒绝漏译文案、漏译动态字符串、
+占位符不一致、未替换模板、错误资源路径和缺失的19个原生预览，避免英文页只翻译静态标题。
+英文正文和大标题复用本地 Barlow，手机导航按完整词组换行。
+
+英文应用图片放在 `assets/apps/en/`，来自固件自身 `settings_lang() == 0` 的原生界面；
+三份表盘合辑已使用英文日期与信息，继续共用。星座控件是英文，运势内容有意保留接口中文原文
+（`app_zodiac.c:render_data`，界面标注 `CN`），英文说明明确此限制，不能把网页翻译冒充固件能力。
+本次英文导出使用已提交固件 `d9bebc1` 的临时源码副本，与工作区并行设置修改隔离；
+既有11个目标覆盖12个应用，另7个真实控制器也渲染成功，不改中文预览或固件源文件。
+`README.md` 和 `README.en.md` 互相链接；英文 README 包含安装、硬件、BLE、OTA、验证及已知边界，
+历史发布验证保留原日期与验收范围，不把历史测试当作本轮重新测试。
+
+2026-10-07 本轮英文适配检查：原生导出使用已提交固件，11个夹具目标通过，另7个控制器
+离线渲染成功。Codex IAB 实际检查两语言各19个应用、各15个表盘选项，图片加载、标题、
+动态名称及唯一选中状态匹配；中英文互跳保留 section 锚点，英文 Enter/Space 操作通过。
+1505×1045、390×844、320×740 无横向溢出；320px 英文导航保持完整词组并自然换行。
+英文安装入口与官方460×345设备图核对通过，无浏览器 error/warn；漏译负向检查、
+README 本地链接、公开版本查询、资源尺寸、JS语法和最终补丁空白检查通过。
+上述是网站与离线渲染验证，不替代设备验收。本轮临时源码副本、构建、原始PPM与服务结束后清理。
 
 ## 功能 UI 与硬件图片
 
@@ -26,6 +57,8 @@
 cmake -S scripts/site_native -B /tmp/soround-site-previews -DCMAKE_BUILD_TYPE=Debug
 cmake --build /tmp/soround-site-previews --target site_native weather_ui_tests settings_level_tests audio_ui_tests dice_ui_tests answers_ui_tests system_ui_tests wifi_ui_tests remote_ui_tests merit_ui_tests zodiac_ui_tests ota_ui_tests -j 8
 python3 scripts/render_site_apps.py --build-dir /tmp/soround-site-previews
+# 英文预览；保留中文图片
+python3 scripts/render_site_apps.py --build-dir /tmp/soround-site-previews --language en
 ```
 
 导出脚本仅做 PPM→PNG 格式转换，不缩放或改画固件像素；临时原始图自动删除。
@@ -64,10 +97,10 @@ python3 -m http.server 8765 --bind 127.0.0.1 --directory build/site
 ## 内容、预览和部署调用链
 
 ```text
-site/index.html + styles.css + script.js + assets/
+site/index.html + locales/en.json + styles.css + script.js + assets/
   → scripts/build_site.py
-  → 替换正式/内测版本链接，检查锚点、资源、原生预览尺寸
-  → build/site/（只包含公开站点资源）
+  → 生成中英文页面，替换正式/内测版本链接，检查翻译、锚点、资源、原生预览尺寸
+  → build/site/ + en/index.html（只包含公开站点资源）
   → .github/workflows/pages.yml
   → upload-pages-artifact → deploy-pages → GitHub Pages
 ```

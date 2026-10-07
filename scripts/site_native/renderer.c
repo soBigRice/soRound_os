@@ -19,7 +19,8 @@ static lv_obj_t *heading;
 static uint16_t pixels[466 * 466];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466 * 40];
 
-uint8_t settings_lang(void) { return 1; }
+static uint8_t preview_language = 1;
+uint8_t settings_lang(void) { return preview_language; }
 time_t site_fixture_time(time_t *out) {
     time_t value = 1791338880; /* 2026-10-07 10:08 CST. */
     if (out) *out = value;
@@ -93,7 +94,8 @@ static void capture(const char *directory, const char *name, lv_display_t *displ
     assert(fclose(file) == 0);
 }
 int main(int argc, char **argv) {
-    assert(argc == 2);
+    assert(argc == 2 || (argc == 3 && strcmp(argv[2], "--english") == 0));
+    if (argc == 3) preview_language = 0;
     setenv("TZ", "CST-8", 1); tzset();
     const app_t *apps[] = {&app_calendar, &app_countdown, &app_stopwatch, &app_maze,
                           &app_fluid, &app_i2c, &app_twin};

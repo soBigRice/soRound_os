@@ -1,5 +1,6 @@
 # soRound OS（GeekTool）
 
+[English](./README.en.md) ·
 **[项目官网](https://sobigrice.github.io/soRound_os/)** ·
 [固件下载](https://github.com/soBigRice/soRound_os/releases) ·
 [安装指南](#快速开始主线固件)
@@ -8,9 +9,13 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-当前仓库 `main` 包含 `v1.7-beta.28` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
+当前仓库 `main` 包含 `v1.7-beta.29` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-[beta.28](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.28) 将圆环与红点 Logo 接入系统，重新设计中英文关于本机页，增加1.8秒原生开机动画；
+[beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) 新增设置首页惯性滚动、固定标题与返回、弧形位置提示及返回位置恢复。
+原生中英文回归、本地及CI构建通过；正式发布包4,133,184B，R2/OTA完整包与GitHub声明摘要一致，Range核对通过；
+本轮GitHub CDN整包下载未核验完成，真机OTA重启与滑动手感待验收，正式通道保持v1.6.1，见
+[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-07-v17-beta29-设置首页滚动发布)。
+此前 [beta.28](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.28) 将圆环与红点 Logo 接入系统，重新设计中英文关于本机页，增加1.8秒原生开机动画；
 版本与电量继续读取实际状态，动画结束回到原锁屏，服务初始化与动画并行。
 26组主机回归、原生466×466渲染、本地及CI构建通过；GitHub/R2/OTA镜像完整包哈希一致，Range断点续传核验通过。
 发布包4,131,024B，4MiB槽余63,280B；正式通道保持v1.6.1。

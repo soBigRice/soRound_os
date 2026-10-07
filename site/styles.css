@@ -36,6 +36,10 @@ figure, h1, h2, h3, p, dl, dd { margin: 0; }
 .site-header nav { display: flex; align-items: center; gap: clamp(24px, 3.6vw, 52px); }
 .site-header nav a { font-size: 15px; font-weight: 600; }
 .site-header nav a:hover { color: var(--red); }
+.language-switch { white-space: nowrap; }
+html[lang="en"] { --font: Barlow, system-ui, sans-serif; }
+html[lang="en"] h1 { font-family: var(--font); font-size: clamp(52px, 6.1vw, 90px); line-height: 1.08; letter-spacing: -.045em; }
+html[lang="en"] .section-lead h2 { font-family: var(--font); line-height: 1.1; letter-spacing: -.04em; }
 .github-link { display: inline-flex; align-items: center; gap: 6px; }
 .github-link .arrow { width: 14px; height: 14px; }
 
@@ -174,8 +178,11 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
   .brand-mark { width: 28px; height: 28px; }
   .site-header nav { width: 100%; gap: 0; justify-content: space-between; }
   .site-header nav a { font-size: 13px; }
+  html[lang="en"] .site-header nav { flex-wrap: wrap; justify-content: flex-start; gap: 10px 16px; }
+  html[lang="en"] .site-header nav a { white-space: nowrap; }
   .hero { grid-template-columns: 1fr; gap: 56px; padding-block: 52px 40px; }
   h1 { font-size: clamp(46px, 10.5vw, 76px); letter-spacing: -.055em; }
+  html[lang="en"] h1 { font-size: clamp(44px, 12.5vw, 76px); }
   .hero-copy > p { margin-top: 22px; font-size: 15px; line-height: 1.9; }
   .actions { margin-top: 28px; gap: 30px; }
   .button { min-height: 52px; padding-inline: 24px; font-size: 15px; gap: 22px; }
