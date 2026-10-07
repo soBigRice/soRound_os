@@ -1,7 +1,7 @@
 # 联网请求与恢复逻辑
 
-核对日期：2026-10-07；ESP-IDF 6.0.1 / ESP32-S3，基于 `main / b626cbd` 的未提交工作区。
-本轮本地修复和自动验证已完成；用户暂不方便连接设备，OTA 后真实联网故障的完整根因仍待串口证据确认。
+核对日期：2026-10-07；ESP-IDF 6.0.1 / ESP32-S3，初次本地验证基线 `b626cbd`，实现随 `v1.7-beta.30 / 5efc052` 发布。
+本地与 [发布交付验证](./PORTING_NOTES.md#2026-10-07-v17-beta30-设置联网与启动自检发布)已完成；用户暂不方便连接设备，OTA后真实联网故障的完整根因仍待串口证据确认。
 现有证书包、Mbed TLS 的 PSRAM 分配、Wi-Fi FLASH 凭据、NVS/分区与OTA下载校验保持；
 本轮随后接入 [首启自检](./STARTUP.md)，核心检查后才确认新固件，联网失败允许离线启动。
 
@@ -73,7 +73,7 @@ OTA的 `esp_http_client_get_and_clear_last_tls_error` 返回值是ESP-TLS传输�
 
 - 10组目标测试通过：天气、答案UI/网络、星座UI/网络、Wi-Fi、表盘、OTA UI/恢复，以及已有设置修订回归；使用实际App/worker/parser和LVGL9.5，网络/设备边界为夹具。
 - 天气IP恢复回归用原HEAD源码在独立临时可执行文件复现：恢复后60秒内未发请求；当前源码立即发起且通过。还覆盖DHCP未完成、LOST_IP/STOP、SNTP时机、扫描中断重连、BUSY交接、过期代次、完整JSON但传输不完整、瞬态重试、坏响应/证书拒绝及资源清理。
-- ESP-IDF6.0.1 / ESP32-S3联网修订构建和现有 `verify_image` 段边界/XOR/附加SHA核验通过。历史候选版本、SHA、容量与测试回执在 `build/flash-records/network-recovery-20261007/`；随后启动修订已覆盖当前 `build/GeekTool.bin`，其精确摘要见 `build/flash-records/startup-selftest-20261007/`。两者均包含此前待验收的设置修改，尚未提交、发布或烧录。
+- ESP-IDF6.0.1 / ESP32-S3联网修订构建和现有 `verify_image` 段边界/XOR/附加SHA核验通过。历史本地候选回执在 `build/flash-records/network-recovery-20261007/` 和 `startup-selftest-20261007/`；当前本地构建已为干净标签beta.30，CI发布包另存 `build/releases/v1.7-beta.30/GeekTool.bin`，精确版本/SHA见 `build/flash-records/beta30-release-20261007/`。本地候选与CI包分别核验，真实设备仍待验收。
 - 2026-10-07桌面curl对照天气/答案/白羊接口均200，实际三份解析器通过；OTA beta只核对1024B Range206，并非整包下载验收。另用设备默认User-Agent与TLS1.2请求星座返回200。此前Python TLS EOF与curl结果不同，不能据此断言提供方停机/兼容性故障，更不能据桌面成功判定手表恢复。
 - OTA DNS/TCP状态的 [两张466×466原生图](./artwork/network-recovery/README.md) 已查看，使用错误与电量夹具。布局检查不代替设备升级。
 

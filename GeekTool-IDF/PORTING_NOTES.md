@@ -1996,5 +1996,25 @@ SHA256：`6cf3722c8441fa0fe17b4989915a7468635b971440a045c28b986c46b1a41512`。
 实现与验证入口为 [设置](./artwork/settings-detail/README.md)、[联网](./NETWORKING.md) 和 [启动](./STARTUP.md)。
 发布不代表真实设备联网故障已结案或触摸/动画/OTA回滚已验收。
 
-发布准备：最终生产与主机测试源码摘要与上一轮回执一致，复用有效29组主机测试；另核对独立OTA恢复回归。
-标签CI、Release、R2和国内OTA完整包/Range，以及官网最新链接需依次核对；精确结果待本节补齐。
+最终生产与主机测试源码摘要与上一轮回执一致，复用有效29组主机测试；独立OTA恢复回归再次通过。
+干净标签本地ESP-IDF6.0.1构建及镜像核验通过，版本为`v1.7-beta.30`，4,115,088B，
+SHA256 `ee2259ac971122a0319c0e5a695e2e18e793e6c1ee15dfefbc49015a35f35914`；本地包不是CI发布包。
+
+源码提交 `5efc05252805183611bf296504ab300171ab1c8f`，annotated tag对象 `17969965aa39d6604164e47011e165a08b58ec5b`。
+本机HTTPS Git上传低速超时，沿用官方[Git tree](https://docs.github.com/en/rest/git/trees)、
+[commit](https://docs.github.com/en/rest/git/commits)和[tag](https://docs.github.com/en/rest/git/tags)接口：
+45个二进制blob、完整root tree、commit及tag逐项匹配本地SHA，非强制fast-forward更新main后创建标签；未改Git身份、DNS、CI或发布流程。
+
+[发布CI 37643462460](https://github.com/soBigRice/soRound_os/actions/runs/37643462460)结论success，
+实际构建日志、[GitHub prerelease资产](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.30)及R2上传均已核对。
+实际发布包 `v1.7-beta.30 / IDF v6.0.1`，4,148,720B，4MiB槽余45,584B（约44.5KiB）。
+包SHA256 `2352faf1be9e77a99baf66c54263a19067e637a6ccc6ccc292ec499a5e00b0e9`，
+ELF摘要 `00d25ce36f0021beae60c93b0e586805c7fb009d1a66525d6060f54bad8c8cda`。
+完整R2源与国内OTA包均通过ESP32-S3项目/版本、段边界、XOR和附加SHA核验，与GitHub资产声明digest一致。
+两入口均验证GET200、准确长度/强ETag/no-store；If-Match+Range65536–131071返回206，65,536B与完整包切片一致；错误If-Match返回412。
+无需修改镜像服务器或下载入口；发布前后两入口正式包仍为v1.6.1、1,872,192B，SHA256均为
+`703e4e5ff3c0b3b63baeaf45fcfaa73ae0a9d07e47028f9d73ae1b205a120807`。
+
+GitHub直链整包下载单次45秒超时，未重复CDN下载，不声称本轮GitHub完整下载通过；R2/国内完整包与资产声明摘要已独立核对。
+CI发布包保存于 `build/releases/v1.7-beta.30/GeekTool.bin`；薄回执在 `build/flash-records/beta30-release-20261007/`。
+官网最新链接随发布更新另行核对；未USB烧录，真实OTA升级、重启、自检/回滚和联网体验仍待设备验收。

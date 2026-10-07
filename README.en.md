@@ -20,8 +20,10 @@ Weather, Answers, Zodiac and OTA. The boot animation lasts at least four seconds
 keeps the home screen covered until shared initialization and core checks pass. A new OTA
 image is confirmed after these checks; a core failure rolls back when a recovery image
 is available. Network-check failures are logged and shown, with offline startup allowed.
-All 29 host tests, the local firmware build and image checks passed. Release delivery and
-physical-device acceptance are separate gates. See [startup checks](./GeekTool-IDF/STARTUP.md),
+All 29 host tests, the independent OTA recovery suite and local/CI builds passed. Complete
+R2 and OTA downloads matched the GitHub asset's declared digest. Physical network, touch,
+OTA and rollback checks still need device acceptance. See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-07-v17-beta30-设置联网与启动自检发布),
+[startup checks](./GeekTool-IDF/STARTUP.md),
 [network recovery](./GeekTool-IDF/NETWORKING.md) and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
 
 [Beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) adds a scrolling
