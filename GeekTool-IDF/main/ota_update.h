@@ -2,6 +2,8 @@
 #include <stdbool.h>
 #include "esp_err.h"
 #include "mbedtls/x509.h"
+#define OTA_URL_STABLE "https://ota.miaozong.cc/GeekTool.bin"
+#define OTA_URL_BETA   "https://ota.miaozong.cc/GeekTool-beta.bin"
 
 // ESP-TLS stores -ret (positive); normalize both backend and raw mbedTLS signs.
 // Unsigned subtraction also handles INT_MIN without signed overflow.
@@ -23,6 +25,8 @@ typedef enum {
 typedef struct {
     ota_state_t state, failed_at;
     esp_err_t error;
+    esp_err_t transport_error;
+    int socket_errno;
     int pct, attempt, http_status, tls_code, tls_flags;
     char version[32];
 } ota_status_t;

@@ -10,7 +10,7 @@
 #include "weather_location_ui.h"
 #include "esp_http_client.h"
 #include "esp_crt_bundle.h"
-#include "esp_wifi.h"
+#include "network_http.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
@@ -35,6 +35,10 @@ static lv_obj_t *s_parent,*s_content;
 static bool s_choosing;
 static struct {uint32_t generation;int32_t lat,lon;} s_request;
 
+static bool request_active(void *arg) {
+    portENTER_CRITICAL(&s_lock);bool current=*(const uint32_t *)arg==s_generation;
+    portEXIT_CRITICAL(&s_lock);return current;
+}
 static void wx_task(void *arg) {
     (void)arg;
     portENTER_CRITICAL(&s_lock);
@@ -50,42 +54,29 @@ static void wx_task(void *arg) {
     // buffer. Size TX for the bounded URL as well as GET/protocol framing.
     esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,
         .timeout_ms=12000,.buffer_size_tx=sizeof url};
-    esp_http_client_handle_t cli=esp_http_client_init(&cfg);
     char *body=heap_caps_malloc(WX_BUF,MALLOC_CAP_SPIRAM);if(!body)body=malloc(WX_BUF);
-    int total=0,status=0,read_result=0;bool opened=false;
-    esp_err_t open_error=ESP_ERR_NO_MEM;int64_t content_length=-1;
-    if(cli && body)open_error=esp_http_client_open(cli,0);
-    if(open_error==ESP_OK) {
-        opened=true;content_length=esp_http_client_fetch_headers(cli);
-        status=esp_http_client_get_status_code(cli);
-        if(content_length>=0) {
-            while((read_result=esp_http_client_read(cli,body+total,WX_BUF-1-total))>0) {
-                total+=read_result;if(total>=WX_BUF-1)break;
-            }
-        }
-        body[total]=0;
-    }
-    if(cli) {if(opened)esp_http_client_close(cli);esp_http_client_cleanup(cli);}
+    network_http_result_t fetched={.stage=NET_HTTP_INIT};
+    if(body)fetched=network_http_get(TAG,&cfg,body,WX_BUF,24000,request_active,&generation);
+    else ESP_LOGW(TAG,"forecast response allocation failed");
     weather_data_t data;
-    bool valid=open_error==ESP_OK && content_length>=0 && read_result==0 &&
-        total>0 && total<WX_BUF-1 && status==200 && weather_data_parse(body,(size_t)total,&data);
+    bool valid=fetched.stage==NET_HTTP_OK && weather_data_parse(body,fetched.bytes,&data);
+    if(fetched.stage==NET_HTTP_OK && !valid)ESP_LOGW(TAG,"forecast parse failed HTTP=%d bytes=%u",fetched.status,(unsigned)fetched.bytes);
     free(body);
+    bool offline=fetched.stage==NET_HTTP_OFFLINE || !wifi_service_ready();
     portENTER_CRITICAL(&s_lock);
     if(generation==s_generation) {
         if(valid)s_data=data;
-        s_state=valid?WX_OK:WX_FAIL;++s_revision;
+        s_state=valid?WX_OK:offline?WX_OFFLINE:WX_FAIL;++s_revision;
     }
     s_task_alive=false;
     portEXIT_CRITICAL(&s_lock);
     ESP_LOGI(TAG,"forecast generation=%lu %s",(unsigned long)generation,valid?"ready":"failed");
-    if(!valid)ESP_LOGW(TAG,"forecast open=%s headers=%lld http=%d bytes=%d read=%d",
-        esp_err_to_name(open_error),(long long)content_length,status,total,read_result);
     vTaskDelete(NULL);
 }
 static void start_fetch(void) {
     uint16_t selected=wx_location_selected();
     portENTER_CRITICAL(&s_lock);bool alive=s_task_alive;portEXIT_CRITICAL(&s_lock);if(alive)return;
-    wifi_ap_record_t ap;bool online=esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
+    bool online=wifi_service_ready();
     portENTER_CRITICAL(&s_lock);
     if(s_task_alive) {portEXIT_CRITICAL(&s_lock);return;}
     s_state=online?WX_LOADING:WX_OFFLINE;++s_revision;
@@ -100,10 +91,11 @@ static void start_fetch(void) {
     }
 }
 void weather_poll(void) {
+    bool online=wifi_service_ready();
     wx_location_init();uint32_t now=(uint32_t)(esp_timer_get_time()/1000);
     portENTER_CRITICAL(&s_lock);
     uint32_t period=s_state==WX_OK?20u*60*1000:60u*1000;
-    bool due=!s_task_alive && (s_state==WX_IDLE || !s_last_fetch || now-s_last_fetch>=period);
+    bool due=!s_task_alive && (s_state==WX_IDLE || (s_state==WX_OFFLINE && online) || !s_last_fetch || now-s_last_fetch>=period);
     portEXIT_CRITICAL(&s_lock);if(due)start_fetch();
 }
 bool weather_cached(int *temp,int *lo,int *hi,int *code,int *hum) {

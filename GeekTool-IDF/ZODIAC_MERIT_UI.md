@@ -4,12 +4,12 @@
 
 ## 星座运势
 
-`app_zodiac.c` → `zodiac_fetch_begin(sign,token)` → 独立FreeRTOS HTTP任务 → `zodiac_data_parse` → `zodiac_fetch_poll` → LVGL展示。
+`app_zodiac.c` → `zodiac_fetch_begin(sign,token)` → 独立FreeRTOS任务 / `network_http_get` → `zodiac_data_parse` → `zodiac_fetch_poll` → LVGL展示。
 
 - 点星座符号、名称或“切换”进入12项列表；系统返回先收起列表，再退出App。五个分类标签直接选择综合/爱情/事业/财富/健康，选中项用暗红底标记；分类行独立显示五点评分及原始0至5分数。12个符号使用本地曲线绘制，依据 [Unicode 星座符号](https://www.unicode.org/charts/PDF/U2600.pdf)，不依赖缺失的emoji字形。正文用32px原生字库完整换行，中央矩形区域原生滚动，不截断长文。综合页仍列出幸运颜色、数字、贵人星座和宜/忌。
 - 数据为[小小API星座接口](https://xxapi.cn/doc/horoscope)中文原文；英文系统界面使用紧凑日期标记 `CN`，加载时标记 `CN ORIGINAL`。GET参数只包含公开星座key、today和设备日期，无账号、密钥、位置或私有数据。沿用答案之书已有提供方，不增加收费依赖。
 - 2026-10-05实查12种key均返回200、正确星座和10月5日；日期参数不改变接口schema。文档样例的幸运数字/颜色出现互换，实际响应类型正常；实现按实际字段展示，不自行调换。
-- 使用已有ESP-IDF 6.0.1 HTTPS证书包，禁重定向，6秒I/O超时、8秒读取期限，8KiB响应上限。服务解析校验200业务码、所选星座、严格UTF-8、字段容量及0至5整数评分；未知评分显示 `-- / 5`。设备日期有效时只接受当天日期，防旧响应冒充今日。进入/选星座/刷新联网；可见页跨日自动更新。没有离线随机运势。
+- 使用已有ESP-IDF 6.0.1 HTTPS证书包，禁重定向，6秒I/O超时、最多两次传输共享8秒预算，8KiB响应缓冲。服务解析校验200业务码、所选星座、严格UTF-8、字段容量及0至5整数评分；未知评分显示 `-- / 5`。设备日期有效时只接受当天日期，防旧响应冒充今日。进入/选星座/刷新联网；可见页跨日自动更新。2026-10-07修正校时跨日后的失败/离线页也刷新，具体传输预算、取消与本地验证见[联网恢复逻辑](./NETWORKING.md)。没有离线随机运势。
 - 取消只推进generation，旧任务自行关闭连接/释放内存。快速切换遇到BUSY时在UI期限内等待旧任务退出，再发所选星座请求，不并行堆任务。离线、HTTP失败、超时、无内容和缺字各显示明确状态；刷新可重试。隐藏页停止poll，退出取消请求并清空UI指针。
 - 字体复用 `font_answer_32` 和3755字CJK fallback。12份真实响应检出“橘羯逅邂馨”缺字，加入 `artwork/zodiac/extra-glyphs.txt`，由 `gen_answer_font.swift` 生成；原309字的bitmap逐字未改变。真实接口去重字集保存在 `tests/lifestyle/horoscope_glyphs.txt`，覆盖当天全部12种响应的5类文本及幸运字段。未来遇到字库外内容明确提示，不显示方块。共享24px字体增加32字，原1460字bitmap未改变。
 

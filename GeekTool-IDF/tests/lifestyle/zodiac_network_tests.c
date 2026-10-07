@@ -10,6 +10,8 @@ static const char *payload=fixture;
 time_t zodiac_test_time(time_t *out){struct tm t={.tm_year=126,.tm_mon=9,.tm_mday=5,.tm_hour=12};time_t n=mktime(&t);if(out)*out=n;return n;}
 
 static struct mock_client { size_t at; } client;
+static bool ip_ready=true,first_attempt=true;
+static int open_fail_count,status_fail_count,init_calls,tls_flags;
 static bool online=true,create_fail,init_fail,open_fail,header_fail,read_fail,complete=true,cancel_on_read;
 static int status=200,handles,opens,closes,cleanups,deletes;
 static int64_t declared=-2,clock_us,read_delay;
@@ -17,21 +19,27 @@ static void (*queued)(void *);
 static uint32_t random_value=0x17483920;
 uint32_t esp_random(void){return ++random_value;}
 esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *ap){(void)ap;return online?ESP_OK:ESP_FAIL;}
+bool wifi_service_ready(void){return online && ip_ready;}
+void vTaskDelay(int ms){clock_us+=(int64_t)ms*1000;}
+int esp_http_client_get_errno(esp_http_client_handle_t h){assert(h==&client);return 0;}
+esp_err_t esp_http_client_get_and_clear_last_tls_error(esp_http_client_handle_t h,int *code,int *flags){assert(h==&client);*code=0;*flags=tls_flags;return ESP_OK;}
+esp_err_t esp_http_client_set_timeout_ms(esp_http_client_handle_t h,int ms){assert(h==&client && ms>0 && ms<=6000);return ESP_OK;}
 esp_err_t esp_crt_bundle_attach(void *p){(void)p;return ESP_OK;}
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *cfg){
     assert(!strcmp(cfg->url,"https://v2.xxapi.cn/api/horoscope?type=aries&time=today&date=20261005"));
     assert(cfg->crt_bundle_attach==esp_crt_bundle_attach);
     assert(cfg->timeout_ms==6000&&cfg->disable_auto_redirect);
+    ++init_calls;
     if(init_fail)return NULL;assert(!handles);++handles;client.at=0;return &client;
 }
 esp_err_t esp_http_client_set_header(esp_http_client_handle_t h,const char *key,const char *value){
     assert(h==&client&&key&&value);return header_fail?ESP_FAIL:ESP_OK;
 }
 esp_err_t esp_http_client_open(esp_http_client_handle_t h,int length){
-    assert(h==&client&&length==0);if(open_fail)return ESP_FAIL;++opens;return ESP_OK;
+    assert(h==&client&&length==0);if(open_fail)return ESP_FAIL;if(open_fail_count>0){--open_fail_count;return ESP_FAIL;}++opens;return ESP_OK;
 }
 int64_t esp_http_client_fetch_headers(esp_http_client_handle_t h){assert(h==&client);return declared==-2?(int64_t)strlen(payload):declared;}
-int esp_http_client_get_status_code(esp_http_client_handle_t h){assert(h==&client);return status;}
+int esp_http_client_get_status_code(esp_http_client_handle_t h){assert(h==&client);if(status_fail_count>0){--status_fail_count;return 503;}return status;}
 int esp_http_client_read(esp_http_client_handle_t h,char *out,int capacity){
     assert(h==&client&&capacity>0);clock_us+=read_delay;
     if(cancel_on_read){cancel_on_read=false;zodiac_fetch_cancel();}
@@ -46,7 +54,7 @@ esp_err_t esp_http_client_cleanup(esp_http_client_handle_t h){assert(h==&client&
 int64_t esp_timer_get_time(void){return clock_us;}
 int xTaskCreate(void (*task)(void *),const char *name,unsigned stack,void *arg,unsigned priority,void *handle){
     (void)name;(void)priority;(void)handle;assert(stack==8192&&!arg&&!queued);
-    if(create_fail)return 0;queued=task;return pdPASS;
+    if(create_fail)return 0;first_attempt=true;queued=task;return pdPASS;
 }
 void vTaskDelete(void *p){assert(!p);++deletes;}
 static void run(void){assert(queued);void (*task)(void *)=queued;queued=NULL;task(NULL);assert(!handles);}
@@ -63,6 +71,13 @@ int main(void){
       "{\"code\":200,\"data\":{\"name\":\"aries\",\"time\":\"10月5日\",\"shortcomment\":\"\xc0\xaf\"}}"};
     for(unsigned i=0;i<sizeof bad/sizeof bad[0];++i)assert(!zodiac_data_parse(bad[i],strlen(bad[i]),0,&out));
     online=false;assert(zodiac_fetch_begin(0,&token)==ZODIAC_OFFLINE&&!queued);online=true;
+    ip_ready=false;assert(zodiac_fetch_begin(0,&token)==ZODIAC_OFFLINE&&!queued);ip_ready=true;
+    int count=init_calls;open_fail_count=1;token=request();run();
+    assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY && init_calls==count+2);
+    count=init_calls;status_fail_count=1;token=request();run();
+    assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY && init_calls==count+2);
+    count=init_calls;open_fail=true;tls_flags=4;failure();assert(init_calls==count+1);tls_flags=0;open_fail=false;
+    count=init_calls;status=404;failure();assert(init_calls==count+1);status=200;
     assert(zodiac_fetch_begin(12,&token)==ZODIAC_FAILED&&!queued);
     create_fail=true;assert(zodiac_fetch_begin(0,&token)==ZODIAC_FAILED&&!queued);create_fail=false;
     token=request();assert(zodiac_fetch_begin(0,&token)==ZODIAC_BUSY);run();

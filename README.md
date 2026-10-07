@@ -9,9 +9,14 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-当前仓库 `main` 包含 `v1.7-beta.29` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
+当前仓库 `main` 包含 `v1.7-beta.30` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-[beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) 新增设置首页惯性滚动、固定标题与返回、弧形位置提示及返回位置恢复。
+[beta.30](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.30) 将设置首页改为七个独立选项，表盘预览居中；
+修正天气、答案之书、星座与OTA的IP就绪、恢复、取消、完整响应及错误诊断。
+启动动画至少4秒，公共初始化与核心自检通过后进入原表盘；OTA新固件首启通过才确认有效，核心失败且可回退时回滚。
+联网检查失败记录并提示，仍允许离线启动。29组主机测试、本地构建和镜像校验通过，发布验证与设备验收分别记录。
+调用链见 [启动自检](GeekTool-IDF/STARTUP.md)、[联网恢复](GeekTool-IDF/NETWORKING.md) 和 [设置布局](GeekTool-IDF/artwork/settings-detail/README.md)。
+此前 [beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) 新增设置首页惯性滚动、固定标题与返回、弧形位置提示及返回位置恢复。
 原生中英文回归、本地及CI构建通过；正式发布包4,133,184B，R2/OTA完整包与GitHub声明摘要一致，Range核对通过；
 本轮GitHub CDN整包下载未核验完成，真机OTA重启与滑动手感待验收，正式通道保持v1.6.1，见
 [发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-07-v17-beta29-设置首页滚动发布)。

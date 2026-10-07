@@ -2,13 +2,17 @@
 #include "lvgl.h"
 
 LV_FONT_DECLARE(font_identity_16);
+LV_FONT_DECLARE(font_identity_18);
 LV_FONT_DECLARE(font_identity_26);
 LV_FONT_DECLARE(font_identity_34);
 
-#define IDENTITY_BOOT_MS 1800
+#define IDENTITY_BOOT_MS 4000
 
 // Native geometry matches artwork/identity/logo-dark.svg; no SVG or video decoder.
 lv_obj_t *identity_logo_create(lv_obj_t *parent, int size);
-// Call in the LVGL context after the original startup screen is ready.
-// Covers this parent once, then deletes itself and its animation after 1.8s.
+// All boot APIs run in the LVGL context; create may precede interactive pages.
+// Holds until both the minimum duration and explicit startup release are met.
 lv_obj_t *identity_boot_create(lv_obj_t *parent);
+void identity_boot_message(lv_obj_t *boot, const char *message, bool error);
+void identity_boot_release(lv_obj_t *boot);
+bool identity_boot_active(void);

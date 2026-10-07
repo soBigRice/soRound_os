@@ -30,14 +30,14 @@ int watchface_count(void) {return 15;}
 int watchface_selected(void) {return face;}
 const char *watchface_kind_name(int i) {static const char *names[]={"dots","bold","rings","weather","image"};return names[i%5];}
 const char *watchface_theme_name(int i) {static const char *names[]={"TYPE","ORBIT","SHIFT"};return names[i];}
-const char *watchface_name(int i) {return watchface_kind_name(i);}
+const char *watchface_name(int i) {static char name[40];snprintf(name,sizeof name,"%s / %s",watchface_theme_name(i/5),watchface_kind_name(i));return name;}
 void watchface_select(int i) {assert(i>=0 && i<15);face=(uint8_t)i;}
 void watchface_refresh_preview(lv_obj_t *preview) {(void)preview;}
 void audio_out_init(void) {++audio_starts;}
 void audio_out_deinit(void) {++audio_stops;}
 void audio_out_set_volume(uint8_t v) {assert(v==volume);}
 void audio_out_blip(void) {++blips;}
-static esp_app_desc_t descriptor={.version="v1.7-beta.11-1-g4371a46-dirty"};
+static esp_app_desc_t descriptor={.version="v1.7-beta.29"};
 const esp_app_desc_t *esp_app_get_description(void) {return &descriptor;}
 static lv_obj_t *heading;
 void launcher_set_title(const char *t) {lv_label_set_text(heading,t);}
@@ -77,6 +77,7 @@ static void drag(int x1,int y1,int x2,int y2) {
     touch_at(x2,y2,false);
 }
 static void settle(void) {for(int i=0;i<60;++i){lv_tick_inc(20);lv_timer_handler();}}
+static void back_tapped(lv_event_t *event) {(void)event;settings_back();}
 static void back_gesture(lv_event_t *event) {
     (void)event;
     if(lv_indev_get_gesture_dir(lv_indev_active())==LV_DIR_RIGHT) {
@@ -129,6 +130,31 @@ static lv_obj_t *settings_screen(void) {
     lv_obj_set_style_bg_color(page,lv_color_black(),0);lv_obj_set_style_bg_opa(page,LV_OPA_COVER,0);
     ui_obj_set_scrollable(page,false);lv_screen_load(page);return page;
 }
+static lv_obj_t *button_named(lv_obj_t *root,const char *text) {
+    if(lv_obj_check_type(root,&lv_label_class) && strcmp(lv_label_get_text(root),text)==0) {
+        lv_obj_t *parent=lv_obj_get_parent(root);
+        if(lv_obj_check_type(parent,&lv_button_class))return parent;
+    }
+    for(uint32_t i=0;i<lv_obj_get_child_count(root);++i) {
+        lv_obj_t *button=button_named(lv_obj_get_child(root,i),text);if(button)return button;
+    }
+    return NULL;
+}
+static void tap(lv_obj_t *obj) {
+    lv_obj_update_layout(obj);lv_area_t area;lv_obj_get_coords(obj,&area);
+    for(int corner=0;corner<4;++corner)assert(hypot(((corner&1)?area.x2:area.x1)-232.5,((corner&2)?area.y2:area.y1)-232.5)<=233);
+    touch_at((area.x1+area.x2)/2,(area.y1+area.y2)/2,true);
+    touch_at((area.x1+area.x2)/2,(area.y1+area.y2)/2,false);
+}
+static void check_full_text(lv_obj_t *obj) {
+    if(lv_obj_check_type(obj,&lv_label_class)) {
+        lv_point_t measured;lv_text_get_size(&measured,lv_label_get_text(obj),lv_obj_get_style_text_font(obj,0),
+            lv_obj_get_style_text_letter_space(obj,0),lv_obj_get_style_text_line_space(obj,0),lv_obj_get_width(obj),LV_TEXT_FLAG_NONE);
+        if(measured.y>lv_obj_get_height(obj))fprintf(stderr,"truncated detail: %s\n",lv_label_get_text(obj));
+        assert(measured.y<=lv_obj_get_height(obj));
+    }
+    for(uint32_t i=0;i<lv_obj_get_child_count(obj);++i)check_full_text(lv_obj_get_child(obj,i));
+}
 int main(int argc,char **argv) {
     const char *directory=argc>1?argv[1]:NULL;
     if(argc>2) {FILE *f=fopen(argv[2],"rb");assert(f);assert(fread(image_pixels,1,sizeof image_pixels,f)==sizeof image_pixels);fclose(f);}
@@ -138,90 +164,127 @@ int main(int argc,char **argv) {
     heading=lv_label_create(lv_layer_top());lv_obj_set_style_text_font(heading,&font_location_24,0);
     lv_obj_set_style_text_color(heading,lv_color_hex(COL_TXT),0);lv_obj_align(heading,LV_ALIGN_TOP_MID,0,52);
     tools_test_battery();
-    lv_obj_t *back=control_button(lv_layer_top(),101,52,44,44,NULL,NULL);
+    lv_obj_t *back=control_button(lv_layer_top(),101,52,44,44,back_tapped,NULL);
     lv_obj_t *arrow=control_label(back,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,20,CONTROL_WHITE);lv_obj_center(arrow);
     touch=lv_indev_create();lv_indev_set_type(touch,LV_INDEV_TYPE_POINTER);
     lv_indev_set_display(touch,display);lv_indev_set_read_cb(touch,read_touch);
     // One native timer sample per step; manual event reads also resume a timer and duplicate stationary samples.
     lv_timer_set_period(lv_indev_get_read_timer(touch),20);lv_indev_set_gesture_min_distance(touch,64);
     lv_obj_t *stage=lv_screen_active();
+    const int destinations[]={SETTINGS_BRIGHTNESS,SETTINGS_FACE,SETTINGS_AOD,SETTINGS_VOLUME,SETTINGS_MUTE,SETTINGS_LANG,SETTINGS_ABOUT};
+    const char *names[]={"brightness","face","aod","volume","mute","language","about"};
     for(language=0;language<2;++language) {
-        lv_obj_t *page=settings_screen();
-        lv_obj_add_event_cb(page,back_gesture,LV_EVENT_GESTURE,NULL);
-        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_home_list)==4);
+        brightness=191;volume=65;idle=IDLE_AOD;silent=0;face=0;
+        snprintf(descriptor.version,sizeof descriptor.version,"v1.7-beta.29");
+        lv_obj_t *page=settings_screen();lv_obj_add_event_cb(page,back_gesture,LV_EVENT_GESTURE,NULL);
+        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_home_list)==7);
         assert(!settings_back());capture(page,directory,"settings-home");
         lv_area_t title_before,title_after,viewport,last;
         lv_obj_get_coords(heading,&title_before);lv_obj_get_coords(s_home_list,&viewport);
-        lv_obj_get_coords(lv_obj_get_child(s_home_list,3),&last);assert(last.y1>viewport.y2);
-        int max_scroll=lv_obj_get_scroll_bottom(s_home_list);assert(max_scroll>0);
-        drag(220,200,220,130);
-        assert(s_page==SETTINGS_HOME && lv_obj_get_scroll_y(s_home_list)>0);settle();
-        lv_obj_scroll_to_y(s_home_list,max_scroll,LV_ANIM_OFF);
-        capture(page,directory,"settings-home-bottom");
-        lv_obj_get_coords(heading,&title_after);assert(title_before.y1==title_after.y1 && title_before.y2==title_after.y2);
-        lv_obj_get_coords(lv_obj_get_child(s_home_list,3),&last);
-        assert(last.y1>=viewport.y1 && last.y2<=viewport.y2);
-        int position=lv_obj_get_scroll_y(s_home_list);
-        touch_at(220,(last.y1+last.y2)/2,true);touch_at(220,(last.y1+last.y2)/2,false);
-        assert(s_page==SETTINGS_ABOUT);
-        int backs=right_backs;drag(170,270,290,270);settle();
-        assert(right_backs==backs+1 && s_page==SETTINGS_HOME);
-        assert(lv_obj_get_scroll_y(s_home_list)==position);
-        capture(page,directory,"settings-home-return");
-        drag(220,230,220,295);settle();
-        assert(s_page==SETTINGS_HOME && lv_obj_get_scroll_y(s_home_list)<position);
-        lv_obj_scroll_to_y(s_home_list,0,LV_ANIM_OFF);
-        lv_obj_send_event(lv_obj_get_child(s_home_list,0),LV_EVENT_CLICKED,NULL);lv_timer_handler();
-        assert(s_page==SETTINGS_DISPLAY && lv_slider_get_min_value(s_slider)==64);
-        int before=saves;lv_slider_set_value(s_slider,64,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
-        assert(brightness==64 && saves==before);lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==before+1);
-        lv_slider_set_value(s_slider,191,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
-        lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);
-        before=saves;lv_obj_send_event(lv_obj_get_parent(s_aod),LV_EVENT_CLICKED,NULL);lv_timer_handler();
-        assert(idle==IDLE_OFF && saves==before+1 && !lv_obj_has_state(s_aod,LV_STATE_CHECKED));
-        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
-        const int pages[]={SETTINGS_HOME,SETTINGS_DISPLAY,SETTINGS_FACE,SETTINGS_SOUND,SETTINGS_LANG,SETTINGS_ABOUT};
-        for(unsigned i=0;i<sizeof pages/sizeof pages[0];++i) {
-            s_page=pages[i];rebuild(NULL);char name[40];snprintf(name,sizeof name,"settings-%u",i);capture(page,directory,name);
-            if(s_page==SETTINGS_SOUND) {
-                before=saves;lv_slider_set_value(s_slider,100,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
-                assert(volume==100 && saves==before);lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==before+1);
-                before=saves;lv_obj_send_event(lv_obj_get_parent(s_mute),LV_EVENT_CLICKED,NULL);lv_timer_handler();
-                assert(silent && saves==before+1);blip(NULL);assert(blips>0);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,6),&last);assert(last.y1>viewport.y2);
+        int maximum=lv_obj_get_scroll_bottom(s_home_list),stored=saves;assert(maximum>0);
+        drag(220,200,220,130);settle();assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)>0);
+        lv_obj_scroll_to_y(s_home_list,maximum,LV_ANIM_OFF);capture(page,directory,"settings-home-bottom");
+        lv_obj_get_coords(heading,&title_after);assert(memcmp(&title_before,&title_after,sizeof title_before)==0);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,6),&last);assert(last.y1>=viewport.y1 && last.y2<=viewport.y2);
+        drag(220,230,220,295);settle();assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)<maximum);
+        // Every row is a direct entry: opening it must not modify the setting itself.
+        for(unsigned item=0;item<sizeof destinations/sizeof destinations[0];++item) {
+            lv_obj_t *row=lv_obj_get_child(s_home_list,item);lv_obj_scroll_to_view(row,LV_ANIM_OFF);lv_obj_update_layout(s_home_list);
+            int position=lv_obj_get_scroll_y(s_home_list);stored=saves;tap(row);settle();
+            assert(s_page==destinations[item] && saves==stored && !s_home_list);
+            char name[64];snprintf(name,sizeof name,"settings-%s",names[item]);capture(page,directory,name);check_full_text(s_panel);
+            if(s_page==SETTINGS_BRIGHTNESS || s_page==SETTINGS_VOLUME) {
+                bool is_brightness=s_page==SETTINGS_BRIGHTNESS;int minimum=is_brightness?64:0,limit=is_brightness?255:100;
+                assert(s_slider && !s_aod && !s_mute && !s_face_preview && !s_scroll);
+                assert(lv_slider_get_min_value(s_slider)==minimum && lv_slider_get_max_value(s_slider)==limit);
+                lv_slider_set_value(s_slider,minimum,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);assert(saves==stored);
+                lv_area_t slider;lv_obj_get_coords(s_slider,&slider);int y=(slider.y1+slider.y2)/2,end=slider.x2+8;
+                // Move the thumb past the track end; x2 is the last inclusive pixel, not full travel.
+                touch_at(slider.x1,y,true);
+                for(int step=1;step<=6;++step)touch_at(slider.x1+(end-slider.x1)*step/6,y,true);
+                assert((is_brightness?brightness:volume)==limit && saves==stored && s_page==destinations[item]);
+                touch_at(end,y,false);assert(saves==stored+1);
+                if(!is_brightness) {
+                    assert(audio_starts==audio_stops+1);int heard=blips;
+                    tap(button_named(s_panel,word("试听","Play sound")));assert(blips==heard+1 && saves==stored+1);
+                }
+                lv_slider_set_value(s_slider,is_brightness?191:65,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);
+                lv_obj_send_event(s_slider,LV_EVENT_RELEASED,NULL);assert(saves==stored+2);
+                stored=saves;drag(233,320,233,285);settle();assert(!s_scroll && s_page==destinations[item] && saves==stored);
+            } else if(s_page==SETTINGS_AOD || s_page==SETTINGS_MUTE) {
+                bool is_aod=s_page==SETTINGS_AOD;lv_obj_t *sw=is_aod?s_aod:s_mute;
+                assert(sw && !s_slider && !s_face_preview && !s_scroll && audio_starts==audio_stops);
+                bool original=lv_obj_has_state(sw,LV_STATE_CHECKED);tap(sw);settle();
+                sw=is_aod?s_aod:s_mute;assert(lv_obj_has_state(sw,LV_STATE_CHECKED)!=original && saves==stored+1);
+                assert((is_aod?(idle==IDLE_AOD):(silent!=0))!=original);
+                snprintf(name,sizeof name,"settings-%s-toggled",names[item]);capture(page,directory,name);check_full_text(s_panel);
+                tap(sw);settle();assert(saves==stored+2 && (is_aod?(idle==IDLE_AOD):(silent!=0))==original);
+            } else if(s_page==SETTINGS_FACE) {
+                assert(!s_scroll && s_face_preview && !s_slider && !s_aod && !s_mute);
+                lv_area_t preview;lv_obj_get_coords(s_face_preview,&preview);
+                assert(preview.x1==116 && preview.y1==116 && lv_area_get_width(&preview)==233 && lv_area_get_height(&preview)==233);
+                // Vertical drags leave the preview, caption and controls in place and do not select.
+                drag(233,260,233,180);settle();lv_area_t after;lv_obj_get_coords(s_face_preview,&after);
+                assert(memcmp(&preview,&after,sizeof preview)==0 && saves==stored && face==0 && s_page==SETTINGS_FACE);
+                face=2;rebuild(NULL);tap(button_named(s_panel,"ORBIT"));settle();assert(face==7 && saves==stored+1);
+                tap(button_named(s_panel,"SHIFT"));settle();assert(face==12 && saves==stored+2);
+                face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+3);
+                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==14 && saves==stored+4);
+                for(face=0;face<15;++face) {
+                    rebuild(NULL);snprintf(name,sizeof name,"face-%u",face);capture(page,directory,name);check_full_text(s_panel);
+                    lv_obj_get_coords(s_face_preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
+                }
+                face=0;rebuild(NULL);
+            } else if(s_page==SETTINGS_LANG) {
+                // LVGL reports negative bottom space when content is shorter than the viewport.
+                assert(s_scroll && lv_obj_get_scroll_bottom(s_scroll)<=0 && lv_obj_get_scroll_y(s_scroll)==0);uint8_t original=language;
+                tap(button_named(s_panel,original?"English":"中文"));settle();assert(language!=original && saves==stored+1 && s_page==SETTINGS_LANG);
+                tap(button_named(s_panel,original?"中文":"English"));settle();assert(language==original && saves==stored+2);
+            } else if(s_page==SETTINGS_ABOUT) {
+                const char *versions[]={"v1.7-beta.29","MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"};
+                for(unsigned v=0;v<2;++v) {
+                    snprintf(descriptor.version,sizeof descriptor.version,"%s",versions[v]);rebuild(NULL);
+                    lv_obj_scroll_to_y(s_scroll,0,LV_ANIM_OFF);capture(page,directory,v?"about-long":"about-native");check_full_text(s_panel);
+                    lv_obj_t *version=lv_obj_get_child(s_body,2),*chip=lv_obj_get_child(s_body,4);
+                    assert(strcmp(lv_label_get_text(version),versions[v])==0 && lv_label_get_long_mode(version)==LV_LABEL_LONG_MODE_WRAP);
+                    lv_area_t a,b;lv_obj_get_coords(version,&a);lv_obj_get_coords(chip,&b);assert(a.y2<b.y1);
+                    lv_obj_get_coords(heading,&title_before);drag(104,210,104,130);settle();
+                    assert(s_page==SETTINGS_ABOUT && saves==stored && lv_obj_get_scroll_y(s_scroll)>0);
+                    maximum=lv_obj_get_scroll_y(s_scroll)+lv_obj_get_scroll_bottom(s_scroll);
+                    lv_obj_scroll_to_y(s_scroll,maximum/2,LV_ANIM_OFF);capture(page,NULL,"about-middle");
+                    lv_obj_scroll_to_y(s_scroll,maximum,LV_ANIM_OFF);capture(page,directory,v?"about-long-bottom":"about-native-bottom");
+                    lv_obj_get_coords(heading,&title_after);assert(memcmp(&title_before,&title_after,sizeof title_before)==0);
+                    drag(104,260,104,330);settle();assert(lv_obj_get_scroll_y(s_scroll)<maximum && s_page==SETTINGS_ABOUT);
+                }
+                snprintf(descriptor.version,sizeof descriptor.version,"v1.7-beta.29");
             }
+            // The list position survives either the physical back button or a right swipe.
+            stored=saves;int returned=right_backs;
+            if(s_page==SETTINGS_AOD) {tap(back);settle();assert(right_backs==returned);}
+            else {drag(104,315,224,315);settle();assert(right_backs==returned+1);}
+            assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)==position);
+            assert(audio_starts==audio_stops);
         }
-        assert(audio_stops==audio_starts);
-        // The about page uses the descriptor verbatim, including the maximum 31-byte version.
-        s_page=SETTINGS_ABOUT;
-        const char *versions[]={"v1.7-beta.27","MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM"};
-        for(unsigned i=0;i<2;++i) {
-            snprintf(descriptor.version,sizeof descriptor.version,"%s",versions[i]);rebuild(NULL);
-            lv_obj_t *version=lv_obj_get_child(s_panel,2),*chip=lv_obj_get_child(s_panel,4);
-            assert(strcmp(lv_label_get_text(version),versions[i])==0);
-            assert(lv_label_get_long_mode(version)==LV_LABEL_LONG_MODE_WRAP);
-            capture(page,directory,i?"about-long":"about-native");
-            lv_area_t a,b;lv_obj_get_coords(version,&a);lv_obj_get_coords(chip,&b);assert(a.y2<b.y1);
-        }
-        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
-        s_page=SETTINGS_FACE;
-        for(face=0;face<15;++face) {rebuild(NULL);char name[32];snprintf(name,sizeof name,"face-%d",face);capture(page,directory,name);}
-        face=2;rebuild(NULL);before=saves;
-        lv_obj_send_event(lv_obj_get_child(s_panel,6),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==7&&saves==before+1);
-        lv_obj_send_event(lv_obj_get_child(s_panel,7),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==12&&saves==before+2);
-        face=14;rebuild(NULL);lv_obj_send_event(lv_obj_get_child(s_panel,3),LV_EVENT_CLICKED,NULL);lv_timer_handler();assert(face==0);
-        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_DISPLAY);
-        assert(settings_back());lv_timer_handler();assert(s_page==SETTINGS_HOME);
-        s_page=SETTINGS_SOUND;rebuild(NULL);assert(audio_starts==audio_stops+1);
-        queue_rebuild();settings_exit();lv_screen_load(stage);lv_obj_delete(page);lv_timer_handler();assert(!s_panel && audio_stops==audio_starts);
-        idle=0;silent=0;face=0;
+        capture(page,directory,"settings-home-return");
+        s_page=SETTINGS_VOLUME;rebuild(NULL);assert(audio_starts==audio_stops+1);
+        queue_rebuild();settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();assert(!s_panel && audio_starts==audio_stops);
     }
-    // Deleting a scrolling page resets LVGL's input target; reopening starts at the top.
+    // Both scrolling screens can be destroyed during inertia; every adjustment can exit with a rebuild queued.
     language=0;
     for(int cycle=0;cycle<4;++cycle) {
-        lv_obj_t *page=settings_screen();
-        settings_enter(page);assert(lv_obj_get_scroll_y(s_home_list)==0);
-        drag(220,200,220,140);assert(s_page==SETTINGS_HOME);
-        settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();assert(!s_home_list && !lv_indev_get_scroll_obj(touch));
+        for(int which=0;which<2;++which) {
+            lv_obj_t *page=settings_screen();settings_enter(page);assert(lv_obj_get_scroll_y(s_home_list)==0);
+            if(which) {s_page=SETTINGS_ABOUT;rebuild(NULL);}
+            drag(104,210,104,130);assert(lv_obj_get_scroll_y(s_scroll)>0);
+            settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();
+            assert(!s_scroll && !s_body && !lv_indev_get_scroll_obj(touch));
+        }
+    }
+    for(unsigned item=0;item<sizeof destinations/sizeof destinations[0];++item) {
+        lv_obj_t *page=settings_screen();settings_enter(page);s_page=destinations[item];rebuild(NULL);queue_rebuild();
+        settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();settings_tick();
+        assert(!s_panel && !s_scroll && !s_face_preview && audio_starts==audio_stops);
     }
     lv_indev_delete(touch);touch=NULL;
     // Every direction, near-vertical and inverted readings stay bounded and recover.
@@ -269,5 +332,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Settings native pointer scroll up/down/no accidental taps, fixed heading, bottom click/right-swipe back/position restore/scrolling exit; categories/nested back/15 native previews/theme switching/wrap EN/ZH, round layout/glyphs, slider persistence, whole-row toggles, audio cleanup; level all directions/edge/stale/fault recovery passed");
+    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 15-face selection, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
 }

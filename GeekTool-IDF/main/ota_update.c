@@ -8,6 +8,7 @@
 #include "esp_heap_caps.h"
 #include "esp_timer.h"
 #include "esp_log.h"
+#include "wifi_service.h"
 #include "mbedtls/ssl.h"
 #include "mbedtls/x509.h"
 #include "freertos/FreeRTOS.h"
@@ -31,6 +32,8 @@ static const char *TAG = "ota";
 typedef struct {
     char etag[96], expected_etag[96];
     int range_start, range_total, http_status, tls_code, tls_flags;
+    esp_err_t transport_error;
+    int socket_errno;
 } http_status_t;
 
 static esp_err_t http_event(esp_http_client_event_t *e) {
@@ -52,7 +55,10 @@ static esp_err_t http_event(esp_http_client_event_t *e) {
         s->http_status = esp_http_client_get_status_code(e->client);
     } else if (e->event_id == HTTP_EVENT_ERROR || e->event_id == HTTP_EVENT_DISCONNECTED) {
         int code = 0, flags = 0;
-        esp_http_client_get_and_clear_last_tls_error(e->client, &code, &flags);
+        esp_err_t transport=esp_http_client_get_and_clear_last_tls_error(e->client, &code, &flags);
+        int socket_error=esp_http_client_get_errno(e->client);
+        if(transport!=ESP_OK)s->transport_error=transport;
+        if(socket_error>0)s->socket_errno=socket_error;
         if (code) s->tls_code = code;
         if (flags) s->tls_flags = flags;
         int status = esp_http_client_get_status_code(e->client);
@@ -142,8 +148,19 @@ ota_status_t ota_update_run(const char *url, ota_status_cb cb, void *user) {
         };
         esp_https_ota_handle_t h = NULL;
         s.http_status = s.tls_code = s.tls_flags = 0;
+        s.transport_error=ESP_OK;s.socket_errno=0;
         s.failed_at = OTA_CHECKING;
         publish(&s, OTA_CHECKING, cb, user);
+        // After boot or a DHCP renewal, association can precede a usable IP.
+        // Wait in the worker; never block LVGL or forcibly reset a saved network.
+        int64_t ready_deadline=esp_timer_get_time()+15000000;
+        while(!wifi_service_ready() && wifi_service_enabled() && esp_timer_get_time()<ready_deadline)
+            vTaskDelay(pdMS_TO_TICKS(200));
+        if(!wifi_service_ready()) {
+            s.error=ESP_ERR_TIMEOUT;
+            ESP_LOGW(TAG,"IP not ready; update stopped before opening or writing firmware");
+            break;
+        }
         ESP_LOGI(TAG, "attempt %d/%d offset=%d internal free=%u largest=%u psram free=%u largest=%u", s.attempt,
                  OTA_UPDATE_ATTEMPTS, written, (unsigned)heap_caps_get_free_size(MALLOC_CAP_INTERNAL),
                  (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_INTERNAL),
@@ -219,8 +236,10 @@ failed:
             if (cleanup != ESP_OK) ESP_LOGW(TAG, "abort: %s", esp_err_to_name(cleanup));
         }
         s.http_status = response.http_status; s.tls_code = response.tls_code; s.tls_flags = response.tls_flags;
-        ESP_LOGE(TAG, "stage=%d attempt=%d bytes=%d/%d err=%s HTTP=%d TLS=%d flags=0x%x", s.failed_at,
-                 s.attempt, written, image_size, esp_err_to_name(s.error), s.http_status, s.tls_code, s.tls_flags);
+        s.transport_error=response.transport_error;s.socket_errno=response.socket_errno;
+        ESP_LOGE(TAG, "stage=%d attempt=%d bytes=%d/%d err=%s transport=%s errno=%d HTTP=%d TLS=%d flags=0x%x", s.failed_at,
+                 s.attempt, written, image_size, esp_err_to_name(s.error), esp_err_to_name(s.transport_error),
+                 s.socket_errno,s.http_status, s.tls_code, s.tls_flags);
         if (!can_retry(&s)) break;
         // 弱 ETag/缺少身份或还没写够头部时从零重下;不猜断点,不保存跨重启状态。
         if (written < OTA_RESUME_MIN || written >= image_size || etag[0] != '"') written = 0;

@@ -1,19 +1,22 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="466" height="466" viewBox="0 0 466 466" role="img" aria-label="soRound OS 开机动画，1.8秒，单次播放">
+<svg xmlns="http://www.w3.org/2000/svg" width="466" height="466" viewBox="0 0 466 466" role="img" aria-label="soRound OS 开机动画，至少4秒，设备初始化完成后进入表盘">
 <circle cx="233" cy="233" r="233" fill="#000"/>
 <g transform="translate(153 153) scale(2)">
 <circle cx="37.25" cy="42.75" r="22.375" fill="none" stroke="#f4f5f5" stroke-width="10.25" stroke-linecap="round" pathLength="1" stroke-dasharray="1 1" stroke-dashoffset="1" transform="rotate(45 37.25 42.75)">
-<animate attributeName="stroke-dashoffset" from="1" to="0" begin=".16s" dur=".74s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
+<animate attributeName="stroke-dashoffset" from="1" to="0" begin=".272s" dur="1.258s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
 </circle>
 <g transform="rotate(90 37.25 42.75)">
-<animateTransform attributeName="transform" type="rotate" from="90 37.25 42.75" to="0 37.25 42.75" begin=".12s" dur=".88s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
+<animateTransform attributeName="transform" type="rotate" from="90 37.25 42.75" to="0 37.25 42.75" begin=".204s" dur="1.496s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
 <circle cx="62.75" cy="17.25" r="7.5" fill="#e54230" opacity="0">
-<animate attributeName="opacity" from="0" to="1" begin=".08s" dur=".16s" fill="freeze"/>
+<animate attributeName="opacity" from="0" to="1" begin=".136s" dur=".272s" fill="freeze"/>
 </circle>
 </g>
 </g>
 <text x="233" y="342" text-anchor="middle" font-family="Helvetica Neue, Arial, sans-serif" font-size="26" font-weight="500" fill="#f4f5f5" opacity="0">
 soRound OS
-<animate attributeName="opacity" from="0" to="1" begin="1.02s" dur=".28s" fill="freeze"/>
-<animate attributeName="y" from="349" to="342" begin="1.02s" dur=".28s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
+<animate attributeName="opacity" from="0" to="1" begin="1.82s" dur=".48s" fill="freeze"/>
+<animate attributeName="y" from="349" to="342" begin="1.82s" dur=".48s" calcMode="spline" keyTimes="0;1" keySplines=".22 .61 .36 1" fill="freeze"/>
+</text>
+<text x="233" y="391" text-anchor="middle" font-family="PingFang SC, Arial, sans-serif" font-size="18" fill="#9a9a9e" opacity="0">System check...
+<animate attributeName="opacity" from="0" to="1" begin="2.5s" dur=".3s" fill="freeze"/>
 </text>
 </svg>

@@ -17,9 +17,9 @@ main{width:min(1510px,100%);margin:auto;padding:36px 28px 48px}header{display:fl
 <section class="board" aria-label="系统品牌设计预览">
 <figure id="logo-figure"><div class="surface logo-surface" id="logo-surface"><div class="light-logo">{{LOGO}}</div><div class="dark-logo">{{LOGO_DARK}}</div></div><figcaption><div class="label"><h2>系统标志</h2><small>透明矢量 · 原图比例</small></div><p>保留完整圆环、右上红点和两者之间的间隙。</p><div class="tools"><button type="button" id="theme-toggle" aria-pressed="false">黑底预览</button><a class="control" href="logo.svg" download>下载 SVG</a><a class="control" href="logo-dark.svg" download>白环 SVG</a></div></figcaption></figure>
 <figure id="about-figure"><div class="surface" id="about-surface"><div class="chinese">{{ABOUT}}</div><div class="english">{{ABOUT_EN}}</div></div><figcaption><div class="label"><h2>关于本机</h2><small>466 × 466</small></div><p>标志作为视觉中心；沿用返回按钮、电量环与设备信息。</p><div class="tools"><button type="button" id="language-toggle" aria-pressed="false">English</button><a class="control" href="about.svg" download>下载设计稿</a><a class="control" href="native/about-zh.png">原生渲染</a></div></figcaption></figure>
-<figure id="boot-figure"><div class="surface" id="boot-surface">{{BOOT}}</div><figcaption><div class="label"><h2>开机动画</h2><small>1.8 秒 · 单次 · 静音</small></div><p>圆环逐步成形，红点沿短弧归位，系统名轻轻浮现。</p><div class="tools"><button type="button" id="play" class="primary">播放</button><button type="button" id="replay">重播</button><a class="control" href="boot.svg" download>动画 SVG</a><a class="control" href="native/boot.mp4">原生动画</a></div><label class="timeline"><input id="scrub" type="range" min="0" max="1800" step="10" value="0" aria-label="开机动画时间轴"><output class="time" id="time">0.00 / 1.80</output></label><p class="status" id="status" aria-live="polite">就绪</p></figcaption></figure>
+<figure id="boot-figure"><div class="surface" id="boot-surface">{{BOOT}}</div><figcaption><div class="label"><h2>开机动画</h2><small>至少4秒 · 单次 · 静音</small></div><p>圆环逐步成形，红点沿短弧归位，系统名轻轻浮现。</p><div class="tools"><button type="button" id="play" class="primary">播放</button><button type="button" id="replay">重播</button><a class="control" href="boot.svg" download>动画 SVG</a><a class="control" href="native/startup-20261007/boot.mp4">原生动画</a></div><label class="timeline"><input id="scrub" type="range" min="0" max="4000" step="10" value="0" aria-label="开机动画时间轴"><output class="time" id="time">0.00 / 4.00</output></label><p class="status" id="status" aria-live="polite">就绪</p></figcaption></figure>
 </section>
-<section class="notes" aria-label="设计说明"><div><h3>同一几何，适配黑白表面</h3><p>浅色表面用墨黑圆环；AMOLED 黑底用白环。红色保持原图的 #E54230。矢量没有背景、阴影或模糊，放大不会损失轮廓。</p></div><div><h3>开机动效节奏</h3><p>原生动画与初始化并行，结束后恢复现有锁屏表盘。原生渲染图/视频来自 LVGL 主机运行，版本与电量是测试夹具；设备观感待验收。</p><div class="motion-beats"><span><b>0.08s</b> 红点出现</span><span><b>0.16s</b> 圆环展开</span><span><b>1.02s</b> 名称浮现</span><span><b>1.80s</b> 定格</span></div></div></section>
+<section class="notes" aria-label="设计说明"><div><h3>同一几何，适配黑白表面</h3><p>浅色表面用墨黑圆环；AMOLED 黑底用白环。红色保持原图的 #E54230。矢量没有背景、阴影或模糊，放大不会损失轮廓。</p></div><div><h3>开机动效节奏</h3><p>动画至少4秒，设备初始化与核心自检通过后进入表盘。离线状态明确提示；浏览器仅展示最短动画时间轴。原生渲染图/视频来自 LVGL 主机运行，版本与电量是测试夹具；设备观感待验收。</p><div class="motion-beats"><span><b>0.14s</b> 红点出现</span><span><b>0.27s</b> 圆环展开</span><span><b>1.82s</b> 名称浮现</span><span><b>4.00s+</b> 自检后放行</span></div></div></section>
 </main>
 <script>
 (() => {
@@ -28,14 +28,14 @@ main{width:min(1510px,100%);margin:auto;padding:36px 28px 48px}header{display:fl
   const scrub = document.querySelector('#scrub');
   const time = document.querySelector('#time');
   const status = document.querySelector('#status');
-  const duration = 1.8;
+  const duration = 4;
   let running = false;
   let frame = 0;
   svg.pauseAnimations();
   svg.setCurrentTime(0);
   function showTime(position) {
     scrub.value = Math.round(position * 1000);
-    time.value = position.toFixed(2) + ' / 1.80';
+    time.value = position.toFixed(2) + ' / 4.00';
   }
   function update() {
     const position = Math.min(duration, svg.getCurrentTime());

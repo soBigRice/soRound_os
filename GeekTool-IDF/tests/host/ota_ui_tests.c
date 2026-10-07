@@ -10,6 +10,7 @@ static uint8_t language, beta;
 static int saves;
 static int tasks, create_result=pdPASS;
 static bool wifi_connected=true;
+bool wifi_service_enabled(void){return wifi_connected;}
 static const char *task_url;
 uint8_t settings_lang(void) { return language; }
 uint8_t settings_beta(void) { return beta; }
@@ -156,8 +157,10 @@ int main(void) {
             {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_flags=4,.tls_code=MBEDTLS_ERR_X509_CERT_VERIFY_FAILED},
             {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_code=0x3000},
             {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.tls_code=-0x3000},
+            {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.transport_error=0x8001},
+            {.state=OTA_FAIL,.failed_at=OTA_CHECKING,.attempt=1,.socket_errno=54},
         };
-        const char *names[]={"checking","header","download","retry","verify","success","uptodate","download-fail","tls-fail","tls-positive","tls-negative"};
+        const char *names[]={"checking","header","download","retry","verify","success","uptodate","download-fail","tls-fail","tls-positive","tls-negative","dns-fail","tcp-fail"};
         for (unsigned i=0;i<sizeof states/sizeof states[0];i++) {
             s_shown=(ota_state_t)-1; status_publish(&states[i],NULL); ota_tick(); lv_obj_update_layout(page);
             assert(lv_obj_get_height(g_status)<=64);
@@ -179,12 +182,13 @@ int main(void) {
             if(states[i].state==OTA_VERIFYING) assert(colored_dots(OTA_BLUE)==102);
             if(states[i].state==OTA_OK || states[i].state==OTA_UPTODATE) assert(colored_dots(COL_CHARGE)==ORBIT_N);
             if(states[i].state==OTA_FAIL) assert(colored_dots(COL_RED)==ORBIT_N);
-            if(i>=9) {
+            if(i>=9 && i<=10) {
                 const char *error_text=lv_label_get_text(g_status);
                 assert(strstr(error_text,tr(S_OTA_TLS_FAIL)) && strstr(error_text,"TLS -0x3000"));
                 assert(!strstr(error_text,"ffff"));
             }
         }
+        assert(strstr(lv_label_get_text(g_status),"TCP 54"));
         // 环进度的四分之一/一半/全部及异常百分比;不会因为动画把未下载部分点亮。
         const int percentages[]={-3,0,25,50,75,100,120}, expected[]={0,0,26,52,78,104,104};
         for(int i=0;i<7;i++) {

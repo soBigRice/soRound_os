@@ -12,6 +12,7 @@
 #include "esp_app_desc.h"
 #include "esp_system.h"
 #include "esp_log.h"
+#include "esp_tls_errors.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
@@ -24,9 +25,6 @@ static const char *TAG = "ota";
 // 镜像保留可信证书、no-store 和 Range/If-Match;设备验证完整根证书包及镜像。
 // 双通道:stable=正式(v1.6 tag),beta=内测(v1.6-beta.1 tag)。CI 规则:正式 tag 两个对象都覆盖
 // (正式对内测用户也是"最新"),beta tag 只覆盖 beta 对象 → 设备只需按开关二选一,无需比较版本新旧。
-#define OTA_URL_STABLE "https://ota.miaozong.cc/GeekTool.bin"
-#define OTA_URL_BETA   "https://ota.miaozong.cc/GeekTool-beta.bin"
-
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static ota_status_t         s_status = { .state = OTA_IDLE };
 static bool                 s_task_alive;
@@ -273,8 +271,7 @@ static bool ota_back(void) {
 
 static void start_btn(lv_event_t *e) {
     (void)e;
-    wifi_ap_record_t ap;
-    if (esp_wifi_sta_get_ap_info(&ap) != ESP_OK) {    // 没连 WiFi
+    if (!wifi_service_enabled()) {
         lv_label_set_text(g_status, tr(S_CONNECT_WIFI));
         lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);
         return;
@@ -510,8 +507,12 @@ static void ota_tick(void) {
             char b[128];
             if (status.http_status >= 400)
                 snprintf(b, sizeof b, "%s\nHTTP %d", tr(message), status.http_status);
+            else if(status.transport_error==ESP_ERR_ESP_TLS_CANNOT_RESOLVE_HOSTNAME)
+                snprintf(b,sizeof b,"%s\nDNS",tr(message));
             else if (status.tls_code)
                 snprintf(b, sizeof b, "%s\nTLS -0x%04x", tr(message), ota_tls_error_magnitude(status.tls_code));
+            else if(status.socket_errno)
+                snprintf(b,sizeof b,"%s\nTCP %d",tr(message),status.socket_errno);
             else snprintf(b, sizeof b, "%s\n0x%04x", tr(message), (unsigned)status.error);
             lv_label_set_text(g_status, b);
             lv_obj_set_style_text_color(g_status, lv_color_hex(COL_RED), 0);

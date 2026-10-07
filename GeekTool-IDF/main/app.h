@@ -60,16 +60,15 @@ extern const app_t app_zodiac;
 extern const app_t app_merit;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
+uint32_t launcher_heartbeat(void);
 
-void wifi_service_start(void);   // 开机自动起 WiFi 并重连记住的 AP(在 app_wifi.c,main 启动末尾调用)
-void wifi_service_set_enabled(bool on);   // 快捷面板:开关 WiFi(开=连记住的 AP,关=断开省电)
-bool wifi_service_enabled(void);          // 当前 WiFi 开关状态
+#include "wifi_service.h"
 
 // 天气数据(app_weather.c 持有 + 拉取),供天气表盘共用
 void weather_poll(void);                                                   // 后台按需拉取
 bool weather_cached(int *temp, int *lo, int *hi, int *code, int *hum);     // 取缓存,有数据返回 true
 
-void launcher_start(void);   // 创建启动器并加载(需在 lvgl_port 锁内调用)
+bool launcher_start(void);   // 创建启动器并加载;返回关键任务/定时器是否创建(需在 lvgl_port 锁内调用)
 void go_home(void);          // app 内返回启动器
 void launcher_set_title(const char *t);   // app 可在 enter 里改顶部标题(如天气→城市)
 

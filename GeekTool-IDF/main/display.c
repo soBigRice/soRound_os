@@ -23,6 +23,7 @@ static lv_display_t *s_disp;
 static SemaphoreHandle_t s_te,s_dma;
 static volatile bool s_frame_sending;
 static bool s_te_ready,s_te_warned;
+static volatile uint32_t s_transfer_count;
 static weather_refresh_t s_refresh;
 #if CONFIG_PM_ENABLE
 static esp_pm_lock_handle_t s_te_awake;
@@ -33,6 +34,7 @@ static void te_edge(void *arg) {
 }
 static bool color_done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_t *event,void *arg) {
     (void)io;(void)event;BaseType_t wake=pdFALSE;
+    ++s_transfer_count;
     if(s_frame_sending)xSemaphoreGiveFromISR(s_dma,&wake);
     else lv_display_flush_ready((lv_display_t *)arg);
     return wake==pdTRUE;
@@ -141,7 +143,7 @@ lv_display_t *display_init(void) {
     ESP_ERROR_CHECK(esp_lcd_new_panel_co5300(io, &panel_cfg, &panel));
     esp_lcd_panel_set_gap(panel, LCD_GAP_X, 0);
     esp_lcd_panel_reset(panel);
-    esp_lcd_panel_init(panel);
+    ESP_ERROR_CHECK(esp_lcd_panel_init(panel));
     esp_lcd_panel_invert_color(panel, false);
     esp_lcd_panel_mirror(panel, false, false);
     esp_lcd_panel_disp_on_off(panel, true);
@@ -212,7 +214,8 @@ void display_sleep(bool sleep) {
     if (s_panel) esp_lcd_panel_disp_on_off(s_panel, !sleep);
 }
 
-void touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp) {
+uint32_t display_transfer_count(void){return s_transfer_count;}
+bool touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp) {
     esp_lcd_panel_io_handle_t tp_io = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_cfg = ESP_LCD_TOUCH_IO_I2C_CST9217_CONFIG();
     tp_io_cfg.scl_speed_hz = 400 * 1000;
@@ -230,6 +233,7 @@ void touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp) {
     ESP_ERROR_CHECK(esp_lcd_touch_new_i2c_cst9217(tp_io, &tp_cfg, &tp));
 
     lvgl_port_touch_cfg_t touch_cfg = { .disp = disp, .handle = tp };
-    lvgl_port_add_touch(&touch_cfg);
+    if(!lvgl_port_add_touch(&touch_cfg)){ESP_LOGE(TAG,"Touch input allocation failed");return false;}
     ESP_LOGI(TAG, "CST9217 touch ready");
+    return true;
 }

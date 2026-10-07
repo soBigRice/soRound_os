@@ -1,6 +1,7 @@
 // 锁屏控制:BOOT 短按=锁/解切换,长按 2 秒=关机;PWR 短按供计时 App 使用。
 // 锁屏后放电超时熄屏、充电常显(M3b)。实体键由 buttons.c 统一轮询。
 #include "lock.h"
+#include "identity_ui.h"
 #include "watchface.h"
 #include "display.h"
 #include "power.h"
@@ -45,6 +46,7 @@ bool lock_is_locked(void) { return s_locked; }
    空闲即进入"平静"(变暗+停闪+按分钟刷新),无论充放电都生效(插着 USB 也能看到变暗)。
    仅"自动熄屏"模式且在放电时,空闲更久才真正熄屏;充电时当桌面钟常显不熄。 */
 static void powersave_cb(lv_timer_t *t) {
+    if(identity_boot_active()){set_screen(SCR_FULL);return;}
     if (!s_locked) { set_screen(SCR_FULL); return; }
     uint32_t idle = lv_display_get_inactive_time(NULL);
     if (idle <= AOD_MS) { set_screen(SCR_FULL); return; }       // 刚操作过 → 全亮活动态
@@ -61,15 +63,16 @@ static void powersave_cb(lv_timer_t *t) {
 static void button_cb(lv_timer_t *t) {
     (void)t;
     button_event_t ev = buttons_poll(launcher_app_visible());
-    if (ev == BUTTON_SHORT) lock_set(!s_locked);
+    if (ev == BUTTON_SHORT && !identity_boot_active()) lock_set(!s_locked);
     else if (ev == BUTTON_LONG) power_off();
 }
 
-void lock_init(void) {
+bool lock_init(void) {
     watchface_init();
     // 不再挂上滑解锁手势;解锁用 BOOT 短按(见 button_cb)
 
     buttons_init();
-    lv_timer_create(button_cb, 20, NULL);        // GPIO 去抖/长按;PMU 内部仍按 100ms 读取
-    lv_timer_create(powersave_cb, 300, NULL);    // 300ms:触摸唤醒延迟更短
+    lv_timer_t *buttons=lv_timer_create(button_cb,20,NULL);
+    lv_timer_t *power=lv_timer_create(powersave_cb,300,NULL);
+    return buttons && power;
 }

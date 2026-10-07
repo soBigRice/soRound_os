@@ -5,6 +5,16 @@
 typedef int esp_err_t;
 #define ESP_OK 0
 #define ESP_FAIL -1
+#define ESP_ERR_NO_MEM 0x101
+#define ESP_ERR_INVALID_ARG 0x102
+#define ESP_ERR_TIMEOUT 0x107
+#define MBEDTLS_ERR_X509_CERT_VERIFY_FAILED (-0x2700)
+#define MBEDTLS_ERR_X509_FATAL_ERROR (-0x3000)
+#define MBEDTLS_ERR_SSL_ALLOC_FAILED (-141)
+#define MBEDTLS_ERR_X509_ALLOC_FAILED (-141)
+#define MALLOC_CAP_INTERNAL 4
+#define MALLOC_CAP_SPIRAM 1
+#define pdMS_TO_TICKS(ms) (ms)
 #define pdPASS 1
 typedef int portMUX_TYPE;
 #define portMUX_INITIALIZER_UNLOCKED 0
@@ -12,9 +22,11 @@ typedef int portMUX_TYPE;
 #define portEXIT_CRITICAL(mux) ((void)(mux))
 typedef struct { int unused; } wifi_ap_record_t;
 typedef struct mock_client *esp_http_client_handle_t;
+typedef enum {HTTP_METHOD_GET,HTTP_METHOD_HEAD} esp_http_client_method_t;
 typedef struct {
     const char *url; esp_err_t (*crt_bundle_attach)(void *);
     int timeout_ms,buffer_size,buffer_size_tx;bool disable_auto_redirect;
+    esp_http_client_method_t method;
 } esp_http_client_config_t;
 esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *);
 esp_err_t esp_crt_bundle_attach(void *);
@@ -32,3 +44,12 @@ uint32_t esp_random(void);
 int xTaskCreate(void (*)(void *),const char *,unsigned,void *,unsigned,void *);
 void vTaskDelete(void *);
 #define ESP_LOGI(tag,...) ((void)(tag))
+
+void vTaskDelay(int ms);
+int esp_http_client_get_errno(esp_http_client_handle_t);
+esp_err_t esp_http_client_get_and_clear_last_tls_error(esp_http_client_handle_t,int *,int *);
+esp_err_t esp_http_client_set_timeout_ms(esp_http_client_handle_t,int);
+#define ESP_LOGW(tag,...) ((void)(tag))
+static inline const char *esp_err_to_name(esp_err_t e){(void)e;return "test error";}
+static inline size_t heap_caps_get_free_size(unsigned caps){(void)caps;return 8000000;}
+static inline size_t heap_caps_get_largest_free_block(unsigned caps){(void)caps;return 8000000;}

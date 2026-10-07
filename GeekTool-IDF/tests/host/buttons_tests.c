@@ -9,6 +9,7 @@
 int64_t host_time_us;
 static int level = 1, power_event, shutdowns, power_reads;
 static bool active = true, covered;
+bool identity_boot_active(void){return false;} // Normal post-boot mapping; startup guard has its own test.
 int gpio_config(const gpio_config_t *config) {
     assert(config->pin_bit_mask == 1 && config->mode == GPIO_MODE_INPUT);
     return 0;

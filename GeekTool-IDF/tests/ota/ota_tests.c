@@ -7,10 +7,10 @@
 #define SIZE 8192
 enum scenario { NORMAL, DISCONNECT, NO_ETAG, FALLBACK, ALWAYS_DROP, CONNECT_ONCE,
     CERTIFICATE, NO_MEMORY, HTTP404, REPLACED, WRONG_RANGE, HEADER_FAIL,
-    BAD_PROJECT, SAME_VERSION, TOO_BIG, TRUNCATED, STALL, VERIFY_FAIL };
+    BAD_PROJECT, SAME_VERSION, TOO_BIG, TRUNCATED, STALL, VERIFY_FAIL, DNS_FAIL, TCP_FAIL };
 static enum scenario scenario;
 static int injected_tls=MBEDTLS_ERR_X509_CERT_VERIFY_FAILED, injected_flags=4;
-struct mock_client { esp_http_client_config_t config; int status, tls, flags; char if_match[96]; };
+struct mock_client { esp_http_client_config_t config; int status, tls, flags, transport, socket_error; char if_match[96]; };
 static struct mock_client client;
 static esp_partition_t partition;
 static esp_app_desc_t current, remote;
@@ -18,7 +18,11 @@ static int begins, aborts, finishes, writes, progress, live;
 static int requested[OTA_UPDATE_ATTEMPTS], resumed_pct;
 static bool started;
 static const char *current_version, *remote_version;
-static int64_t clock_us;
+static int64_t clock_us,ready_after;
+static bool wifi_enabled=true;
+bool wifi_service_enabled(void){return wifi_enabled;}
+bool wifi_service_ready(void){return wifi_enabled && clock_us>=ready_after;}
+int esp_http_client_get_errno(esp_http_client_handle_t c){return c->socket_error;}
 static unsigned char flash[SIZE], expected[SIZE];
 
 static void event(esp_http_client_event_id_t id, char *key, char *value) {
@@ -30,7 +34,7 @@ esp_err_t esp_crt_bundle_attach(void *p) { (void)p; return ESP_OK; }
 int esp_http_client_get_status_code(esp_http_client_handle_t c) { return c->status; }
 esp_err_t esp_http_client_get_user_data(esp_http_client_handle_t c, void **data) { *data=c->config.user_data; return ESP_OK; }
 esp_err_t esp_http_client_get_and_clear_last_tls_error(esp_http_client_handle_t c,int *code,int *flags) {
-    *code=c->tls; *flags=c->flags; c->tls=c->flags=0; return ESP_OK;
+    *code=c->tls; *flags=c->flags; c->tls=c->flags=0;int transport=c->transport;c->transport=0;return transport;
 }
 esp_err_t esp_http_client_set_header(esp_http_client_handle_t c,const char *key,const char *value) {
     if (strcmp(key,"If-Match")==0) snprintf(c->if_match,sizeof c->if_match,"%s",value);
@@ -50,8 +54,10 @@ esp_err_t esp_https_ota_begin(const esp_https_ota_config_t *cfg,esp_https_ota_ha
     assert(cfg->http_client_init_cb(&client)==ESP_OK);
     if (cfg->ota_image_bytes_written) assert(strcmp(client.if_match,"\"image-1\"")==0);
     *h=NULL;
-    if ((scenario==CONNECT_ONCE && begins==1) || scenario==CERTIFICATE || scenario==NO_MEMORY || scenario==HTTP404) {
+    if ((scenario==CONNECT_ONCE && begins==1) || scenario==CERTIFICATE || scenario==NO_MEMORY || scenario==HTTP404 || scenario==DNS_FAIL || scenario==TCP_FAIL) {
         if (scenario==CERTIFICATE) { client.tls=injected_tls; client.flags=injected_flags; }
+        if(scenario==DNS_FAIL)client.transport=0x8001;
+        if(scenario==TCP_FAIL)client.socket_error=54;
         if (scenario==HTTP404) client.status=404;
         event(HTTP_EVENT_ERROR,NULL,NULL); event(HTTP_EVENT_DISCONNECTED,NULL,NULL);
         return scenario==NO_MEMORY ? ESP_ERR_NO_MEM : ESP_ERR_HTTP_CONNECT;
@@ -134,6 +140,9 @@ static void version_case(const char *from,const char *to,bool same) {
 int main(void) {
     for (int i=0;i<SIZE;i++) expected[i]=(unsigned char)(i*37+17);
     ota_status_t s=run(NORMAL); assert(s.state==OTA_OK && s.pct==100 && begins==1 && finishes==1 && aborts==0);
+    ready_after=1000000;s=run(NORMAL);assert(s.state==OTA_OK && begins==1 && clock_us>=ready_after);
+    ready_after=16000000;s=run(NORMAL);assert(s.state==OTA_FAIL && begins==0 && writes==0 && clock_us==15000000);
+    ready_after=0;wifi_enabled=false;s=run(NORMAL);assert(s.state==OTA_FAIL && begins==0 && writes==0 && clock_us==0);wifi_enabled=true;
     s=run(DISCONNECT); assert(s.state==OTA_OK && begins==2 && requested[1]==3072 && resumed_pct==37 && finishes==1 && aborts==1);
     s=run(NO_ETAG); assert(s.state==OTA_OK && requested[1]==0 && resumed_pct==0);
     s=run(FALLBACK); assert(s.state==OTA_OK && requested[1]==3072 && resumed_pct==0);
@@ -149,6 +158,8 @@ int main(void) {
         assert(s.state==OTA_FAIL && begins==1 && s.tls_code==injected_tls && finishes==0 && writes==0);
     }
     s=run(NO_MEMORY); assert(s.state==OTA_FAIL && begins==1 && s.error==ESP_ERR_NO_MEM);
+    s=run(DNS_FAIL);assert(s.state==OTA_FAIL && begins==3 && s.transport_error==0x8001 && writes==0);
+    s=run(TCP_FAIL);assert(s.state==OTA_FAIL && begins==3 && s.socket_errno==54 && writes==0);
     s=run(HTTP404); assert(s.state==OTA_FAIL && begins==1 && s.http_status==404);
     s=run(REPLACED); assert(s.state==OTA_FAIL && begins==2 && s.http_status==412 && finishes==0 && writes==3);
     s=run(WRONG_RANGE); assert(s.state==OTA_FAIL && begins==1 && writes==0 && finishes==0);

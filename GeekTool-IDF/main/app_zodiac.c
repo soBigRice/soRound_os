@@ -174,7 +174,7 @@ static void zodiac_tick(void) {
         else if(state!=ZODIAC_LOADING||lv_tick_get()-s_started>=8500) {
             zodiac_fetch_cancel();s_waiting=false;status(ZODIAC_FAILED);
         }
-    }else if(!s_selecting&&s_ready&&s_day!=today())refresh(NULL);
+    }else if(!s_selecting&&s_day!=today())refresh(NULL);
 }
 static bool zodiac_back(void) {
     if(!s_selecting)return false;

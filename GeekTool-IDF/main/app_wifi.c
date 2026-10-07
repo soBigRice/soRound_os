@@ -9,6 +9,7 @@
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "rtc.h"
+#include "wifi_service.h"
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -27,6 +28,7 @@ static int s_scan_tries;
 static uint32_t connect_start,s_ui_at;
 enum { WIFI_IDLE,WIFI_CONNECT_FAILED,WIFI_CONNECT_TIMEOUT,WIFI_START_FAILED };
 static int s_result;
+static bool s_sntp_started;
 typedef struct {char ssid[33];wifi_auth_mode_t auth;int8_t rssi;bool saved;} wifi_row_t;
 static wifi_row_t s_rows[SCAN_MAX];
 static unsigned s_row_count;
@@ -48,6 +50,8 @@ static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data) {
             if (esp_wifi_get_config(WIFI_IF_STA, &wc) == ESP_OK && wc.sta.ssid[0]) esp_wifi_connect();
         } else if (id == WIFI_EVENT_SCAN_DONE) {
             s_scan_done = true;
+        } else if (id == WIFI_EVENT_STA_STOP) {
+            s_got_ip = false;
         } else if (id == WIFI_EVENT_STA_DISCONNECTED) {
             s_got_ip = false;
             s_disconnected = true;
@@ -57,6 +61,11 @@ static void wifi_evt(void *arg, esp_event_base_t base, int32_t id, void *data) {
         }
     } else if (base == IP_EVENT && id == IP_EVENT_STA_GOT_IP) {
         s_got_ip = true;
+        // Do not spend SNTP's first request/backoff before DHCP is ready.
+        if(s_sntp_started)esp_sntp_restart();
+        else {esp_sntp_init();s_sntp_started=true;}
+    } else if (base == IP_EVENT && id == IP_EVENT_STA_LOST_IP) {
+        s_got_ip = false;
     }
 }
 
@@ -71,19 +80,15 @@ static void wifi_svc_init(void) {
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
     ESP_ERROR_CHECK(esp_event_handler_instance_register(WIFI_EVENT, ESP_EVENT_ANY_ID, wifi_evt, NULL, NULL));
-    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, IP_EVENT_STA_GOT_IP, wifi_evt, NULL, NULL));
+    ESP_ERROR_CHECK(esp_event_handler_instance_register(IP_EVENT, ESP_EVENT_ANY_ID, wifi_evt, NULL, NULL));
     ESP_ERROR_CHECK(esp_wifi_set_storage(WIFI_STORAGE_FLASH));   // ★凭据写 NVS,重启/重烧后还在
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());                            // → STA_START 事件里自动连记住的 AP
-    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);                           // 深度调制解调器睡眠:按 listen interval(默认 3 拍,~300ms)
-                                                                  // 醒来收 beacon,比 MIN(每 DTIM)更省;代价是网络延迟略升,
-                                                                  // 手表只有天气/SNTP 轮询,无感。关 WiFi 开关仍省最多。
-
-    // SNTP 校时:连上后自动同步(时区在 main 里设为 CST-8),供表盘显示真实时间
+    // Configure before starting Wi-Fi: a fast GOT_IP may arrive immediately.
     esp_sntp_setoperatingmode(ESP_SNTP_OPMODE_POLL);
-    esp_sntp_setservername(0, "pool.ntp.org");
-    sntp_set_time_sync_notification_cb(on_time_sync);   // 校时成功 → 写回 RTC,断电也准
-    esp_sntp_init();
+    esp_sntp_setservername(0,"pool.ntp.org");
+    sntp_set_time_sync_notification_cb(on_time_sync);
+    ESP_ERROR_CHECK(esp_wifi_start());
+    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
 
     s_inited = true;
 }
@@ -312,7 +317,7 @@ static void current_click(lv_event_t *e) {
 }
 static void update_connection(void) {
     if(!g_current)return;
-    wifi_ap_record_t ap;bool connected=s_wifi_on && esp_wifi_sta_get_ap_info(&ap)==ESP_OK && s_got_ip;
+    wifi_ap_record_t ap;bool connected=wifi_service_ready() && esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
     char name[33],detail[100];uint32_t color=CONTROL_GRAY;
     if(!s_wifi_on){snprintf(name,sizeof name,"%s",wifi_word("Wi-Fi已关闭","Wi-Fi is off"));snprintf(detail,sizeof detail,"%s",wifi_word("开启后自动连接","Enable to connect"));}
     else if(connected){copy_ssid(name,ap.ssid);snprintf(detail,sizeof detail,wifi_word("已连接 · %d dBm","Connected · %d dBm"),ap.rssi);color=CONTROL_WHITE;s_result=WIFI_IDLE;}
@@ -345,6 +350,16 @@ void wifi_service_set_enabled(bool on) {
     update_connection();scan_state();
 }
 bool wifi_service_enabled(void){return s_wifi_on;}
+bool wifi_service_initialized(void){return s_inited;}
+bool wifi_service_ready(void) {
+    if(!s_wifi_on || !s_got_ip)return false;
+    wifi_ap_record_t ap;
+    esp_netif_t *netif=esp_netif_get_handle_from_ifkey("WIFI_STA_DEF");
+    esp_netif_ip_info_t ip;
+    return netif && esp_netif_is_netif_up(netif) &&
+        esp_wifi_sta_get_ap_info(&ap)==ESP_OK &&
+        esp_netif_get_ip_info(netif,&ip)==ESP_OK && ip.ip.addr!=0;
+}
 static void wifi_sw_cb(lv_event_t *e) {
     bool on=lv_obj_has_state(lv_event_get_target_obj(e),LV_STATE_CHECKED);wifi_service_set_enabled(on);
     if(on)request_scan();else set_status(wifi_word("无线网络已关闭","Wireless is off"),CONTROL_GRAY);
@@ -369,16 +384,21 @@ static void wifi_enter(lv_obj_t *parent) {
     lv_obj_set_style_bg_color(g_list,lv_color_hex(CONTROL_GRAY),LV_PART_SCROLLBAR);
     s_ui_at=0;update_connection();if(s_wifi_on)request_scan();else set_status(wifi_word("无线网络已关闭","Wireless is off"),CONTROL_GRAY);
 }
+static void resume_saved_connection(void) {
+    if(!s_wifi_on || s_suppress_rc || s_connecting)return;
+    wifi_ap_record_t ap;wifi_config_t wc;
+    if(esp_wifi_sta_get_ap_info(&ap)!=ESP_OK && esp_wifi_get_config(WIFI_IF_STA,&wc)==ESP_OK && wc.sta.ssid[0])
+        esp_wifi_connect();
+}
 static void wifi_tick(void) {
     if(s_scan_want && !s_scanning) {
         wifi_scan_config_t sc={.show_hidden=true};
         if(esp_wifi_scan_start(&sc,false)==ESP_OK){s_scanning=true;s_scan_want=false;}
-        else if(++s_scan_tries>24){s_scan_want=false;set_status(wifi_word("扫描失败，请重试","Scan failed, retry"),COL_RED);scan_state();}
+        else if(++s_scan_tries>24){s_scan_want=false;set_status(wifi_word("扫描失败，请重试","Scan failed, retry"),COL_RED);scan_state();resume_saved_connection();}
     }
     if(s_scanning && s_scan_done) {
         s_scanning=s_scan_done=false;wifi_populate();scan_state();
-        wifi_ap_record_t ap;if(s_wifi_on && esp_wifi_sta_get_ap_info(&ap)!=ESP_OK){wifi_config_t wc;
-            if(esp_wifi_get_config(WIFI_IF_STA,&wc)==ESP_OK && wc.sta.ssid[0])esp_wifi_connect();}
+        resume_saved_connection();
     }
     if(s_connecting) {
         if(s_got_ip){s_connecting=false;s_result=WIFI_IDLE;update_connection();}
@@ -389,8 +409,10 @@ static void wifi_tick(void) {
 }
 static bool wifi_back(void){if(!dlg)return false;close_dialog();return true;}
 static void wifi_exit(void) {
-    lv_async_call_cancel(render_rows,NULL);close_dialog();if(s_scanning || s_scan_want){esp_wifi_scan_stop();esp_wifi_clear_ap_list();}
+    bool interrupted_scan=s_scanning || s_scan_want;
+    lv_async_call_cancel(render_rows,NULL);close_dialog();if(interrupted_scan){esp_wifi_scan_stop();esp_wifi_clear_ap_list();}
     s_scanning=s_scan_want=s_scan_done=false;
+    if(interrupted_scan)resume_saved_connection();
     g_panel=g_list=g_status=g_sw=g_scan=g_current=g_ssid=g_detail=NULL;s_row_count=0;s_have_scan=false;
     // The service and saved credentials remain alive when leaving the page.
 }

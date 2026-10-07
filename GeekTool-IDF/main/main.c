@@ -21,6 +21,13 @@
 #include "img_store.h"
 #include "imu.h"
 #include "identity_ui.h"
+#include "startup.h"
+#include "startup_network.h"
+#include "watchface.h"
+#include "esp_timer.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <stdio.h>
 
 static const char *TAG = "main";
 
@@ -66,31 +73,69 @@ void app_main(void) {
     lv_display_t *disp = display_init();
     settings_init();                 // 读 NVS + 应用亮度(需 display 已 init)
     i18n_init();                     // 语言表 + CJK fallback 字体(需在建主题/launcher 前)
-    touch_init(s_i2c_bus, disp);
+    bool touch_ready=touch_init(s_i2c_bus,disp);
 
+    lv_obj_t *boot=NULL;bool launcher_ready=false;
+    uint32_t first_heartbeat=0,first_transfer=0;int64_t cover_started_us=0;
     if (lvgl_port_lock(0)) {
         // 全局 Nothing 单色暗色主题(红强调);默认字体用带符号的 montserrat,
         // 让键盘/按钮等默认控件也统一风格(各 app 的正文再单独覆盖成点阵字)
         lv_theme_t *th = lv_theme_default_init(disp, lv_color_hex(COL_RED),
                                                lv_color_hex(COL_TXT), true, UI_FONT_SYM);
         lv_display_set_theme(disp, th);
-        launcher_start();
-        if(!identity_boot_create(lv_layer_top()))
-            ESP_LOGW(TAG,"Boot animation allocation failed; showing the ready lockscreen");
+        // Build the cover before interactive pages; allocation failure cannot
+        // expose a partially initialized home. The pending OTA then rolls back.
+        boot=identity_boot_create(lv_layer_top());
+        if(boot) {
+            cover_started_us=esp_timer_get_time();
+            identity_boot_message(boot,settings_lang()?"系统检查中":"System check...",false);
+            launcher_ready=launcher_start();
+            lv_obj_move_foreground(boot);
+            first_heartbeat=launcher_heartbeat();first_transfer=display_transfer_count();
+        }
         lvgl_port_unlock();
     }
+    ESP_ERROR_CHECK(boot?ESP_OK:ESP_ERR_NO_MEM);
 
     img_store_face_image();          // 锁外后台预热图片,首次切表盘不阻塞 UI
     wifi_service_start();            // 开机自动起 WiFi + 重连记住的 AP(不碰 LVGL,放锁外)
 
-    // OTA 回滚确认:若本次是 OTA 新固件(PENDING_VERIFY),走到这里说明启动成功 → 转 VALID,
-    // 不再回退。非 OTA 启动或已 VALID 时此调用无副作用。放在 UI+WiFi 都起来之后,证明固件可用。
-    esp_ota_img_states_t st;
-    const esp_partition_t *run = esp_ota_get_running_partition();
-    if (esp_ota_get_state_partition(run, &st) == ESP_OK && st == ESP_OTA_IMG_PENDING_VERIFY) {
-        esp_err_t err = esp_ota_mark_app_valid_cancel_rollback();
-        if (err == ESP_OK) ESP_LOGW(TAG, "OTA image confirmed valid (rollback canceled)");
-        else ESP_LOGE(TAG, "OTA image confirmation failed: %s", esp_err_to_name(err));
+    startup_result_t check=startup_selftest(touch_ready,launcher_ready,first_heartbeat,first_transfer,cover_started_us);
+    ESP_LOGI(TAG,"startup check=%s err=%s",startup_problem_name(check.problem),esp_err_to_name(check.error));
+    if(check.problem!=STARTUP_OK && lvgl_port_lock(0)) {
+        char message[96];snprintf(message,sizeof message,"%s\n%s",settings_lang()?"启动自检失败":"Startup check failed",startup_problem_name(check.problem));
+        identity_boot_message(boot,message,true);lvgl_port_unlock();
+    }
+    startup_ota_result_t ota=startup_apply_ota_result(check);
+    ESP_LOGI(TAG,"startup OTA action=%d err=%s",ota.action,esp_err_to_name(ota.error));
+    if(check.problem!=STARTUP_OK || ota.error!=ESP_OK) {
+        if(ota.error!=ESP_OK && lvgl_port_lock(0)) {
+            const char *code=ota.action==STARTUP_OTA_CONFIRM_ERROR?"OTA CONFIRM":
+                ota.action==STARTUP_OTA_ROLLBACK_ERROR?"ROLLBACK":"OTA STATE";
+            char message[96];snprintf(message,sizeof message,"%s\n%s",settings_lang()?"启动自检失败":"Startup check failed",code);
+            identity_boot_message(boot,message,true);lvgl_port_unlock();
+        }
+        ESP_LOGE(TAG,"Startup stopped; home remains covered. No unconditional reboot loop.");
+        return;
+    }
+    startup_network_result_t network=startup_network_check(settings_beta()!=0);
+    ESP_LOGI(TAG,"startup network=%d err=%s",network.state,esp_err_to_name(network.error));
+    if(network.state!=STARTUP_NET_READY) {
+        ESP_LOGW(TAG,"Startup network unavailable; offline use allowed");
+        if(lvgl_port_lock(0)) {
+            const char *message=network.state==STARTUP_NET_OFFLINE?
+                (settings_lang()?"网络未就绪\n可离线使用":"Network not ready\nOffline available"):
+                (settings_lang()?"联网检查失败\n可离线使用":"Network check failed\nOffline available");
+            identity_boot_message(boot,message,false);
+            lvgl_port_unlock();
+        }
+        vTaskDelay(pdMS_TO_TICKS(1200));  // Visible notice; never runs in LVGL.
+    }
+    if(lvgl_port_lock(0)) {
+        // Publish completed background decoding before uncovering the face;
+        // otherwise its one-second snapshot could still show stale loading.
+        watchface_select(settings_face());
+        identity_boot_release(boot);lvgl_port_unlock();
     }
 
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");

@@ -25,7 +25,7 @@
 
 ## 请求、解析与缓存
 
-`weather_poll/start_fetch → wx_task → weather_data_url → HTTP → weather_data_parse → generation 校验 → s_data/s_revision → weather_tick → weather_ui_show + weather_details_show`。
+`weather_poll/start_fetch → wx_task → weather_data_url → network_http_get → weather_data_parse → generation 校验 → s_data/s_revision → weather_tick → weather_ui_show + weather_details_show`。
 
 `weather_data.c` 使用项目已有 cJSON 1.7.19，按 `current/hourly/daily` 对象解析，避免同名的 `*_units` 或逐小时字段被当作当前数值。最大 12 小时、5 天；URL 和 HTTP 发送缓冲均为 1KiB、响应缓冲保持 8KiB，拒绝请求头读取失败、响应读取错误、截断、非 200 和无效核心数据。上海公开接口实查响应约 2.4KiB；后台任务在解析后释放 HTTP、JSON 和响应内存。
 
@@ -33,7 +33,10 @@
 
 `s_data` 是 UI 与原有 `weather_cached(temp,lo,hi,code,hum)` 的单一快照。保留单 HTTP 任务、地点 generation 防迟到响应、成功 20 分钟/失败 1 分钟轮询及天气表盘缓存接口。换地址重置滚动位置和详情可用状态；旧地点响应不能写入新地点。
 
-`start_fetch` 只有在 `esp_wifi_sta_get_ap_info` 失败时进入 `WX_OFFLINE`；已连接但请求、解析或任务创建失败进入 `WX_FAIL`。前者保留原断网提示，后者显示“获取失败”，两者仍可点击重试。HTTP 失败日志记录 open 错误、header 返回值、HTTP 状态码、已读字节和 read 返回值，不能据旧的组合提示推断 Wi-Fi 已断开。
+2026-10-07：`start_fetch` 采用 `wifi_service_ready`，要求关联及DHCP/IP就绪；请求失败且IP已丢失也进入 `WX_OFFLINE`。
+IP恢复后 `weather_poll` 立即重试，不再等待失败刷新周期。IP仍就绪但请求、解析或任务创建失败进入 `WX_FAIL`；
+两者保持原提示和点击重试。共享传输检查SDK完整正文，日志区分连接/头部/HTTP/读取/容量/超时，记录DNS/TCP/TLS及内存；
+解析失败另记录字节数。新规则、旧代码恢复缺陷的复现与真实设备边界见[联网恢复逻辑](./NETWORKING.md)。
 
 接口字段、时间和单位依据 [Open-Meteo 官方 Forecast 文档](https://open-meteo.com/en/docs)，2026-10-04 实查。滚动依据 [LVGL 9.5 官方滚动文档](https://lvgl.io/docs/open/9.5/common-widget-features/scrolling)，同时验证本地 9.5 与发布环境 9.6；旗标调用经过 `lvgl_compat.h` 的兼容入口。
 

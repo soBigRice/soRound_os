@@ -170,6 +170,7 @@ static void arrow_next_cb(lv_event_t *e) { nav(+1); }
 /* ---- 软件看门狗:盯 LVGL/渲染任务是否还在调度。卡死(LVGL 断言 halt、DMA 信号量永等、死循环等)
        ≥5s 就重启自恢复。硬件 panic 已配置成重启,但"纯卡死"不触发硬件看门狗,故补一个软的。 ---- */
 static volatile uint32_t s_lvgl_hb;             // 心跳:由 app_tick_timer(LVGL 任务,20ms)累加
+uint32_t launcher_heartbeat(void){return s_lvgl_hb;}
 static void render_watchdog(void *arg) {
     (void)arg;
     uint32_t last = 0;
@@ -438,7 +439,7 @@ static void battery_timer_cb(lv_timer_t *t) {
     power_charge_govern();                        // 充电策略:按 die 温度自适应限流(凉快/温中/烫慢)
 }
 
-void launcher_start(void) {
+bool launcher_start(void) {
     build_overlay();
 
     launcher_screen = lv_obj_create(NULL);
@@ -497,13 +498,14 @@ void launcher_start(void) {
     lv_screen_load(launcher_screen);
 
     esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX, 0, "touch", &s_boost);   // 触摸加速锁(touch_boost_poll)
-    lv_timer_create(app_tick_timer, 20, NULL);   // 20ms 调度,app 各自节拍(兼喂软件看门狗)
-    xTaskCreate(render_watchdog, "rwdt", 2560, NULL, configMAX_PRIORITIES - 2, NULL);   // 卡死自恢复
+    lv_timer_t *app_timer=lv_timer_create(app_tick_timer,20,NULL);
+    bool watchdog=xTaskCreate(render_watchdog,"rwdt",2560,NULL,configMAX_PRIORITIES-2,NULL)==pdPASS;
 
     power_init();
     battery_timer_cb(NULL);                       // 开机立即读一次电量
-    lv_timer_create(battery_timer_cb, 2000, NULL);
+    lv_timer_t *battery_timer=lv_timer_create(battery_timer_cb,2000,NULL);
 
-    lock_init();                                  // 锁屏 / 表盘 / 实体键 / 省电
+    bool lock_ready=lock_init();                   // 锁屏 / 表盘 / 实体键 / 省电
     lock_set(true);                               // 开机/烧录后默认进锁屏(表盘),BOOT 短按解锁
+    return app_timer && watchdog && battery_timer && lock_ready;
 }

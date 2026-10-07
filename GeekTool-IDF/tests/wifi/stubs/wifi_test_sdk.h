@@ -17,6 +17,8 @@ typedef int esp_err_t;
 #define WIFI_EVENT_STA_START 1
 #define WIFI_EVENT_SCAN_DONE 2
 #define WIFI_EVENT_STA_DISCONNECTED 3
+#define WIFI_EVENT_STA_STOP 5
+#define IP_EVENT_STA_LOST_IP 6
 #define IP_EVENT_STA_GOT_IP 4
 #define WIFI_REASON_AUTH_FAIL 202
 #define WIFI_REASON_NO_AP_FOUND 201
@@ -53,3 +55,11 @@ void esp_sntp_setservername(int,const char *);
 void sntp_set_time_sync_notification_cb(void (*)(struct timeval *));
 void esp_sntp_init(void);
 int64_t esp_timer_get_time(void);
+
+typedef struct {int unused;} esp_netif_t;
+typedef struct {struct {uint32_t addr;} ip;} esp_netif_ip_info_t;
+esp_netif_t *esp_netif_get_handle_from_ifkey(const char *);
+bool esp_netif_is_netif_up(esp_netif_t *);
+esp_err_t esp_netif_get_ip_info(esp_netif_t *,esp_netif_ip_info_t *);
+
+bool esp_sntp_restart(void);

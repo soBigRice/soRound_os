@@ -15,6 +15,12 @@ static wifi_config_t config;
 static wifi_ap_record_t current,records[20];
 static unsigned record_count;
 static bool connected,synchronous_ip;
+static bool netif_present=true,netif_up=true,ip_error;
+static uint32_t ipv4=0x01020304;
+static esp_netif_t fake_netif;
+esp_netif_t *esp_netif_get_handle_from_ifkey(const char *key){assert(!strcmp(key,"WIFI_STA_DEF"));return netif_present?&fake_netif:NULL;}
+bool esp_netif_is_netif_up(esp_netif_t *n){assert(n==&fake_netif);return netif_up;}
+esp_err_t esp_netif_get_ip_info(esp_netif_t *n,esp_netif_ip_info_t *ip){assert(n==&fake_netif);ip->ip.addr=ipv4;return ip_error?ESP_FAIL:ESP_OK;}
 static int init_count,connects,disconnects,config_writes,scan_starts,scan_clears;
 static esp_err_t scan_result=ESP_OK,connect_result=ESP_OK,records_result=ESP_OK;
 static int64_t clock_us=50000;
@@ -42,7 +48,9 @@ esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *a){if(!connected)return ESP
 void esp_sntp_setoperatingmode(int n){(void)n;}
 void esp_sntp_setservername(int n,const char *v){(void)n;assert(!strcmp(v,"pool.ntp.org"));}
 void sntp_set_time_sync_notification_cb(void (*cb)(struct timeval *)){assert(cb);}
-void esp_sntp_init(void){}
+static unsigned sntp_starts,sntp_restarts;
+void esp_sntp_init(void){++sntp_starts;}
+bool esp_sntp_restart(void){++sntp_restarts;return true;}
 #include "../../main/app_wifi.c"
 esp_err_t esp_wifi_connect(void){
     ++connects;if(connect_result!=ESP_OK)return connect_result;
@@ -98,6 +106,18 @@ int main(int argc,char **argv){
     lv_obj_set_style_arc_color(ring,lv_color_hex(0x15151a),LV_PART_MAIN);lv_obj_set_style_arc_color(ring,lv_color_hex(CONTROL_WHITE),LV_PART_INDICATOR);
     heading=control_label(lv_layer_top(),"Wi-Fi",&font_location_24,150,52,166,CONTROL_WHITE);lv_obj_set_style_text_align(heading,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_t *back=control_button(lv_layer_top(),101,52,44,44,NULL,NULL);lv_obj_t *arrow=control_label(back,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,20,CONTROL_WHITE);lv_obj_center(arrow);
+    wifi_service_start();assert(sntp_starts==0);
+    connected=true;s_got_ip=false;assert(!wifi_service_ready());
+    wifi_evt(NULL,IP_EVENT,IP_EVENT_STA_GOT_IP,NULL);assert(wifi_service_ready());
+    assert(sntp_starts==1 && sntp_restarts==0);
+    ipv4=0;assert(!wifi_service_ready());ipv4=0x01020304;
+    netif_up=false;assert(!wifi_service_ready());netif_up=true;
+    netif_present=false;assert(!wifi_service_ready());netif_present=true;
+    ip_error=true;assert(!wifi_service_ready());ip_error=false;
+    wifi_evt(NULL,IP_EVENT,IP_EVENT_STA_LOST_IP,NULL);assert(!wifi_service_ready());
+    wifi_evt(NULL,IP_EVENT,IP_EVENT_STA_GOT_IP,NULL);assert(wifi_service_ready());
+    assert(sntp_starts==1 && sntp_restarts==1);
+    wifi_evt(NULL,WIFI_EVENT,WIFI_EVENT_STA_STOP,NULL);assert(!wifi_service_ready());
     for(language=0;language<2;++language){
         s_result=WIFI_IDLE;s_connecting=false;s_wifi_on=true;s_got_ip=true;connected=true;
         strcpy((char *)current.ssid,"Studio_2.4G");current.rssi=-48;current.authmode=WIFI_AUTH_WPA2_PSK;strcpy((char *)config.sta.ssid,"Studio_2.4G");

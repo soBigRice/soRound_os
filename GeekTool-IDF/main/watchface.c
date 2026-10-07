@@ -40,7 +40,7 @@ static bool snapshot(bool force) {
     bool dirty=force||minute_changed||(!s_aod&&s_idx%5==0&&t.tm_sec!=s_data.time.tm_sec);
     s_data.time=t;s_data.aod=s_aod;
     if(force||minute_changed) {
-        wifi_ap_record_t ap;s_data.wifi=esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
+        wifi_ap_record_t ap;s_data.wifi=wifi_service_ready() && esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
         s_data.ssid[0]=s_data.ip[0]=0;
         if(s_data.wifi) {
             memcpy(s_data.ssid,ap.ssid,32);s_data.ssid[32]=0;

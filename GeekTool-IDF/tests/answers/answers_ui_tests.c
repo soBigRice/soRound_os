@@ -15,7 +15,7 @@ static uint8_t language;
 static uint32_t random_value;
 static unsigned random_calls, flushed_pixels;
 static bool control, network, hold_response;
-static unsigned requests, cancellations;
+static unsigned requests, cancellations,busy_starts;
 static uint32_t mock_token;
 static answer_fetch_state_t mock_state=ANSWER_FETCH_READY;
 static answer_response_t response={"Stay resilient.","保持弹性"};
@@ -25,6 +25,7 @@ bool buttons_control_pressed(void) { bool hit=control;control=false;return hit; 
 void buttons_reset_control(void) { control=false; }
 answer_fetch_state_t answers_fetch_begin(uint32_t *token) {
     if(!network)return ANSWER_FETCH_OFFLINE;
+    if(busy_starts){--busy_starts;return ANSWER_FETCH_BUSY;}
     ++requests;*token=++mock_token;return ANSWER_FETCH_LOADING;
 }
 answer_fetch_state_t answers_fetch_poll(uint32_t token,answer_response_t *out) {
@@ -159,7 +160,10 @@ int main(int argc,char **argv) {
         network=true;hold_response=true;mock_state=ANSWER_FETCH_READY;
         response=(answer_response_t){"Stay resilient.","保持弹性"};
         control=true;page=enter();advance(20);assert(!s_turning&&!control);
-        calls=requests;tap(g_action);advance(400);
+        busy_starts=4;calls=requests;tap(g_action);advance(400);
+        assert(s_waiting && s_pending_start && !s_changed && requests==calls);
+        // advance() invokes one UI tick; drive separate ticks for the BUSY handoff.
+        for(unsigned i=0;i<3;++i)advance(20);
         assert(s_waiting&&s_turning&&!s_changed&&requests==calls+1);
         capture(dir,"fetching");control=true;advance(20);assert(requests==calls+1&&!control);
         hold_response=false;advance(20);advance(360);

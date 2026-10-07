@@ -8,7 +8,9 @@ lv_display_t *display_init(void);
 void display_weather_mode(bool enabled);
 
 // 初始化 CST9217 触摸,挂到 lvgl_port
-void touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp);
+bool touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp);
+// Completed panel DMA transactions, used as a boot liveness check.
+uint32_t display_transfer_count(void);
 
 // 屏幕亮度(CO5300 命令 0x51,0-255)与熄屏(关面板省电)
 void display_set_brightness(uint8_t level);

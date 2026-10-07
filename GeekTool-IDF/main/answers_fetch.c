@@ -1,7 +1,8 @@
 #include "answers_data.h"
 #include "esp_http_client.h"
 #include "esp_crt_bundle.h"
-#include "esp_wifi.h"
+#include "wifi_service.h"
+#include "network_http.h"
 #include "esp_timer.h"
 #include "esp_log.h"
 #include "esp_random.h"
@@ -21,6 +22,8 @@ static bool current(uint32_t generation) {
     portEXIT_CRITICAL(&s_lock);return active;
 }
 
+static bool request_active(void *arg){return current(*(const uint32_t *)arg);}
+
 static void fetch_task(void *arg) {
     (void)arg;
     portENTER_CRITICAL(&s_lock);uint32_t generation=s_request;portEXIT_CRITICAL(&s_lock);
@@ -30,31 +33,15 @@ static void fetch_task(void *arg) {
              (unsigned long)esp_random(),(unsigned long)esp_random());
     esp_http_client_config_t cfg={.url=url,.crt_bundle_attach=esp_crt_bundle_attach,
         .timeout_ms=6000,.buffer_size=1024,.buffer_size_tx=512,.disable_auto_redirect=true};
-    esp_http_client_handle_t client=NULL;char *body=NULL;
-    answer_response_t result={0};bool valid=false,opened=false;
-    int status=0,total=0,read_result=-1;
-    int64_t deadline=esp_timer_get_time()+8000000;
-    if(!current(generation))goto finish;
-    client=esp_http_client_init(&cfg);body=malloc(ANSWER_HTTP_BYTES);
-    if(!client || !body)goto finish;
-    if(esp_http_client_set_header(client,"Accept","application/json")!=ESP_OK ||
-       esp_http_client_set_header(client,"Cache-Control","no-cache")!=ESP_OK ||
-       esp_http_client_set_header(client,"Accept-Encoding","identity")!=ESP_OK ||
-       esp_http_client_open(client,0)!=ESP_OK)goto finish;
-    opened=true;
-    int64_t size=esp_http_client_fetch_headers(client);
-    status=esp_http_client_get_status_code(client);
-    if(size<0 || size>=ANSWER_HTTP_BYTES || status!=200)goto finish;
-    while(current(generation) && esp_timer_get_time()<deadline && total<ANSWER_HTTP_BYTES-1) {
-        read_result=esp_http_client_read(client,body+total,ANSWER_HTTP_BYTES-1-total);
-        if(read_result<=0)break;
-        total+=read_result;
+    char *body=malloc(ANSWER_HTTP_BYTES);
+    answer_response_t result={0};bool valid=false;
+    network_http_result_t fetched={.stage=NET_HTTP_INIT};
+    if(body)fetched=network_http_get("answers",&cfg,body,ANSWER_HTTP_BYTES,8000,request_active,&generation);
+    else ESP_LOGW("answers","response allocation failed");
+    if(fetched.stage==NET_HTTP_OK) {
+        valid=answers_data_parse(body,fetched.bytes,&result);
+        if(!valid)ESP_LOGW("answers","response parse failed HTTP=%d bytes=%u",fetched.status,(unsigned)fetched.bytes);
     }
-    body[total]=0;
-    valid=current(generation)&&read_result==0&&total>0&&total<ANSWER_HTTP_BYTES-1&&
-        esp_http_client_is_complete_data_received(client)&&answers_data_parse(body,(size_t)total,&result);
-finish:
-    if(client){if(opened)esp_http_client_close(client);esp_http_client_cleanup(client);}
     free(body);
     portENTER_CRITICAL(&s_lock);
     if(generation==s_generation) {
@@ -62,14 +49,13 @@ finish:
         s_state=valid?ANSWER_FETCH_READY:ANSWER_FETCH_FAILED;
     }
     s_alive=false;portEXIT_CRITICAL(&s_lock);
-    ESP_LOGI("answers","fetch %s http=%d bytes=%d",valid?"ready":"failed",status,total);
+    ESP_LOGI("answers","fetch %s http=%d bytes=%d",valid?"ready":"failed",fetched.status,(int)fetched.bytes);
     vTaskDelete(NULL);
 }
 
 answer_fetch_state_t answers_fetch_begin(uint32_t *token) {
     if(!token)return ANSWER_FETCH_FAILED;
-    wifi_ap_record_t ap;
-    if(esp_wifi_sta_get_ap_info(&ap)!=ESP_OK)return ANSWER_FETCH_OFFLINE;
+    if(!wifi_service_ready())return ANSWER_FETCH_OFFLINE;
     portENTER_CRITICAL(&s_lock);
     if(s_alive){portEXIT_CRITICAL(&s_lock);return ANSWER_FETCH_BUSY;}
     ++s_generation;s_request=s_generation;*token=s_request;

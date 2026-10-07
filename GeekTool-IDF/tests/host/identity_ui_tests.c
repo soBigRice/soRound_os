@@ -1,5 +1,6 @@
 // Real native logo renderer and animation scheduler. No hardware services or raster logo.
 #include "identity_ui.h"
+#include "src/misc/lv_text_private.h"
 #include "identity_geometry.h"
 #include <assert.h>
 #include <math.h>
@@ -36,6 +37,21 @@ static void check_dot(double expected_x,double expected_y) {
 }
 static void advance(int ms){lv_tick_inc((uint32_t)ms);lv_timer_handler();draw();}
 static void move_original(void *obj,int32_t x){lv_obj_set_x(obj,x);}
+static void check_status(lv_obj_t *boot,const char *text,bool error) {
+    identity_boot_message(boot,text,error);draw();
+    lv_obj_t *label=lv_obj_get_child(boot,2);
+    const lv_font_t *font=lv_obj_get_style_text_font(label,0);
+    uint32_t at=0,code;
+    while((code=lv_text_encoded_next(text,&at))!=0)if(code!='\n') {
+        lv_font_glyph_dsc_t glyph;assert(lv_font_get_glyph_dsc(font,&glyph,code,0));
+    }
+    lv_point_t size;lv_text_get_size(&size,text,font,0,lv_obj_get_style_text_line_space(label,0),276,LV_TEXT_FLAG_NONE);
+    lv_area_t area;lv_obj_get_coords(label,&area);
+    for(int x=-1;x<=1;x+=2)for(int y=0;y<2;++y) {
+        int dx=x*(size.x+1)/2,dy=area.y1+(y?size.y:0)-233;
+        assert(dx*dx+dy*dy<=233*233);
+    }
+}
 int main(int argc,char **argv) {
     const char *folder=argc>1?argv[1]:NULL;
     lv_init();display=lv_display_create(W,W);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
@@ -60,20 +76,33 @@ int main(int argc,char **argv) {
     assert(lv_anim_count_running()==animations+1 && lv_obj_has_flag(boot,LV_OBJ_FLAG_CLICKABLE));
     assert(!lv_obj_has_flag(boot,LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_EVENT_BUBBLE));
     draw();assert(white_count()==0);export(folder,"boot-native-0");
-    advance(200);int early=white_count();assert(early>0);export(folder,"boot-native-200");
-    advance(400);assert(white_count()>early);export(folder,"boot-native-600");
-    advance(400);check_dot(278.5,187.5);
+    advance(400);int early=white_count();assert(early>0);export(folder,"boot-native-400");
+    advance(400);assert(white_count()>early);export(folder,"boot-native-800");
+    advance(1000);check_dot(278.5,187.5);
     for(int y=0;y<160;++y)assert(memcmp(reference+y*160,pixels+(153+y)*W+153,160*sizeof(uint16_t))==0);
-    advance(760);export(folder,"boot-native-final");
-    advance(80);assert(lv_obj_get_child_count(lv_layer_top())==children);
+    advance(1900);export(folder,"boot-native-final");
+    identity_boot_release(boot);advance(200);assert(identity_boot_active() && lv_obj_is_valid(boot));
+    advance(180);assert(!identity_boot_active() && lv_obj_get_child_count(lv_layer_top())==children);
     assert(lv_anim_count_running()==animations && lv_screen_active()==active && lv_obj_is_valid(original));
+    boot=identity_boot_create(lv_layer_top());advance(4200);
+    assert(identity_boot_active() && lv_obj_is_valid(boot) && lv_anim_count_running()==animations);
+    check_status(boot,"System check...",false);export(folder,"boot-check-en");
+    check_status(boot,"系统检查中",false);export(folder,"boot-check-zh");
+    check_status(boot,"Network not ready\nOffline available",false);export(folder,"boot-offline-en");
+    check_status(boot,"网络未就绪\n可离线使用",false);export(folder,"boot-offline-zh");
+    check_status(boot,"Network check failed\nOffline available",false);export(folder,"boot-network-failed-en");
+    check_status(boot,"联网检查失败\n可离线使用",false);export(folder,"boot-network-failed-zh");
+    check_status(boot,"Startup check failed\nOTA CONFIRM",true);export(folder,"boot-failed-en");
+    check_status(boot,"启动自检失败\nMEMORY",true);export(folder,"boot-failed-zh");
+    advance(4000);assert(identity_boot_active() && lv_obj_is_valid(boot));
+    identity_boot_release(boot);assert(!identity_boot_active());
     // Early dismissal and repeated startup previews must leave no object or animation behind.
-    for(int i=0;i<12;++i){boot=identity_boot_create(lv_layer_top());assert(boot);advance(80);lv_obj_delete(boot);advance(2000);
-        assert(lv_anim_count_running()==animations && lv_obj_get_child_count(lv_layer_top())==children);}
+    for(int i=0;i<12;++i){boot=identity_boot_create(lv_layer_top());assert(boot);advance(80);lv_obj_delete(boot);advance(4200);
+        assert(!identity_boot_active() && lv_anim_count_running()==animations && lv_obj_get_child_count(lv_layer_top())==children);}
     if(folder) {
         // Optional review export runs the same native scheduler, not the browser mockup.
-        boot=identity_boot_create(lv_layer_top());assert(boot);int previous=0;
-        for(int i=0;i<54;++i){int at=i*1000/30;advance(at-previous);previous=at;
+        boot=identity_boot_create(lv_layer_top());assert(boot);identity_boot_release(boot);int previous=0;
+        for(int i=0;i<120;++i){int at=i*1000/30;advance(at-previous);previous=at;
             char name[40];snprintf(name,sizeof name,"boot-frame-%03d",i);export(folder,name);}
         advance(100);assert(lv_obj_get_child_count(lv_layer_top())==children);
     }

@@ -1,9 +1,9 @@
-# 设置首页原生改稿
+# 设置首页：beta.29发布基线
 
 核对日期：2026-10-07；实现基线 `main / e42b716`。已随`v1.7-beta.29`发布；发布结果见[移植与发布记录](../../PORTING_NOTES.md#2026-10-07-v17-beta29-设置首页滚动发布)，未执行USB烧录。
 用户明确范围为“设置首页”，随后纠正一屏四项过于拥挤，要求“要能滑动滚动”。只调整首页，保留现有子页与设置语义。
 
-## 实现与边界
+## 实现与边界（beta.29）
 
 `app_settings.c:settings_enter → rebuild → SETTINGS_HOME → home_row`。
 四分类顺序保持：显示与表盘、声音、语言、关于本机。首页使用透明行、细分隔线、24px标题/18px真实状态和原生36px线条图标；关于入口复用 `identity_logo_create`。
@@ -13,7 +13,8 @@
 
 `open_page → queue_rebuild → rebuild`：销毁旧面板前保存 `s_home_y`，重建首页并完成布局后恢复位置；`settings_enter`和`settings_exit`清零，重新进入从顶部开始。
 `settings_back`仍由表盘返回显示，其他子页返回首页；首页再返回由启动器退出。退出取消待执行重建，清空列表指针；页面销毁由LVGL释放输入目标和惯性动画。
-不改共享 `control_ui`、Wi-Fi、子页布局、设置保存、表盘、音频或开机流程，不新增字体、位图、线程或依赖。
+beta.29只改首页，没有修改共享 `control_ui`、Wi-Fi、子页布局、设置保存、表盘、音频或开机流程，没有新增字体、位图、线程或依赖。
+用户后续明确要求全部设置项单独进入，并选择首页直接列出七项；当前工作区实现见[独立设置项与居中表盘](../settings-detail/README.md)。本目录保留beta.29四分类基线图和验证记录，不代表当前七项首页。
 
 原生滚动设置仅允许纵向、有惯性、无回弹、无向父级滚动传递，保留手势冒泡与既有右滑返回。行继续使用 `LV_EVENT_CLICKED`，其原生语义只在未滚动的松手时触发。
 核查依据：本项目LVGL9.5源码 `src/indev/lv_indev.c`、`src/core/lv_obj_tree.c`；官方[滚动说明](https://lvgl.io/docs/open/9.5/common-widget-features/scrolling)和[事件说明](https://lvgl.io/docs/open/9.5/API/misc/lv_event_h)。

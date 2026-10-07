@@ -34,7 +34,7 @@ beta.22的CI发布包、R2与国内完整包及Range已核对一致（详情见P
 
 `launcher.enter_app → app_answers.enter → answers_enter` 创建书封、隐藏答案层和底部按钮。
 `LV_EVENT_CLICKED` 或 `answers_tick → buttons_control_pressed → start_turn` 启动联网请求，准备备用并禁用操作。
-`answers_fetch_begin → fetch_task → HTTPS → answers_data_parse` 在独立FreeRTOS任务中拉取并校验JSON；
+`answers_fetch_begin → fetch_task → network_http_get → answers_data_parse` 在独立FreeRTOS任务中拉取并校验JSON；
 后台只发布带generation的结果，`answers_tick → answers_fetch_poll → poll_answer` 才更新LVGL。
 `launcher.app_tick_timer → answers_tick` 每20ms推进一次720ms动效：
 
@@ -51,7 +51,9 @@ beta.22的CI发布包、R2与国内完整包及Range已核对一致（详情见P
 HTTP任务检测取消后由自身close/cleanup/free并退出，不在SDK I/O中强杀任务。
 
 联网等待时动效停在翻页中点前，显示“联网获取中”，可随时返回或锁屏。
-客户端I/O超时6s、读循环总期限8s、UI等待上限8.5s；单个worker尚未清理时拒绝新任务，避免叠加TLS内存。
+客户端I/O超时6s、两次传输尝试共享8s预算、新请求UI等待上限8.5s。
+单个worker尚未清理时返回BUSY；UI最多等待清理8.5s，再启动新请求并重置等待时间，避免叠加TLS内存。
+SDK阻塞调用可能超出预算检查点，取消由worker在调用边界处理；具体规则及2026-10-07验证见[联网恢复逻辑](./NETWORKING.md)。
 完整200、最多4095B、完整Content-Length/chunked正文和合法UTF-8/JSON短标题才接受；
 保留TLS证书验证，禁止自动跨地址重定向；无网、HTTP失败、异常内容和重复内容分开呈现备用状态。
 

@@ -5,7 +5,8 @@
 #include <math.h>
 
 typedef struct {lv_obj_t obj; uint32_t elapsed_ms;} logo_t;
-typedef struct {lv_obj_t obj; lv_obj_t *logo,*name;} boot_t;
+typedef struct {lv_obj_t obj; lv_obj_t *logo,*name,*status; bool elapsed,ready;} boot_t;
+static lv_obj_t *s_boot;
 
 static int32_t phase(uint32_t ms, uint32_t start, uint32_t duration) {
     if(ms <= start)return 0;
@@ -71,13 +72,34 @@ lv_obj_t *identity_logo_create(lv_obj_t *parent,int size) {
 }
 static void boot_advance(void *var,int32_t ms) {
     boot_t *boot=var;logo_t *logo=(logo_t *)boot->logo;
-    // Only the central mark changes before 1s; don't invalidate the full black screen.
-    uint32_t logo_ms=(uint32_t)(ms<1000?ms:1000);
+    // Slow the original geometry without continuously redrawing the full cover.
+    uint32_t logo_ms=ms<1700?(uint32_t)ms*1000/1700:1000;
     if(logo->elapsed_ms!=logo_ms){logo->elapsed_ms=logo_ms;lv_obj_invalidate(boot->logo);}
-    int32_t fade=phase((uint32_t)ms,1020,280);
+    int32_t fade=phase((uint32_t)ms,1820,480);
     lv_obj_set_style_text_opa(boot->name,(lv_opa_t)(255*fade/LV_BEZIER_VAL_MAX),0);
     int baseline=349-7*eased(fade)/LV_BEZIER_VAL_MAX;
     lv_obj_set_y(boot->name,baseline-font_identity_26.line_height+font_identity_26.base_line);
+    lv_obj_set_style_text_opa(boot->status,(lv_opa_t)(255*phase((uint32_t)ms,2500,300)/LV_BEZIER_VAL_MAX),0);
+}
+static void boot_completed(lv_anim_t *animation) {
+    boot_t *boot=animation->var;boot->elapsed=true;
+    if(boot->ready){lv_display_trigger_activity(NULL);lv_obj_delete((lv_obj_t *)boot);}
+}
+static void boot_deleted(lv_event_t *event) {
+    if(lv_event_get_target_obj(event)==s_boot)s_boot=NULL;
+}
+bool identity_boot_active(void){return s_boot!=NULL;}
+void identity_boot_message(lv_obj_t *obj,const char *message,bool error) {
+    if(!obj)return;
+    boot_t *boot=(boot_t *)obj;
+    if(error)boot->ready=false;
+    lv_label_set_text(boot->status,message?message:"");
+    lv_obj_set_style_text_color(boot->status,lv_color_hex(error?IDENTITY_RED:0x9a9a9e),0);
+}
+void identity_boot_release(lv_obj_t *obj) {
+    if(!obj)return;
+    boot_t *boot=(boot_t *)obj;boot->ready=true;
+    if(boot->elapsed){lv_display_trigger_activity(NULL);lv_obj_delete(obj);}
 }
 lv_obj_t *identity_boot_create(lv_obj_t *parent) {
     lv_obj_t *obj=lv_obj_class_create_obj(&boot_class,parent);if(!obj)return NULL;
@@ -87,9 +109,10 @@ lv_obj_t *identity_boot_create(lv_obj_t *parent) {
     // Swallow touches/gestures while the original lockscreen continues underneath.
     lv_obj_remove_flag(obj,LV_OBJ_FLAG_SCROLLABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_obj_add_flag(obj,LV_OBJ_FLAG_CLICKABLE);
+    s_boot=obj;lv_obj_add_event_cb(obj,boot_deleted,LV_EVENT_DELETE,NULL);
     boot_t *boot=(boot_t *)obj;
-    boot->logo=identity_logo_create(obj,160);boot->name=lv_label_create(obj);
-    if(!boot->logo||!boot->name){lv_obj_delete(obj);return NULL;}
+    boot->logo=identity_logo_create(obj,160);boot->name=lv_label_create(obj);boot->status=lv_label_create(obj);
+    if(!boot->logo||!boot->name||!boot->status){lv_obj_delete(obj);return NULL;}
     lv_obj_set_pos(boot->logo,153,153);
     lv_obj_remove_flag(boot->logo,LV_OBJ_FLAG_GESTURE_BUBBLE);
     lv_obj_remove_flag(boot->name,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_GESTURE_BUBBLE);
@@ -97,11 +120,16 @@ lv_obj_t *identity_boot_create(lv_obj_t *parent) {
     lv_obj_set_style_text_font(boot->name,&font_identity_26,0);
     lv_obj_set_style_text_align(boot->name,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_set_style_text_color(boot->name,lv_color_hex(IDENTITY_WHITE),0);
+    lv_label_set_text(boot->status,"System check...");lv_obj_set_size(boot->status,276,LV_SIZE_CONTENT);
+    lv_obj_set_pos(boot->status,95,371);lv_obj_set_style_text_font(boot->status,&font_identity_18,0);
+    lv_obj_set_style_text_align(boot->status,LV_TEXT_ALIGN_CENTER,0);
+    lv_obj_set_style_text_color(boot->status,lv_color_hex(0x9a9a9e),0);
+    lv_obj_remove_flag(boot->status,LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_GESTURE_BUBBLE|LV_OBJ_FLAG_EVENT_BUBBLE);
     lv_anim_t animation;lv_anim_init(&animation);lv_anim_set_var(&animation,obj);
     lv_anim_set_exec_cb(&animation,boot_advance);lv_anim_set_values(&animation,0,IDENTITY_BOOT_MS);
     lv_anim_set_duration(&animation,IDENTITY_BOOT_MS);
     // LVGL deletes animations attached to the object, including an early parent deletion.
-    lv_anim_set_completed_cb(&animation,lv_obj_delete_anim_completed_cb);
+    lv_anim_set_completed_cb(&animation,boot_completed);
     if(!lv_anim_start(&animation)){lv_obj_delete(obj);return NULL;}
     return obj;
 }

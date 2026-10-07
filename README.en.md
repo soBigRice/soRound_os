@@ -8,10 +8,21 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-As of October 7, 2026, `main` includes **v1.7-beta.29**; the latest stable release is
+As of October 7, 2026, `main` includes **v1.7-beta.30**; the latest stable release is
 **v1.6.1**. Use `GeekTool-IDF/` for current development. The Arduino projects are earlier
 prototypes and hardware stress tests. The full feature gallery reflects the beta branch;
 check the release notes for the features available in each stable release.
+
+[Beta.30](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.30) gives each of the seven
+Settings options its own adjustment page and centers the watch-face preview. It improves
+IP readiness, recovery, cancellation, response completeness and error reporting across
+Weather, Answers, Zodiac and OTA. The boot animation lasts at least four seconds and
+keeps the home screen covered until shared initialization and core checks pass. A new OTA
+image is confirmed after these checks; a core failure rolls back when a recovery image
+is available. Network-check failures are logged and shown, with offline startup allowed.
+All 29 host tests, the local firmware build and image checks passed. Release delivery and
+physical-device acceptance are separate gates. See [startup checks](./GeekTool-IDF/STARTUP.md),
+[network recovery](./GeekTool-IDF/NETWORKING.md) and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
 
 [Beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) adds a scrolling
 Settings home screen with inertia, fixed heading and back control, a curved position

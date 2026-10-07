@@ -13,7 +13,7 @@
 #include "nvs.h"
 
 static uint8_t language;
-static bool online=true;
+static bool online=true,ip_ready=true;
 static int create_result=pdPASS, tasks;
 static void (*pending_task)(void *);
 static const char *response;
@@ -24,13 +24,19 @@ static int http_status=200;
 static int request_buffer_size;
 static esp_err_t open_result=ESP_OK;
 static int64_t header_result;
-static bool read_fail;
+static bool read_fail,response_complete=true;
 struct mock_client { int unused; };
 static struct mock_client client;
 static lv_obj_t *heading;
 uint8_t settings_lang(void) { return language; }
 void launcher_set_title(const char *text) { lv_label_set_text(heading,text); }
 esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *ap) { (void)ap; return online?ESP_OK:ESP_FAIL; }
+bool wifi_service_ready(void){return online && ip_ready;}
+void vTaskDelay(int ms){lv_tick_inc(ms);}
+int esp_http_client_get_errno(esp_http_client_handle_t c){assert(c);return 0;}
+esp_err_t esp_http_client_get_and_clear_last_tls_error(esp_http_client_handle_t c,int *code,int *flags){assert(c);*code=*flags=0;return ESP_OK;}
+esp_err_t esp_http_client_set_timeout_ms(esp_http_client_handle_t c,int ms){assert(c && ms>0 && ms<=12000);return ESP_OK;}
+bool esp_http_client_is_complete_data_received(esp_http_client_handle_t c){assert(c);return response_complete && !read_fail && read_offset==strlen(response);}
 int xTaskCreate(void (*fn)(void *),const char *name,unsigned stack,void *arg,unsigned priority,void *handle) {
     (void)name; (void)stack; (void)arg; (void)priority; (void)handle;
     ++tasks; pending_task=fn; return create_result;
@@ -44,6 +50,7 @@ esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *co
     request_buffer_size=config->buffer_size_tx?config->buffer_size_tx:512;
     read_offset=0; return init_fail?NULL:&client;
 }
+esp_err_t esp_http_client_set_header(esp_http_client_handle_t c,const char *key,const char *value){assert(c && key && value);return ESP_OK;}
 esp_err_t esp_http_client_open(esp_http_client_handle_t c,int size) {
     (void)size; assert(c);
     // ESP-IDF 6.0.1 builds the entire request line in the TX buffer before
@@ -345,6 +352,11 @@ int main(int argc,char **argv) {
         assert(!ui_obj_is_hidden(s_ui.status)); capture(directory,"offline");
         leave(); s_task_alive=false; enter(); weather_tick(); capture(directory,"offline-reenter");
         assert(!s_ui.has_data && !weather_cached(NULL,NULL,NULL,NULL,NULL));
+        online=true;ip_ready=false;int before_tasks=tasks;
+        weather_poll();assert(tasks==before_tasks && s_state==WX_OFFLINE);
+        ip_ready=true;assert(lv_tick_get()-s_last_fetch<60000);
+        weather_poll();assert(tasks==before_tasks+1 && s_state==WX_LOADING);
+        pending_task(NULL);weather_tick();assert(s_state==WX_OK);
         online=true; create_result=0; start_fetch(); weather_tick(); assert(!s_task_alive && s_state==WX_FAIL);
         create_result=pdPASS; init_fail=true; start_fetch(); pending_task(NULL); weather_tick();
         assert(s_state==WX_FAIL && !s_task_alive); init_fail=false;
@@ -364,6 +376,7 @@ int main(int argc,char **argv) {
         http_status=500;start_fetch();pending_task(NULL);weather_tick();assert(s_state==WX_FAIL);
         assert(strcmp(lv_label_get_text(s_ui.status),tr(S_WX_FETCH_FAIL))==0);
         assert(!weather_cached(NULL,NULL,NULL,NULL,NULL));capture(directory,"fetch-failed");http_status=200;
+        response_complete=false;start_fetch();pending_task(NULL);weather_tick();assert(s_state==WX_FAIL && !s_task_alive);response_complete=true;
         open_result=ESP_ERR_TIMEOUT;start_fetch();pending_task(NULL);weather_tick();
         assert(s_state==WX_FAIL && !s_task_alive);open_result=ESP_OK;
         header_result=-ESP_ERR_HTTP_EAGAIN;start_fetch();pending_task(NULL);weather_tick();

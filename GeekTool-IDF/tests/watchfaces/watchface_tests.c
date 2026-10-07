@@ -11,7 +11,9 @@
 #include <string.h>
 static time_t now;
 static time_t fixture_time(time_t *out){if(out)*out=now;return now;}
+static bool ip_ready=true;
 static bool network=true,battery_ok=true,weather_ok=true,loading;
+bool wifi_service_ready(void){return network && ip_ready;}
 static int low=21,high=28,temperature=26,humidity=64,code=3,soc=74;
 static char ssid[33]="soRound";
 static uint16_t image_pixels[3][466*466];
@@ -82,6 +84,7 @@ int main(int argc,char **argv){
     if(argc==2&&strcmp(argv[1],"--font-digests")==0){lv_init();font_bitmap_digests(true);lv_deinit();return 0;}
     const char *folder=argc>1?argv[1]:NULL;
     setenv("TZ","UTC",1);tzset();struct tm t={.tm_year=126,.tm_mon=9,.tm_mday=5,.tm_hour=10,.tm_min=8,.tm_sec=21};now=mktime(&t);
+    ip_ready=false;snapshot(true);assert(!s_data.wifi && !s_data.ip[0]);ip_ready=true;snapshot(true);assert(s_data.wifi);
     for(int i=0;i<3;++i){images[i]=(lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,.w=466,.h=466,.stride=932},.data_size=sizeof image_pixels[i],.data=(uint8_t *)image_pixels[i]};
         if(argc>2){char path[1024];snprintf(path,sizeof path,"%s/%s.rgb565",argv[2],watchface_theme_name(i));FILE *f=fopen(path,"rb");assert(f);assert(fread(image_pixels[i],1,sizeof image_pixels[i],f)==sizeof image_pixels[i]);assert(fclose(f)==0);}}
     lv_init();font_bitmap_digests(false);i18n_init();display=lv_display_create(466,466);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);

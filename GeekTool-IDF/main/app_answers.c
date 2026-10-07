@@ -17,7 +17,7 @@ LV_FONT_DECLARE(font_location_24);
 #define MUTED 0xa0a0a6
 
 static lv_obj_t *g_cover, *g_reading, *g_answer, *g_page, *g_hint, *g_action, *g_action_label;
-static bool s_visible, s_turning, s_first, s_changed, s_waiting, s_online, s_opened;
+static bool s_visible, s_turning, s_first, s_changed, s_waiting, s_pending_start, s_online, s_opened;
 static uint32_t s_at, s_elapsed;
 static uint32_t s_token, s_wait_at;
 static unsigned s_pages, s_pending;
@@ -74,7 +74,8 @@ static void start_turn(lv_event_t *event) {
     snprintf(s_answer.zh, sizeof s_answer.zh, "%s", ANSWERS[s_pending].zh);
     s_first = !s_opened; s_turning = true; s_changed = false; s_online = false;
     s_reason = answers_fetch_begin(&s_token);
-    s_waiting = s_reason == ANSWER_FETCH_LOADING; s_wait_at = lv_tick_get();
+    s_pending_start=s_reason==ANSWER_FETCH_BUSY;
+    s_waiting = s_reason == ANSWER_FETCH_LOADING || s_pending_start; s_wait_at = lv_tick_get();
     s_elapsed = 0; s_at = lv_tick_get();
     if (s_pages == 9999) s_pages = 0;
     lv_obj_add_state(g_action, LV_STATE_DISABLED);
@@ -102,6 +103,16 @@ static bool remote_fits(const char *value) {
 
 static void poll_answer(void) {
     if (!s_waiting) return;
+    if(s_pending_start) {
+        // An exited page's worker owns its SDK cleanup. Wait for it instead of
+        // treating a brief BUSY state as a failed Internet request.
+        answer_fetch_state_t next=answers_fetch_begin(&s_token);
+        if(next==ANSWER_FETCH_BUSY && lv_tick_get()-s_wait_at<8500)return;
+        s_pending_start=false;s_waiting=next==ANSWER_FETCH_LOADING;
+        s_reason=next==ANSWER_FETCH_BUSY?ANSWER_FETCH_FAILED:next;
+        if(s_waiting)s_wait_at=lv_tick_get();
+        return;
+    }
     answer_response_t result;
     answer_fetch_state_t state = answers_fetch_poll(s_token, &result);
     if (state == ANSWER_FETCH_READY) {
@@ -162,7 +173,7 @@ static void answers_visibility(bool visible) {
 
 static void answers_enter(lv_obj_t *parent) {
     s_last = -1; s_pages = 0; s_elapsed = 0;
-    s_turning = s_changed = s_waiting = s_online = s_opened = false;
+    s_turning = s_changed = s_waiting = s_pending_start = s_online = s_opened = false;
     s_previous = (answer_response_t){0}; s_visible = true; s_at = lv_tick_get();
     buttons_reset_control();
     lv_obj_t *root = block(parent, 0, 0, 466, 466, COL_BG);
@@ -204,7 +215,7 @@ static void answers_enter(lv_obj_t *parent) {
 }
 
 static void answers_exit(void) {
-    s_visible = s_turning = s_waiting = false;
+    s_visible = s_turning = s_waiting = s_pending_start = false;
     answers_fetch_cancel(); buttons_reset_control();
     g_cover = g_reading = g_answer = g_page = g_hint = g_action = g_action_label = NULL;
 }
