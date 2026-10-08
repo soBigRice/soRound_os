@@ -15,7 +15,8 @@ esp_err_t esp_crt_bundle_attach(void *ctx){(void)ctx;return ESP_OK;}
 int64_t esp_timer_get_time(void){return now;}
 int xTaskCreate(void (*task)(void *),const char *name,unsigned stack,void *arg,unsigned priority,void *handle){
     assert(!strcmp(name,"boot_net") && stack==8192 && !arg && priority==5 && !handle && !queued);++creates;
-    if(create_fail)return 0;queued=task;return pdPASS;
+    if(create_fail)return 0;
+    queued=task;return pdPASS;
 }
 void vTaskDelete(void *task){assert(!task);++deletes;}
 static void run(void){assert(queued);void (*task)(void *)=queued;queued=NULL;task(NULL);assert(!handles);}
@@ -23,7 +24,8 @@ void vTaskDelay(int ms){assert(ms==25);now+=(int64_t)ms*1000;if(queued && !hold)
 esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *cfg){
     assert(!strcmp(cfg->url,beta?OTA_URL_BETA:OTA_URL_STABLE) && cfg->method==HTTP_METHOD_HEAD);
     assert(cfg->crt_bundle_attach==esp_crt_bundle_attach && cfg->disable_auto_redirect && cfg->timeout_ms==3500);
-    if(init_fail)return NULL;assert(!handles);++handles;return &client;
+    if(init_fail)return NULL;
+    assert(!handles);++handles;return &client;
 }
 esp_err_t esp_http_client_set_header(esp_http_client_handle_t c,const char *key,const char *value){assert(c==&client && !strcmp(key,"Cache-Control") && !strcmp(value,"no-cache"));return ESP_OK;}
 esp_err_t esp_http_client_open(esp_http_client_handle_t c,int size){assert(c==&client && !size);return open_error;}
