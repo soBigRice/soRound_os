@@ -9,17 +9,19 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**2026-10-08：[v1.7-beta.31](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31) 已发布。**
-beta.30 因 OTA 重启白屏反馈撤回，保持 draft；beta.31 修正启动显示同步、UI锁无限等待及OTA提前确认的缺口。
+**2026-10-08：[v1.7 正式版](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) 已发布。**
+正式与内测OTA通道同时更新至v1.7，固件生产代码与beta.31一致；beta.30保持撤回。
+设置首页滚动、七个独立设置项、居中表盘预览、圆环红点Logo和关于本机已纳入正式版。
 启动动画至少4秒；完成公共初始化、核心检查与表盘实际刷新后才确认新OTA固件有效，核心失败且可回退时回滚。
-联网检查失败记录并提示，允许离线启动。原白屏的具体触发点尚未复现，不将代码缺口等同已证实根因。
+联网检查失败记录并提示，允许离线启动；天气、答案之书、星座与OTA保留联网恢复修正。
 
-当前仓库 `main` 包含 `v1.7-beta.31` 内测实现，最近稳定版 Tag 为 `v1.6.1`。主线开发请使用
-`GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
-保留七个独立设置项、居中表盘预览及天气、答案之书、星座与OTA的联网恢复功能。
-本地34组测试、发布CI同版LVGL的9组启动检查与ESP-IDF6.0.1构建通过；正式依赖候选的表盘、解锁、设置已由用户确认。
-USB连接已断开，最终beta.31发布包的真实OTA设备验收待继续。R2与国内OTA完整包与CI/GitHub资产摘要一致，正式通道保持v1.6.1。
-精确验证见 [beta.31发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证待继续)。
+当前仓库 `main` 包含 `v1.7` 正式实现，主线开发请使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
+本地34组回归和正式发布CI的9组启动检查通过；正式依赖候选的表盘、解锁、设置已由用户确认。
+设备当前未连接，正式发布包的真实OTA升级、软件重启和首启验收仍待继续，原beta.30白屏触发点尚未复现。
+
+**升级要求：双4MiB OTA槽。** v1.6.1采用双3MiB布局，不能直接OTA安装本版4,149,792B应用镜像；
+旧布局需先USB迁移分区及配套资源，见 [分区迁移说明](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移)。
+Release的应用bin不代替首次完整烧录。完整包与断点下载验证见 [v1.7发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-正式发布)。
 调用链见 [启动自检](GeekTool-IDF/STARTUP.md)、[联网恢复](GeekTool-IDF/NETWORKING.md) 和 [设置布局](GeekTool-IDF/artwork/settings-detail/README.md)。
 此前 [beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) 新增设置首页惯性滚动、固定标题与返回、弧形位置提示及返回位置恢复。
 原生中英文回归、本地及CI构建通过；正式发布包4,133,184B，R2/OTA完整包与GitHub声明摘要一致，Range核对通过；

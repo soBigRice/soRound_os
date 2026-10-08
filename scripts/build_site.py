@@ -96,8 +96,6 @@ def release_snapshot():
     published = sorted((r for r in releases if not r["draft"] and r["published_at"]),
                        key=lambda r: r["published_at"], reverse=True)
     beta = next((r for r in published if r["prerelease"]), None)
-    if beta is None:
-        raise ValueError("No published beta release found")
     # Fetch the official latest stable endpoint separately: more than 100 beta
     # releases must not hide an older stable release from the site builder.
     stable_request = Request(f"https://api.github.com/repos/{REPO}/releases/latest", headers=headers)
@@ -105,6 +103,10 @@ def release_snapshot():
         stable = json.load(response)
     if stable["draft"] or stable["prerelease"]:
         raise ValueError("Latest stable endpoint returned an unpublished or beta release")
+    # A stable publication also replaces the beta OTA object. Both download
+    # entries must follow that promotion until a newer beta is published.
+    if beta is None or stable["published_at"] >= beta["published_at"]:
+        beta = stable
     return {channel: {"tag": r["tag_name"], "url": r["html_url"]}
             for channel, r in (("stable", stable), ("beta", beta))}
 

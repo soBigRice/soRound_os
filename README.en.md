@@ -8,22 +8,26 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**October 8, 2026: [v1.7-beta.31](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31) is published.**
-Beta.30 remains withdrawn as a draft after a reported white screen on OTA reboot. Beta.31
-synchronizes startup display changes, bounds startup UI lock waits, and confirms a new
-OTA image only after the revealed watch face completes its DMA frame and UI heartbeat checks.
-The animation lasts at least four seconds; network-check failures permit offline startup.
-The original white-screen trigger has not been reproduced, so the identified code gaps
-are not presented as its proven cause.
+**October 8, 2026: [v1.7 stable](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) is published.**
+Both stable and beta OTA channels now serve v1.7, with the same production code as
+beta.31. Beta.30 remains withdrawn. Scrolling Settings, separate adjustment pages,
+centered watch-face previews, the ring-and-red-dot identity and About screen are included.
+The boot animation lasts at least four seconds; shared initialization, core checks and
+the revealed watch-face frame must pass before a new OTA image is confirmed. Core failures
+roll back when a recovery image exists. Network-check failures allow offline startup;
+network recovery for Weather, Answers, Zodiac and OTA is retained.
 
-`main` contains **v1.7-beta.31**; stable remains **v1.6.1**. Use `GeekTool-IDF/` for current
-development. Separate Settings options, centered watch-face previews and network recovery
-for Weather, Answers, Zodiac and OTA are retained. All 34 local host tests, nine startup
-checks using the release LVGL, and the ESP-IDF 6.0.1 build passed. The release-dependency
-candidate's watch face, unlock and Settings were accepted on the physical device.
-USB disconnected before the final beta.31 package's OTA check; that device acceptance is pending. Full R2 and domestic OTA
-downloads match the CI image and GitHub asset digest; stable OTA remains v1.6.1.
-See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证待继续),
+Use `GeekTool-IDF/` for current development. All 34 local regressions and nine startup
+checks in the stable release CI passed. The release-dependency candidate's watch face,
+unlock and Settings were accepted on the device. The device is currently disconnected;
+the final stable image's physical OTA, software restart and first-boot acceptance remain
+pending. The original beta.30 white-screen trigger has not been reproduced.
+
+**Upgrade requirement: two 4 MiB OTA slots.** v1.6.1 uses 3 MiB slots and cannot directly
+OTA-install this 4,149,792-byte image. Older layouts need a USB partition and resource
+migration first; see the [migration record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移).
+The application binary does not replace a complete first installation. See the
+[v1.7 release verification](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-正式发布),
 [startup checks](./GeekTool-IDF/STARTUP.md), [network recovery](./GeekTool-IDF/NETWORKING.md)
 and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
 

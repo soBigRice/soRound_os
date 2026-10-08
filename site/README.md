@@ -119,7 +119,9 @@ site/index.html + locales/en.json + styles.css + script.js + assets/
 - Pages 使用 GitHub Actions 发布源；无需 `gh-pages` 分支和额外构建框架。
 - `github-pages` 环境允许 `main` 分支和 `v*` Tag。Release 事件的执行 ref 是 Tag，
   即使 checkout 了 `main`，只有分支策略仍会阻止部署；Tag 策略用于已有固件发布事件。
-- CI 读取公开 GitHub Releases，以发布时间区分最新正式版和内测版。API 失败时
+- CI 读取公开 GitHub Releases，正式版使用`releases/latest`，内测入口按发布时间选择内测版或更新的正式版。
+  正式发布同时覆盖beta OTA对象，官网两入口同步指向正式版；之后有更新的beta发布时恢复独立内测入口。
+  `scripts/test_build_site.py`覆盖正式晋升、新内测、撤回与无内测的首次正式发布。API 失败时
   构建失败，已上线版本保留；本地离线预览使用 `releases.json` 中的已核查快照。
 - `build_site.py` 只删除和重建本项目 `build/site/`，不接受其他清理目标。
 - 固件构建、Tag、Release 资产上传、OTA 地址与蓝牙协议均独立。

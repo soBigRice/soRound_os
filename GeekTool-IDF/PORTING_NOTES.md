@@ -2093,5 +2093,25 @@ ELF SHA256 `df78993e1c4d86c3c18be0cf830b7c7bdec1d47fc4a8eb04a00ac5e5bac7ff6e`。
 [beta.31 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31)为非draft的prerelease；beta.30保持draft撤回。
 R2和国内OTA完整包均与CI bin及GitHub资产声明摘要一致，bytes=1024-2047的206/Content-Range/正文对照通过；正式通道仍为原始v1.6.1。
 准确bin/ELF/map/config与依赖锁保存在 `build/releases/v1.7-beta.31/`；设备、测试、下载回执在本节前述flash-records目录。
-最终发布包真实OTA验收待继续：USB在OTA开始记录出现之前断开，采集已关闭，最后设备版本仍是候选；续接步骤见 [STARTUP.md](./STARTUP.md#当前续接边界2026-10-08-2041)。原白屏具体触发点仍未复现。
+最终发布包真实OTA验收待继续：USB在OTA开始记录出现之前断开，采集已关闭，最后设备版本仍是候选；续接步骤见 [STARTUP.md](./STARTUP.md#当前续接边界)。原白屏具体触发点仍未复现。
 [官网CI 37777928667](https://github.com/soBigRice/soRound_os/actions/runs/37777928667)成功，公开中英文首页均已核对beta.31与正式v1.6.1链接。
+
+## 2026-10-08 v1.7 正式发布
+
+用户明确要求“发布正式版”，将当前beta.31修订生产代码按既有双通道流程正式发布，不将该要求扩写为新的真机验收。
+标签 `v1.7` 指向 `9c9d9896112e751316d204ba5fbedeb9f78d2e57`；`GeekTool-IDF/main`树与beta.31相同（`ac14c203be0bf507f65d34c21e9bc8a12162010d`）。
+[CI 37785122865](https://github.com/soBigRice/soRound_os/actions/runs/37785122865)固件构建、同版LVGL9组启动回归、Release及两个R2对象上传均成功。
+依赖仍为LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300驱动2.2.0，与已确认的正式依赖候选相同。
+[Release v1.7](https://github.com/soBigRice/soRound_os/releases/tag/v1.7)为非draft、非prerelease，GitHub latest端点已返回v1.7；beta.30保持撤回。
+
+实际包4,149,792B，4MiB槽剩44,512B；SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`，
+ELF SHA256 `029c712f19bcc0d9019f69bd206c3bb7e6da37786fa869f5bf0f8c1258ddb6ea`。镜像段、XOR checksum与附加SHA256通过esptool检查，应用描述符为v1.7/GeekTool/ESP32-S3，完整ELF摘要匹配。
+R2与国内OTA的正式/内测四个完整对象均与CI镜像一致，bytes=1024-2047的206/Content-Range/正文对照通过，Cache-Control为no-store。
+GitHub资产621940983完整下载4,149,792B，其SHA256与同一CI镜像一致。
+准确bin/ELF/map/config及依赖锁归档于 `build/releases/v1.7/`，回执在 `build/flash-records/stable17-release-20261008/`。
+
+已核对v1.6.1分区表为双3MiB槽；本版需双4MiB布局，旧设备不能直接OTA安装，先USB迁移分区与配套资源。
+正式说明及中英文README明确此边界，不增加远程分区迁移或对设备执行刷写。
+官网选择规则补齐正式晋升：正式发布同时覆盖beta OTA对象，正式版发布时间不早于最新beta时，两入口同步指向正式；后续新beta仍独立，draft撤回版本忽略。
+4个隔离网络的回归通过，中英文静态页面构建/翻译/锚点/19项原生预览检查通过。
+设备当前未连接；候选已通过USB首启/表盘/解锁/设置，但正式发布包实际OTA升级、软件重启与首启验收仍待继续。原白屏具体触发点未复现，见 [当前续接边界](./STARTUP.md#当前续接边界)。
