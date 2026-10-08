@@ -21,9 +21,9 @@ development. Separate Settings options, centered watch-face previews and network
 for Weather, Answers, Zodiac and OTA are retained. All 34 local host tests, nine startup
 checks using the release LVGL, and the ESP-IDF 6.0.1 build passed. The release-dependency
 candidate's watch face, unlock and Settings were accepted on the physical device.
-The final beta.31 package's physical OTA check is in progress. Full R2 and domestic OTA
+USB disconnected before the final beta.31 package's OTA check; that device acceptance is pending. Full R2 and domestic OTA
 downloads match the CI image and GitHub asset digest; stable OTA remains v1.6.1.
-See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证中),
+See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证待继续),
 [startup checks](./GeekTool-IDF/STARTUP.md), [network recovery](./GeekTool-IDF/NETWORKING.md)
 and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
 

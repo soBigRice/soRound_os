@@ -2078,7 +2078,7 @@ USB启动beta.30的核心检查/确认/联网检查成功，用户确认Logo后�
 本地修订候选的表盘/解锁/设置已由用户确认，随后验证正式依赖候选，结果见下节。
 工作流新增同版LVGL的9组启动回归及7天bin/ELF/map/config归档，手动构建仍不发布/不改OTA分发；原标签发版规则保持。
 
-## 2026-10-08 v1.7-beta.31 启动同步与首帧确认发布（设备验证中）
+## 2026-10-08 v1.7-beta.31 启动同步与首帧确认发布（设备验证待继续）
 
 修复源提交 `61cc58d`；首轮CI固件编译通过，启动夹具在GCC因两个单行if出现misleading-indentation失败，拦住发布。
 只调整夹具换行，提交 `2aef1e0`；未降低编译警告或行为断言，本机GCC15启动检查9/9通过。
@@ -2093,4 +2093,5 @@ ELF SHA256 `df78993e1c4d86c3c18be0cf830b7c7bdec1d47fc4a8eb04a00ac5e5bac7ff6e`。
 [beta.31 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31)为非draft的prerelease；beta.30保持draft撤回。
 R2和国内OTA完整包均与CI bin及GitHub资产声明摘要一致，bytes=1024-2047的206/Content-Range/正文对照通过；正式通道仍为原始v1.6.1。
 准确bin/ELF/map/config与依赖锁保存在 `build/releases/v1.7-beta.31/`；设备、测试、下载回执在本节前述flash-records目录。
-最终发布包真实OTA验证正在串口连续采集；尚未把候选USB启动当作最终OTA首启通过。原白屏具体触发点仍未复现。
+最终发布包真实OTA验收待继续：USB在OTA开始记录出现之前断开，采集已关闭，最后设备版本仍是候选；续接步骤见 [STARTUP.md](./STARTUP.md#当前续接边界2026-10-08-2041)。原白屏具体触发点仍未复现。
+[官网CI 37777928667](https://github.com/soBigRice/soRound_os/actions/runs/37777928667)成功，公开中英文首页均已核对beta.31与正式v1.6.1链接。

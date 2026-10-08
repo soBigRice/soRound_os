@@ -4,7 +4,7 @@
 修订版 beta.31（源提交 `2aef1e0`）已发布；设备已确认旧版发生首启未确认回滚，原白屏的具体触发点仍未复现。
 用户已确认：至少4秒动画、初始化完成才放行；联网失败记录并提示，允许离线启动；完成后进入原有锁屏表盘。
 修订版通过本地ESP-IDF6.0.1构建、LVGL9.5全套34组测试、本机GCC15的9组启动检查及发布CI同版LVGL9.6的9组启动回归。
-正式依赖候选的USB首启/表盘/解锁/设置已由用户确认；最终beta.31发布包的真实OTA检查进行中。
+正式依赖候选的USB首启/表盘/解锁/设置已由用户确认；最终beta.31发布包的真实OTA检查待继续（USB已断开）。
 测试执行真实 `app_main → launcher_start → lock/watchface → startup`，硬件、RTOS与外部服务为夹具，不能据此认定玻璃面板/真实OTA已通过。
 回执在 `build/flash-records/ota-white-screen-20261008/`；原生预览见 [启动审阅](./artwork/identity/native/startup-20261007/README.md)。
 
@@ -140,5 +140,16 @@ USB首启日志：3031ms UI初建、7045ms核心OK、11188ms表盘frame=1/comple
 用户确认本地候选和正式依赖候选均能显示表盘、解锁、进入设置。正式依赖候选版本 `v1.7-beta.30-5-g61cc58d`，
 ROM写入MD5和beta.29恢复槽、NVS摘要、分区表校验通过；7071ms核心OK、11029ms表盘末块完成、11063ms OTA确认。
 首轮CI的两个测试夹具单行if写法触发GCC缩进警告；只调整换行，未降低警告或断言，本机GCC15复核9/9通过。
-[beta.31发布CI](https://github.com/soBigRice/soRound_os/actions/runs/37776410861)全部通过，准确bin/ELF/map/config已归档；最终发布包真实OTA验证进行中。
+[beta.31发布CI](https://github.com/soBigRice/soRound_os/actions/runs/37776410861)全部通过，准确bin/ELF/map/config已归档；最终发布包真实OTA验证待继续。
 不得将beta.30历史CI/下载成功、本次host结果或这次USB启动成功写成白屏已解决。
+
+### 当前续接边界（2026-10-08 20:41）
+
+beta.31已公开发布，固件/CI/下载/官网检查通过；候选USB首启、表盘、解锁与设置由用户确认。
+串口随后报Device not configured并在finally关闭；重新枚举未发现Espressif USB设备。
+最终日志仍为 `v1.7-beta.30-5-g61cc58d`，没有beta.31的OTA开始、软件重启或首启记录，不能把候选确认扩写为最终包OTA验收。
+下一步：重新确认本设备USB身份，开启连续采集，再由用户从系统更新安装beta.31；记录软件复位、
+core/home/OTA确认顺序，并在更新完成后核对镜像MD5和VALID状态，确认表盘/解锁/设置。
+不要在下载期间进入ROM或复位；先保存当前otadata，不复用旧NEW选择扇区。
+源修复 `61cc58d`；GCC夹具修复 `2aef1e0`，仅用一轮修正后通过；未添加猜测性驱动补丁。
+白屏具体触发点仍未复现；再次发生时先保留首启日志并使用对应发布ELF定位，不能仅增加延时。

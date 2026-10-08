@@ -18,8 +18,8 @@ beta.30 因 OTA 重启白屏反馈撤回，保持 draft；beta.31 修正启动�
 `GeekTool-IDF/`；Arduino 工程主要用于早期原型和硬件压力测试。
 保留七个独立设置项、居中表盘预览及天气、答案之书、星座与OTA的联网恢复功能。
 本地34组测试、发布CI同版LVGL的9组启动检查与ESP-IDF6.0.1构建通过；正式依赖候选的表盘、解锁、设置已由用户确认。
-最终beta.31发布包的真实OTA设备检查正在进行。R2与国内OTA完整包与CI/GitHub资产摘要一致，正式通道保持v1.6.1。
-精确验证见 [beta.31发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证中)。
+USB连接已断开，最终beta.31发布包的真实OTA设备验收待继续。R2与国内OTA完整包与CI/GitHub资产摘要一致，正式通道保持v1.6.1。
+精确验证见 [beta.31发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证待继续)。
 调用链见 [启动自检](GeekTool-IDF/STARTUP.md)、[联网恢复](GeekTool-IDF/NETWORKING.md) 和 [设置布局](GeekTool-IDF/artwork/settings-detail/README.md)。
 此前 [beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) 新增设置首页惯性滚动、固定标题与返回、弧形位置提示及返回位置恢复。
 原生中英文回归、本地及CI构建通过；正式发布包4,133,184B，R2/OTA完整包与GitHub声明摘要一致，Range核对通过；
