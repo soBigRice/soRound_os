@@ -8,29 +8,24 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**October 8, 2026: beta.30 has been withdrawn.** A device showed a white screen after an OTA reboot.
-The release is now a draft. R2 and domestic beta OTA serve the original beta.29 image again,
-with matching complete SHA-256 hashes; the website beta link also points to beta.29.
-Device boot logs are still needed to diagnose the white screen. Local builds and rendering
-tests do not establish a device fix; a revised release has not been published.
+**October 8, 2026: [v1.7-beta.31](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31) is published.**
+Beta.30 remains withdrawn as a draft after a reported white screen on OTA reboot. Beta.31
+synchronizes startup display changes, bounds startup UI lock waits, and confirms a new
+OTA image only after the revealed watch face completes its DMA frame and UI heartbeat checks.
+The animation lasts at least four seconds; network-check failures permit offline startup.
+The original white-screen trigger has not been reproduced, so the identified code gaps
+are not presented as its proven cause.
 
-As of October 7, 2026, `main` includes **v1.7-beta.30**; the latest stable release is
-**v1.6.1**. Use `GeekTool-IDF/` for current development. The Arduino projects are earlier
-prototypes and hardware stress tests. The full feature gallery reflects the beta branch;
-check the release notes for the features available in each stable release.
-
-Beta.30 (withdrawn) gives each of the seven
-Settings options its own adjustment page and centers the watch-face preview. It improves
-IP readiness, recovery, cancellation, response completeness and error reporting across
-Weather, Answers, Zodiac and OTA. The boot animation lasts at least four seconds and
-keeps the home screen covered until shared initialization and core checks pass. A new OTA
-image is confirmed after these checks; a core failure rolls back when a recovery image
-is available. Network-check failures are logged and shown, with offline startup allowed.
-All 29 host tests, the independent OTA recovery suite and local/CI builds passed. Complete
-R2 and OTA downloads matched the GitHub asset's declared digest. Physical network, touch,
-OTA and rollback checks still need device acceptance. See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-07-v17-beta30-设置联网与启动自检发布),
-[startup checks](./GeekTool-IDF/STARTUP.md),
-[network recovery](./GeekTool-IDF/NETWORKING.md) and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
+`main` contains **v1.7-beta.31**; stable remains **v1.6.1**. Use `GeekTool-IDF/` for current
+development. Separate Settings options, centered watch-face previews and network recovery
+for Weather, Answers, Zodiac and OTA are retained. All 34 local host tests, nine startup
+checks using the release LVGL, and the ESP-IDF 6.0.1 build passed. The release-dependency
+candidate's watch face, unlock and Settings were accepted on the physical device.
+The final beta.31 package's physical OTA check is in progress. Full R2 and domestic OTA
+downloads match the CI image and GitHub asset digest; stable OTA remains v1.6.1.
+See the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta31-启动同步与首帧确认发布设备验证中),
+[startup checks](./GeekTool-IDF/STARTUP.md), [network recovery](./GeekTool-IDF/NETWORKING.md)
+and [Settings layout](./GeekTool-IDF/artwork/settings-detail/README.md).
 
 [Beta.29](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.29) adds a scrolling
 Settings home screen with inertia, fixed heading and back control, a curved position

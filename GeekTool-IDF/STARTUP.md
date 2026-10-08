@@ -1,9 +1,10 @@
 # 启动放行与 OTA 首启自检
 
-核对日期：2026-10-08；beta.30 (`5efc052`) 已因用户实际 OTA 重启白屏反馈撤回，分发恢复 beta.29。
-以下描述当前修订候选，尚未重新发布；设备已确认发生首启未确认回滚，原白屏的具体触发点仍未复现。
+核对日期：2026-10-08；beta.30 (`5efc052`) 因用户实际 OTA 重启白屏反馈撤回，当时分发恢复 beta.29。
+修订版 beta.31（源提交 `2aef1e0`）已发布；设备已确认旧版发生首启未确认回滚，原白屏的具体触发点仍未复现。
 用户已确认：至少4秒动画、初始化完成才放行；联网失败记录并提示，允许离线启动；完成后进入原有锁屏表盘。
-修订版已通过本地ESP-IDF6.0.1构建、LVGL9.5全套34组测试和USB候选首启检查。本轮发布依赖环境的启动回归仍待CI验证。
+修订版通过本地ESP-IDF6.0.1构建、LVGL9.5全套34组测试、本机GCC15的9组启动检查及发布CI同版LVGL9.6的9组启动回归。
+正式依赖候选的USB首启/表盘/解锁/设置已由用户确认；最终beta.31发布包的真实OTA检查进行中。
 测试执行真实 `app_main → launcher_start → lock/watchface → startup`，硬件、RTOS与外部服务为夹具，不能据此认定玻璃面板/真实OTA已通过。
 回执在 `build/flash-records/ota-white-screen-20261008/`；原生预览见 [启动审阅](./artwork/identity/native/startup-20261007/README.md)。
 
@@ -92,7 +93,7 @@ SDK内部阻塞调用可能较晚返回，worker在下一I/O边界自行关闭/�
 
 ## 验证与防复发
 
-34组LVGL9.5主机测试通过；ESP-IDF固件构建通过。主机SDK/硬件为夹具；本轮发布依赖版本回归待CI，原设备白屏未复现。
+34组LVGL9.5主机测试及发布CI同版LVGL9.6的9组启动回归通过；ESP-IDF固件构建通过。主机SDK/硬件为夹具；原设备白屏未复现。
 主要回归：`tests/startup/startup_tests.c`、`startup_network_tests.c`、`lock_startup_tests.c`、`tests/host/identity_ui_tests.c`。
 覆盖最短时长、两阶段图片解码、心跳/DMA失败、资源/内存/NVS失败、OTA确认/回滚错误、离线/HTTP/DNS/TLS失败、限时等待和资源清理。
 启动中文/英文状态的字形与圆形边界已检查；18px状态子集独立生成，原16/26/34px字库逐段保持不变。
@@ -136,5 +137,8 @@ USB复位后beta.30在约7秒核心检查OK并确认、约10.5秒联网检查成
 确认运行beta.29为VALID、完整ROM MD5匹配原包后，将本地修订候选写入备用ota_0，选择序号13/NEW。
 写入MD5通过；beta.29完整MD5、分区表和NVS摘要校验未变。候选版本 `v1.7-beta.30-4-g469513b-dirty`，不是正式发布标签。
 USB首启日志：3031ms UI初建、7045ms核心OK、11188ms表盘frame=1/completed=1、11221ms OTA确认，未见panic/看门狗。
-当前设备为本地候选；下一步用CI同版依赖复测、取得完整bin/ELF回执，再验证新发布包的真实OTA启动。
+用户确认本地候选和正式依赖候选均能显示表盘、解锁、进入设置。正式依赖候选版本 `v1.7-beta.30-5-g61cc58d`，
+ROM写入MD5和beta.29恢复槽、NVS摘要、分区表校验通过；7071ms核心OK、11029ms表盘末块完成、11063ms OTA确认。
+首轮CI的两个测试夹具单行if写法触发GCC缩进警告；只调整换行，未降低警告或断言，本机GCC15复核9/9通过。
+[beta.31发布CI](https://github.com/soBigRice/soRound_os/actions/runs/37776410861)全部通过，准确bin/ELF/map/config已归档；最终发布包真实OTA验证进行中。
 不得将beta.30历史CI/下载成功、本次host结果或这次USB启动成功写成白屏已解决。

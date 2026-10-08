@@ -2039,7 +2039,7 @@ Git API核验经验：先将HEAD/标签解析为完整SHA再比较。临时上�
 [官网恢复CI 37647764721](https://github.com/soBigRice/soRound_os/actions/runs/37647764721)成功，公开首页已回到beta.29。
 恢复提交 `800836e` 和撤回说明提交 `469513b`；未删除历史代码、标签或用户数据。
 
-当前修订代码尚未提交/发布：表盘末块DMA与新鲜UI心跳通过后才确认OTA；旧在途DMA不能误满足新帧检查；
+撤回时修订代码尚未提交/发布（后续验证见本节末尾）：表盘末块DMA与新鲜UI心跳通过后才确认OTA；旧在途DMA不能误满足新帧检查；
 显示移植层创建显示器后重新取得LVGL锁再修改回调/事件列表；错误时恢复保留遮罩，并新增启动阶段日志。
 真实 `app_main / launcher / lock / watchface / identity / startup` 完整主机链路已补入；旧beta.30入口被相同门槛拒绝（exit42）。
 LVGL9.5全套33组和CI所用LVGL9.6.0~1的6组启动回归通过；ESP-IDF6.0.1本地构建通过。
@@ -2075,5 +2075,22 @@ USB启动beta.30的核心检查/确认/联网检查成功，用户确认Logo后�
 本地候选SHA256 `bbc81b34e86e2b9eb5effc1cbeb31e93d7ea37c15b6b491f7c19a56091ba3dfd`，4,116,096B；
 写入备用ota_0并校验，选择序号13/NEW。保留beta.29槽完整MD5、分区表及NVS摘要，均核对未变。
 候选首启实际确认表盘末块DMA完成后才确认有效：core OK→network OK→home completed=1→OTA action=1，未见panic/看门狗。
-当前设备为本地修订候选，真实观感/触摸等待用户确认；发布依赖版本仍待本轮CI，未重新发布。
+本地修订候选的表盘/解锁/设置已由用户确认，随后验证正式依赖候选，结果见下节。
 工作流新增同版LVGL的9组启动回归及7天bin/ELF/map/config归档，手动构建仍不发布/不改OTA分发；原标签发版规则保持。
+
+## 2026-10-08 v1.7-beta.31 启动同步与首帧确认发布（设备验证中）
+
+修复源提交 `61cc58d`；首轮CI固件编译通过，启动夹具在GCC因两个单行if出现misleading-indentation失败，拦住发布。
+只调整夹具换行，提交 `2aef1e0`；未降低编译警告或行为断言，本机GCC15启动检查9/9通过。
+正式依赖候选 `v1.7-beta.30-5-g61cc58d`：LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300驱动2.2.0，
+完整bin/ELF摘要一致。写入期间先保留beta.29为有效恢复选择，再写备用候选槽；beta.29完整MD5、NVS摘要、分区表校验未变。
+候选首启：7071ms核心OK、11029ms表盘末块DMA完成、11063ms OTA确认；用户确认表盘、解锁、设置都正常。
+
+标签 `v1.7-beta.31` 指向 `2aef1e0117805e8789dbc0d311486ab03a6bd1b8`。
+[发布CI 37776410861](https://github.com/soBigRice/soRound_os/actions/runs/37776410861)构建、同版LVGL9组启动回归、Release及R2上传均通过。
+实际发布包4,149,792B，4MiB槽剩44,512B，SHA256 `1af16e7eda353955e093d409b66b285d4c5e2f9c4baaa64c55fdb58af1de5f68`，
+ELF SHA256 `df78993e1c4d86c3c18be0cf830b7c7bdec1d47fc4a8eb04a00ac5e5bac7ff6e`。
+[beta.31 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.31)为非draft的prerelease；beta.30保持draft撤回。
+R2和国内OTA完整包均与CI bin及GitHub资产声明摘要一致，bytes=1024-2047的206/Content-Range/正文对照通过；正式通道仍为原始v1.6.1。
+准确bin/ELF/map/config与依赖锁保存在 `build/releases/v1.7-beta.31/`；设备、测试、下载回执在本节前述flash-records目录。
+最终发布包真实OTA验证正在串口连续采集；尚未把候选USB启动当作最终OTA首启通过。原白屏具体触发点仍未复现。
