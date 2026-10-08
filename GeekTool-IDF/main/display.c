@@ -1,6 +1,7 @@
 #include "display.h"
 #include "board_config.h"
 #include "weather_refresh.h"
+#include "display_frame_gate.h"
 
 #include "driver/spi_master.h"
 #include "esp_lcd_panel_io.h"
@@ -24,6 +25,7 @@ static SemaphoreHandle_t s_te,s_dma;
 static volatile bool s_frame_sending;
 static bool s_te_ready,s_te_warned;
 static volatile uint32_t s_transfer_count;
+static display_frame_gate_t s_frame_gate;
 static weather_refresh_t s_refresh;
 #if CONFIG_PM_ENABLE
 static esp_pm_lock_handle_t s_te_awake;
@@ -36,7 +38,10 @@ static bool color_done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_
     (void)io;(void)event;BaseType_t wake=pdFALSE;
     ++s_transfer_count;
     if(s_frame_sending)xSemaphoreGiveFromISR(s_dma,&wake);
-    else lv_display_flush_ready((lv_display_t *)arg);
+    else {
+        display_frame_gate_complete(&s_frame_gate);
+        lv_display_flush_ready((lv_display_t *)arg);
+    }
     return wake==pdTRUE;
 }
 static void wait_te(void *arg) {
@@ -62,6 +67,9 @@ static void send_frame_tile(void *arg,weather_frame_area_t a,uint8_t *pixels) {
 }
 static void synchronized_flush(lv_display_t *disp,const lv_area_t *a,uint8_t *pixels) {
     if(weather_refresh_flush(&s_refresh,disp,a,pixels))return;
+    // Capture the request when the last tile is submitted, rather than in the
+    // ISR. A DMA already in flight before home is revealed cannot satisfy it.
+    display_frame_gate_submit(&s_frame_gate,lv_display_flush_is_last(disp));
     // Same asynchronous partial SPI path as esp_lvgl_port 2.8.0 (no rotation or byte swapping on this board).
     ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_panel,a->x1,a->y1,a->x2+1,a->y2+1,pixels));
 }
@@ -184,6 +192,11 @@ lv_display_t *display_init(void) {
     // 驱动遂刷一条无害的 E "swap_xy is not supported"。旋转之后不再变,故只在这一次 add_disp 期间压掉该 tag。
     esp_log_level_set("co5300_spi", ESP_LOG_NONE);
     lv_display_t *disp = lvgl_port_add_disp(&disp_cfg);
+    // add_disp unlocks internally. Protect all following LVGL driver/event
+    // mutations from its already running render task.
+    // The launcher watchdog is not running yet. A stuck first render must
+    // fail within a bound so the bootloader can recover a pending OTA.
+    ESP_ERROR_CHECK(lvgl_port_lock(5000)?ESP_OK:ESP_ERR_TIMEOUT);
     assert(disp);s_disp=disp;s_dma=xSemaphoreCreateBinary();s_te=xSemaphoreCreateBinary();assert(s_dma&&s_te);
     esp_lcd_panel_io_callbacks_t callbacks={.on_color_trans_done=color_done};
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(io,&callbacks,disp));
@@ -200,6 +213,7 @@ lv_display_t *display_init(void) {
 #endif
     esp_log_level_set("co5300_spi", ESP_LOG_INFO);   // 恢复,后续真有错误照常打印
     lv_display_add_event_cb(disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, NULL);
+    lvgl_port_unlock();
     return disp;
 }
 
@@ -215,6 +229,12 @@ void display_sleep(bool sleep) {
 }
 
 uint32_t display_transfer_count(void){return s_transfer_count;}
+uint32_t display_request_frame(void) {
+    uint32_t request=display_frame_gate_request(&s_frame_gate);
+    lv_obj_invalidate(lv_screen_active());lv_obj_invalidate(lv_layer_top());
+    return request;
+}
+bool display_frame_completed(uint32_t request){return display_frame_gate_done(&s_frame_gate,request);}
 bool touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp) {
     esp_lcd_panel_io_handle_t tp_io = NULL;
     esp_lcd_panel_io_i2c_config_t tp_io_cfg = ESP_LCD_TOUCH_IO_I2C_CST9217_CONFIG();

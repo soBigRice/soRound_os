@@ -29,6 +29,33 @@ jobs:
           target: esp32s3
           path: GeekTool-IDF        # 固件工程在子目录;sdkconfig 被 gitignore,CI 从 sdkconfig.defaults 重生成
 
+      # Preserve the exact ELF/config for device backtraces. Manual runs can
+      # provide a reviewable candidate without updating either OTA channel.
+      - name: Preserve firmware diagnostics
+        uses: actions/upload-artifact@v7
+        with:
+          name: firmware-${{ github.sha }}-${{ github.run_attempt }}
+          retention-days: 7
+          if-no-files-found: error
+          path: |
+            GeekTool-IDF/build/GeekTool.bin
+            GeekTool-IDF/build/GeekTool.elf
+            GeekTool-IDF/build/GeekTool.map
+            GeekTool-IDF/sdkconfig
+            GeekTool-IDF/dependencies.lock
+
+      - name: Check startup flow with release LVGL
+        run: |
+          # Existing LVGL compatibility calls remain supported in 9.6;
+          # suppress only their deprecation warnings in this host fixture.
+          cmake -S GeekTool-IDF/tests/host -B "$RUNNER_TEMP/startup-host" \
+            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
+          cmake --build "$RUNNER_TEMP/startup-host" --parallel 4 --target \
+            startup_tests startup_network_tests lock_startup_tests \
+            identity_ui_tests display_frame_gate_tests startup_flow_tests
+          ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure \
+            -R 'startup_|identity_geometry'
+
       - name: Publish firmware to Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2

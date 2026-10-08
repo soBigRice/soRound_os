@@ -11,6 +11,10 @@ void display_weather_mode(bool enabled);
 bool touch_init(i2c_master_bus_handle_t i2c_bus, lv_display_t *disp);
 // Completed panel DMA transactions, used as a boot liveness check.
 uint32_t display_transfer_count(void);
+// Request under the LVGL lock after revealing home; completion is the last
+// tile's DMA, and excludes an older in-flight cover transfer.
+uint32_t display_request_frame(void);
+bool display_frame_completed(uint32_t request);
 
 // 屏幕亮度(CO5300 命令 0x51,0-255)与熄屏(关面板省电)
 void display_set_brightness(uint8_t level);

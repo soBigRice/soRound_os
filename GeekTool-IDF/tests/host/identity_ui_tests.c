@@ -86,6 +86,9 @@ int main(int argc,char **argv) {
     assert(lv_anim_count_running()==animations && lv_screen_active()==active && lv_obj_is_valid(original));
     boot=identity_boot_create(lv_layer_top());advance(4200);
     assert(identity_boot_active() && lv_obj_is_valid(boot) && lv_anim_count_running()==animations);
+    identity_boot_reveal(boot);assert(identity_boot_active() && lv_obj_has_flag(boot,LV_OBJ_FLAG_HIDDEN));
+    identity_boot_message(boot,"Startup check failed",true);
+    assert(identity_boot_active() && !lv_obj_has_flag(boot,LV_OBJ_FLAG_HIDDEN));
     check_status(boot,"System check...",false);export(folder,"boot-check-en");
     check_status(boot,"系统检查中",false);export(folder,"boot-check-zh");
     check_status(boot,"Network not ready\nOffline available",false);export(folder,"boot-offline-en");

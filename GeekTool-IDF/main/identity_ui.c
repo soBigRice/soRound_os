@@ -92,9 +92,12 @@ bool identity_boot_active(void){return s_boot!=NULL;}
 void identity_boot_message(lv_obj_t *obj,const char *message,bool error) {
     if(!obj)return;
     boot_t *boot=(boot_t *)obj;
-    if(error)boot->ready=false;
+    if(error){boot->ready=false;lv_obj_remove_flag(obj,LV_OBJ_FLAG_HIDDEN);lv_obj_move_foreground(obj);}
     lv_label_set_text(boot->status,message?message:"");
     lv_obj_set_style_text_color(boot->status,lv_color_hex(error?IDENTITY_RED:0x9a9a9e),0);
+}
+void identity_boot_reveal(lv_obj_t *obj) {
+    if(obj)lv_obj_add_flag(obj,LV_OBJ_FLAG_HIDDEN);
 }
 void identity_boot_release(lv_obj_t *obj) {
     if(!obj)return;

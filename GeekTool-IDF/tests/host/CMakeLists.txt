@@ -66,6 +66,10 @@ target_include_directories(startup_tests PRIVATE ../startup/stubs stubs ../../ma
 target_link_libraries(startup_tests PRIVATE lvgl)
 target_compile_options(startup_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME startup_selftest_and_ota_gate COMMAND startup_tests)
+add_executable(display_frame_gate_tests ../startup/display_frame_gate_tests.c)
+target_include_directories(display_frame_gate_tests PRIVATE ../../main)
+target_compile_options(display_frame_gate_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME startup_home_frame_dma_ownership COMMAND display_frame_gate_tests)
 add_executable(startup_network_tests ../startup/startup_network_tests.c ../../main/startup_network.c)
 target_include_directories(startup_network_tests PRIVATE ../answers/stubs ../../main)
 target_compile_options(startup_network_tests PRIVATE -Wall -Wextra -Werror)
@@ -75,6 +79,19 @@ target_include_directories(lock_startup_tests PRIVATE stubs ../../main)
 target_link_libraries(lock_startup_tests PRIVATE lvgl)
 target_compile_options(lock_startup_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-parameter)
 add_test(NAME startup_lock_and_power_guard COMMAND lock_startup_tests)
+add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../main/main.c
+    ../../main/launcher.c ../../main/launcher_icons.c ../../main/lock.c ../../main/watchface.c
+    ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
+    ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
+    ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/tools_ui.c
+    ../../main/font_tools.c ../../main/weather_artwork.c)
+target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
+target_link_libraries(startup_flow_tests PRIVATE lvgl m)
+target_compile_options(startup_flow_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
+add_test(NAME startup_complete_flow COMMAND startup_flow_tests 0 0)
+add_test(NAME startup_image_face_flow COMMAND startup_flow_tests 14 1)
+add_test(NAME startup_home_dma_failure_rolls_back COMMAND startup_flow_tests 0 0 stall)
+add_test(NAME startup_ui_lock_failure_rolls_back COMMAND startup_flow_tests 0 0 lock-stall)
 add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/font_watchface.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)

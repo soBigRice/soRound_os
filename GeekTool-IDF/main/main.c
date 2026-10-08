@@ -30,6 +30,7 @@
 #include <stdio.h>
 
 static const char *TAG = "main";
+enum { STARTUP_UI_LOCK_MS = 5000 };
 
 static i2c_master_bus_handle_t s_i2c_bus;   // 共享给各 app(I2C 扫描器)
 i2c_master_bus_handle_t board_i2c_bus(void) { return s_i2c_bus; }
@@ -49,11 +50,11 @@ static i2c_master_bus_handle_t init_i2c(void) {
 }
 
 void app_main(void) {
-    // 上次复位原因:poweron/ext=正常;panic/int_wdt/task_wdt=崩溃;sw=软件看门狗重启;brownout=掉压。
-    // 死机排查关键:开机看这行就知道上次是"真崩溃(会重启)"还是被软件看门狗救回来的卡死。
-    static const char *const RRS[] = { "unknown","poweron","ext","sw","panic","int_wdt","task_wdt","wdt","deepsleep","brownout","sdio" };
+    // sw 包含 OTA 和渲染看门狗调用 esp_restart；USB 调试复位要单独记录。
+    // 结合OTA/渲染看门狗阶段日志区分原因；仅凭sw不能判断是哪条路径触发。
+    static const char *const RRS[] = { "unknown","poweron","ext","sw","panic","int_wdt","task_wdt","wdt","deepsleep","brownout","sdio","usb","jtag","efuse","power_glitch","cpu_lockup" };
     esp_reset_reason_t rr = esp_reset_reason();
-    ESP_LOGW(TAG, "last reset: %s", (int)rr < (int)(sizeof(RRS) / sizeof(RRS[0])) ? RRS[rr] : "?");
+    ESP_LOGW(TAG, "last reset: %s", (unsigned)rr < sizeof(RRS) / sizeof(RRS[0]) ? RRS[rr] : "unknown");
 
     ESP_ERROR_CHECK(nvs_flash_init());
     setenv("TZ", "CST-8", 1); tzset();           // 中国时区,供表盘 localtime 用
@@ -76,8 +77,12 @@ void app_main(void) {
     bool touch_ready=touch_init(s_i2c_bus,disp);
 
     lv_obj_t *boot=NULL;bool launcher_ready=false;
+    ESP_LOGI(TAG,"startup stage=UI begin touch=%d",touch_ready);
     uint32_t first_heartbeat=0,first_transfer=0;int64_t cover_started_us=0;
-    if (lvgl_port_lock(0)) {
+    // Before launcher_start there is no render watchdog. An infinite mutex
+    // wait here would prevent both the self-check and pending-OTA rollback.
+    bool ui_locked=lvgl_port_lock(STARTUP_UI_LOCK_MS);
+    if (ui_locked) {
         // 全局 Nothing 单色暗色主题(红强调);默认字体用带符号的 montserrat,
         // 让键盘/按钮等默认控件也统一风格(各 app 的正文再单独覆盖成点阵字)
         lv_theme_t *th = lv_theme_default_init(disp, lv_color_hex(COL_RED),
@@ -95,21 +100,47 @@ void app_main(void) {
         }
         lvgl_port_unlock();
     }
-    ESP_ERROR_CHECK(boot?ESP_OK:ESP_ERR_NO_MEM);
+    ESP_ERROR_CHECK(ui_locked?(boot?ESP_OK:ESP_ERR_NO_MEM):ESP_ERR_TIMEOUT);
+    ESP_LOGI(TAG,"startup stage=UI created launcher=%d",launcher_ready);
 
     img_store_face_image();          // 锁外后台预热图片,首次切表盘不阻塞 UI
     wifi_service_start();            // 开机自动起 WiFi + 重连记住的 AP(不碰 LVGL,放锁外)
 
     startup_result_t check=startup_selftest(touch_ready,launcher_ready,first_heartbeat,first_transfer,cover_started_us);
+    ESP_LOGI(TAG,"startup core=%s err=%s",startup_problem_name(check.problem),esp_err_to_name(check.error));
+    if(check.problem==STARTUP_OK) {
+        startup_network_result_t network=startup_network_check(settings_beta()!=0);
+        ESP_LOGI(TAG,"startup network=%d err=%s",network.state,esp_err_to_name(network.error));
+        if(network.state!=STARTUP_NET_READY) {
+            ESP_LOGW(TAG,"Startup network unavailable; offline use allowed");
+            if(lvgl_port_lock(STARTUP_UI_LOCK_MS)) {
+                const char *message=network.state==STARTUP_NET_OFFLINE?
+                    (settings_lang()?"网络未就绪\n可离线使用":"Network not ready\nOffline available"):
+                    (settings_lang()?"联网检查失败\n可离线使用":"Network check failed\nOffline available");
+                identity_boot_message(boot,message,false);lvgl_port_unlock();
+            }
+            vTaskDelay(pdMS_TO_TICKS(1200));
+        }
+        uint32_t request=0;
+        if(lvgl_port_lock(STARTUP_UI_LOCK_MS)) {
+            watchface_select(settings_face());
+            identity_boot_reveal(boot);
+            first_heartbeat=launcher_heartbeat();request=display_request_frame();
+            lvgl_port_unlock();
+        }
+        check=startup_wait_home(first_heartbeat,request);
+        ESP_LOGI(TAG,"startup home frame=%u completed=%d heartbeat=%u",
+            (unsigned)request,display_frame_completed(request),(unsigned)launcher_heartbeat());
+    }
     ESP_LOGI(TAG,"startup check=%s err=%s",startup_problem_name(check.problem),esp_err_to_name(check.error));
-    if(check.problem!=STARTUP_OK && lvgl_port_lock(0)) {
+    if(check.problem!=STARTUP_OK && lvgl_port_lock(STARTUP_UI_LOCK_MS)) {
         char message[96];snprintf(message,sizeof message,"%s\n%s",settings_lang()?"启动自检失败":"Startup check failed",startup_problem_name(check.problem));
         identity_boot_message(boot,message,true);lvgl_port_unlock();
     }
     startup_ota_result_t ota=startup_apply_ota_result(check);
     ESP_LOGI(TAG,"startup OTA action=%d err=%s",ota.action,esp_err_to_name(ota.error));
     if(check.problem!=STARTUP_OK || ota.error!=ESP_OK) {
-        if(ota.error!=ESP_OK && lvgl_port_lock(0)) {
+        if(ota.error!=ESP_OK && lvgl_port_lock(STARTUP_UI_LOCK_MS)) {
             const char *code=ota.action==STARTUP_OTA_CONFIRM_ERROR?"OTA CONFIRM":
                 ota.action==STARTUP_OTA_ROLLBACK_ERROR?"ROLLBACK":"OTA STATE";
             char message[96];snprintf(message,sizeof message,"%s\n%s",settings_lang()?"启动自检失败":"Startup check failed",code);
@@ -118,25 +149,10 @@ void app_main(void) {
         ESP_LOGE(TAG,"Startup stopped; home remains covered. No unconditional reboot loop.");
         return;
     }
-    startup_network_result_t network=startup_network_check(settings_beta()!=0);
-    ESP_LOGI(TAG,"startup network=%d err=%s",network.state,esp_err_to_name(network.error));
-    if(network.state!=STARTUP_NET_READY) {
-        ESP_LOGW(TAG,"Startup network unavailable; offline use allowed");
-        if(lvgl_port_lock(0)) {
-            const char *message=network.state==STARTUP_NET_OFFLINE?
-                (settings_lang()?"网络未就绪\n可离线使用":"Network not ready\nOffline available"):
-                (settings_lang()?"联网检查失败\n可离线使用":"Network check failed\nOffline available");
-            identity_boot_message(boot,message,false);
-            lvgl_port_unlock();
-        }
-        vTaskDelay(pdMS_TO_TICKS(1200));  // Visible notice; never runs in LVGL.
+    if(!lvgl_port_lock(STARTUP_UI_LOCK_MS)) {
+        ESP_LOGE(TAG,"Startup cover release timed out");return;
     }
-    if(lvgl_port_lock(0)) {
-        // Publish completed background decoding before uncovering the face;
-        // otherwise its one-second snapshot could still show stale loading.
-        watchface_select(settings_face());
-        identity_boot_release(boot);lvgl_port_unlock();
-    }
+    identity_boot_release(boot);lvgl_port_unlock();
 
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");
 }

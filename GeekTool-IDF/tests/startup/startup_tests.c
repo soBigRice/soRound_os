@@ -34,6 +34,9 @@ const lv_image_dsc_t *img_store_face_image_for(int theme){assert(theme>=0 && the
 bool img_store_face_loading(int theme){assert(theme>=0 && theme<3);return now<image_until || (background_started && now<background_until);}
 uint32_t launcher_heartbeat(void){return frozen && now>500000?25:(uint32_t)(now/20000);}
 uint32_t display_transfer_count(void){return frames && now>=25000?1:0;}
+static bool home_complete=true;
+static int64_t home_after;
+bool display_frame_completed(uint32_t ticket){return ticket && home_complete && now>=home_after;}
 int64_t esp_timer_get_time(void){return now;}
 void vTaskDelay(TickType_t ticks){assert(ticks==25);now+=(int64_t)ticks*1000;}
 esp_err_t nvs_open(const char *name,int mode,nvs_handle_t *handle){assert(!strcmp(name,"settings") && mode==NVS_READONLY);if(storage_error)return storage_error;*handle=7;++storage_handles;return ESP_OK;}
@@ -46,6 +49,12 @@ esp_err_t esp_ota_mark_app_invalid_rollback_and_reboot(void){++rollbacks;return 
 static startup_result_t check(void){now=0;startup_result_t result=startup_selftest(true,true,0,0,0);assert(!allocations && !storage_handles);return result;}
 static void expect(startup_problem_t expected){assert(check().problem==expected);}
 int main(void) {
+    now=0;assert(startup_wait_home(0,1).problem==STARTUP_OK && now==25000);
+    home_complete=false;now=0;assert(startup_wait_home(0,1).problem==STARTUP_UI && now==5000000);
+    home_complete=true;now=0;assert(startup_wait_home(0,0).problem==STARTUP_UI && now==5000000);
+    home_after=3000000;frozen=true;now=0;
+    assert(startup_wait_home(0,1).problem==STARTUP_UI && now==5000000);
+    home_after=0;frozen=false;
     startup_result_t result=check();assert(result.problem==STARTUP_OK && now==4000000);
     image_until=4400000;expect(STARTUP_OK);assert(now==image_until);
     image_until=6000000;expect(STARTUP_IMAGE);assert(now==5000000);image_until=0;

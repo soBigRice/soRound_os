@@ -13,7 +13,8 @@ typedef struct { startup_ota_action_t action; esp_err_t error; } startup_ota_res
 // Runs outside the LVGL lock. Network reachability and an unset RTC are not
 // firmware validity requirements; UI/DMA and started image work must settle.
 startup_result_t startup_selftest(bool touch_ready, bool launcher_ready, uint32_t first_heartbeat, uint32_t first_transfer, int64_t cover_started_us);
+startup_result_t startup_wait_home(uint32_t first_heartbeat,uint32_t frame_request);
 const char *startup_problem_name(startup_problem_t problem);
 // Only PENDING_VERIFY images may be confirmed or rolled back. Confirmation is
-// performed after the boot minimum and core check, before any offline notice.
+// performed after the boot minimum, core check and home frame completion.
 startup_ota_result_t startup_apply_ota_result(startup_result_t result);

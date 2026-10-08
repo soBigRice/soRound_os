@@ -67,6 +67,18 @@ const char *startup_problem_name(startup_problem_t problem) {
     static const char *const names[]={"OK","TOUCH","APPS","STORAGE","AUDIO","WIFI","MEMORY","UI","IMAGE"};
     return (unsigned)problem<sizeof names/sizeof names[0]?names[problem]:"UNKNOWN";
 }
+startup_result_t startup_wait_home(uint32_t first_heartbeat,uint32_t frame_request) {
+    int64_t deadline=esp_timer_get_time()+5000000;
+    int64_t heartbeat_at=esp_timer_get_time();uint32_t heartbeat=first_heartbeat;
+    for(;;) {
+        int64_t now=esp_timer_get_time();uint32_t next=launcher_heartbeat();
+        if(next!=heartbeat){heartbeat=next;heartbeat_at=now;}
+        if(display_frame_completed(frame_request) && heartbeat!=first_heartbeat && now-heartbeat_at<250000)
+            return (startup_result_t){STARTUP_OK,ESP_OK};
+        if(now>=deadline)return failed(STARTUP_UI,ESP_ERR_TIMEOUT);
+        vTaskDelay(pdMS_TO_TICKS(25));
+    }
+}
 startup_ota_result_t startup_apply_ota_result(startup_result_t result) {
     const esp_partition_t *running=esp_ota_get_running_partition();
     if(!running)return (startup_ota_result_t){STARTUP_OTA_STATE_ERROR,ESP_ERR_NOT_FOUND};
