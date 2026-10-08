@@ -12,7 +12,9 @@ typedef struct {
     const lv_image_dsc_t *image;
 } watchface_data_t;
 
-enum { WATCHFACE_THEME_COUNT = 3, WATCHFACE_KIND_COUNT = 5, WATCHFACE_COUNT = 15 };
+enum { WATCHFACE_LEGACY_THEME_COUNT = 3, WATCHFACE_KIND_COUNT = 5,
+       WATCHFACE_LEGACY_COUNT = 15, WATCHFACE_HAND_COUNT = 6,
+       WATCHFACE_THEME_COUNT = 4, WATCHFACE_COUNT = 21 };
 void watchface_render(lv_layer_t *layer, const lv_area_t *area,
                       const watchface_data_t *data, int index, bool preview);
 LV_FONT_DECLARE(font_wf_7);
@@ -39,3 +41,7 @@ LV_FONT_DECLARE(font_wf_semibold_52);
 LV_FONT_DECLARE(font_wf_semibold_56);
 LV_FONT_DECLARE(font_wf_semibold_104);
 LV_FONT_DECLARE(font_wf_semibold_112);
+LV_FONT_DECLARE(font_hand_regular_12);
+LV_FONT_DECLARE(font_hand_regular_24);
+LV_FONT_DECLARE(font_hand_semibold_16);
+LV_FONT_DECLARE(font_hand_semibold_32);

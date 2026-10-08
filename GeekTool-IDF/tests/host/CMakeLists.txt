@@ -7,12 +7,20 @@ set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
 set(LVGL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../managed_components/lvgl__lvgl"
     CACHE PATH "LVGL source used to check local and release-version compatibility")
 add_subdirectory("${LVGL_SOURCE_DIR}" lvgl)
-add_executable(performance_tests performance_tests.c countdown_tests.c ../../main/glyph.c)
+add_executable(performance_tests performance_tests.c countdown_tests.c ../../main/glyph.c ../../main/fluid_ink.c)
 target_include_directories(performance_tests PRIVATE stubs ../../main)
 target_link_libraries(performance_tests PRIVATE lvgl m)
 target_compile_options(performance_tests PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
 enable_testing()
 add_test(NAME performance_regressions COMMAND performance_tests)
+add_executable(play_tests play_tests.c ../../main/maze_levels.c ../../main/glyph.c
+               ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c
+               ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
+               ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(play_tests PRIVATE stubs ../ota/stubs ../../main)
+target_link_libraries(play_tests PRIVATE lvgl m)
+target_compile_options(play_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME fluid_modes_and_fixed_maze_levels COMMAND play_tests)
 add_executable(ota_ui_tests ota_ui_tests.c ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(ota_ui_tests PRIVATE ../ota/stubs ../../main)
 target_link_libraries(ota_ui_tests PRIVATE lvgl m)
@@ -54,7 +62,7 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
-target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/font_watchface.c
+target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c
                ../../main/identity_ui.c ../../main/font_identity.c)
 add_executable(identity_ui_tests identity_ui_tests.c ../../main/identity_ui.c ../../main/font_identity.c)
 target_include_directories(identity_ui_tests PRIVATE ../../main)
@@ -83,16 +91,18 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/launcher.c ../../main/launcher_icons.c ../../main/lock.c ../../main/watchface.c
     ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
     ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
-    ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/tools_ui.c
+    ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/tools_ui.c
     ../../main/font_tools.c ../../main/weather_artwork.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
 target_link_libraries(startup_flow_tests PRIVATE lvgl m)
 target_compile_options(startup_flow_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
 add_test(NAME startup_complete_flow COMMAND startup_flow_tests 0 0)
 add_test(NAME startup_image_face_flow COMMAND startup_flow_tests 14 1)
+add_test(NAME startup_hand_mark_flow COMMAND startup_flow_tests 15 1)
+add_test(NAME startup_hand_dots_flow COMMAND startup_flow_tests 20 0)
 add_test(NAME startup_home_dma_failure_rolls_back COMMAND startup_flow_tests 0 0 stall)
 add_test(NAME startup_ui_lock_failure_rolls_back COMMAND startup_flow_tests 0 0 lock-stall)
-add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/font_watchface.c
+add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(watchface_tests PRIVATE ../watchfaces/stubs ../../main)

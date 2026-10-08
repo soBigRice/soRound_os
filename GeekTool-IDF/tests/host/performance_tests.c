@@ -13,6 +13,7 @@ static float host_tx, host_ty;
 bool imu_init(void) { return true; }
 bool imu_read_tilt(float *x, float *y) { *x = host_tx; *y = host_ty; return true; }
 const lv_font_t *i18n_font_m(void) { return LV_FONT_DEFAULT; }
+uint8_t settings_lang(void) { return 0; }
 const char *tr(str_id_t id) { (void)id; return "no sensor"; }
 // 编译真实流体实现;仅替换硬件时钟、IMU、内存和 PM 锁。
 #include "../../main/app_fluid.c"

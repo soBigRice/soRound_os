@@ -6,7 +6,8 @@ add_subdirectory("${ROOT}/GeekTool-IDF/tests/host" host)
 set(MAIN "${ROOT}/GeekTool-IDF/main")
 add_executable(site_native renderer.c
   ${MAIN}/app_calendar.c ${MAIN}/app_countdown.c ${MAIN}/app_stopwatch.c
-  ${MAIN}/app_maze.c ${MAIN}/app_fluid.c ${MAIN}/app_i2c.c ${MAIN}/app_twin.c
+  ${MAIN}/app_maze.c ${MAIN}/maze_levels.c ${MAIN}/app_fluid.c ${MAIN}/fluid_ink.c ${MAIN}/app_i2c.c ${MAIN}/app_twin.c
+  ${MAIN}/font_watchface.c ${MAIN}/font_watchface_hands.c
   ${MAIN}/glyph.c ${MAIN}/ui_list.c ${MAIN}/i18n.c ${MAIN}/font_cn16.c)
 target_include_directories(site_native PRIVATE stubs
   "${ROOT}/GeekTool-IDF/tests/dice/stubs" "${ROOT}/GeekTool-IDF/tests/host/stubs"

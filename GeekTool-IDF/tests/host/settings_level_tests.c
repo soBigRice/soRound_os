@@ -10,6 +10,7 @@
 #include "src/misc/lv_text_private.h"
 #include "tools_render.h"
 #include "watchface_ui.h"
+#include "watchface.h"
 static uint8_t language,brightness=191,volume=65,idle,silent,face;
 static int saves,audio_starts,audio_stops,blips;
 static bool sensor_up=true;
@@ -26,12 +27,8 @@ uint8_t settings_silent(void) {return silent;}
 void settings_set_silent(uint8_t v) {silent=v;}
 void settings_set_face(uint8_t v) {face=v;}
 void settings_save(void) {++saves;}
-int watchface_count(void) {return 15;}
 int watchface_selected(void) {return face;}
-const char *watchface_kind_name(int i) {static const char *names[]={"dots","bold","rings","weather","image"};return names[i%5];}
-const char *watchface_theme_name(int i) {static const char *names[]={"TYPE","ORBIT","SHIFT"};return names[i];}
-const char *watchface_name(int i) {static char name[40];snprintf(name,sizeof name,"%s / %s",watchface_theme_name(i/5),watchface_kind_name(i));return name;}
-void watchface_select(int i) {assert(i>=0 && i<15);face=(uint8_t)i;}
+void watchface_select(int i) {assert(i>=0 && i<watchface_count());face=(uint8_t)i;}
 void watchface_refresh_preview(lv_obj_t *preview) {(void)preview;}
 void audio_out_init(void) {++audio_starts;}
 void audio_out_deinit(void) {++audio_stops;}
@@ -229,9 +226,11 @@ int main(int argc,char **argv) {
                 assert(memcmp(&preview,&after,sizeof preview)==0 && saves==stored && face==0 && s_page==SETTINGS_FACE);
                 face=2;rebuild(NULL);tap(button_named(s_panel,"ORBIT"));settle();assert(face==7 && saves==stored+1);
                 tap(button_named(s_panel,"SHIFT"));settle();assert(face==12 && saves==stored+2);
-                face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+3);
-                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==14 && saves==stored+4);
-                for(face=0;face<15;++face) {
+                tap(button_named(s_panel,"HAND"));settle();assert(face==15 && saves==stored+3);
+                face=20;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+4);
+                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==20 && saves==stored+5);
+                face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==15 && saves==stored+6);
+                for(face=0;face<21;++face) {
                     rebuild(NULL);snprintf(name,sizeof name,"face-%u",face);capture(page,directory,name);check_full_text(s_panel);
                     lv_obj_get_coords(s_face_preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
                 }
@@ -332,5 +331,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 15-face selection, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
+    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 21-face selection, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
 }

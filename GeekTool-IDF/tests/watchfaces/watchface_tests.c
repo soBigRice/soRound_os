@@ -15,6 +15,7 @@ static bool ip_ready=true;
 static bool network=true,battery_ok=true,weather_ok=true,loading;
 bool wifi_service_ready(void){return network && ip_ready;}
 static int low=21,high=28,temperature=26,humidity=64,code=3,soc=74;
+static int weather_polls,image_reads;
 static char ssid[33]="soRound";
 static uint16_t image_pixels[3][466*466];
 static lv_image_dsc_t images[3];
@@ -26,9 +27,9 @@ bool power_read(int *value,pwr_state_t *state){*value=soc;*state=PWR_DISCHARGING
 int esp_wifi_sta_get_ap_info(wifi_ap_record_t *ap){memcpy(ap->ssid,ssid,33);return network?ESP_OK:-1;}
 esp_netif_t *esp_netif_get_handle_from_ifkey(const char *key){(void)key;return (void *)1;}
 int esp_netif_get_ip_info(esp_netif_t *n,esp_netif_ip_info_t *ip){(void)n;ip->ip.addr=0x1801a8c0;return ESP_OK;}
-void weather_poll(void){}
+void weather_poll(void){++weather_polls;}
 bool weather_cached(int *temp,int *lo,int *hi,int *weather_code,int *hum){*temp=temperature;*lo=low;*hi=high;*weather_code=code;*hum=humidity;return weather_ok;}
-const lv_image_dsc_t *img_store_face_image_for(int theme){return image?image:loading?NULL:&images[theme];}
+const lv_image_dsc_t *img_store_face_image_for(int theme){assert(theme>=0&&theme<3);++image_reads;return image?image:loading?NULL:&images[theme];}
 bool img_store_face_loading(int theme){(void)theme;return loading;}
 #define time(out) fixture_time(out)
 #include "../../main/watchface.c"
@@ -90,9 +91,15 @@ int main(int argc,char **argv){
     lv_init();font_bitmap_digests(false);i18n_init();display=lv_display_create(466,466);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
     lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_black(),0);
-    watchface_init();assert(watchface_count()==15&&watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
-    uint64_t hashes[15];
-    for(int i=0;i<15;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
+    watchface_init();assert(watchface_count()==21&&watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
+    uint64_t hashes[21];
+    for(int i=0;i<21;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
+    // New hands must refresh every second without being mistaken for weather/image kinds.
+    int polls=weather_polls,reads=image_reads;
+    for(int i=15;i<21;++i){watchface_select(i);uint64_t before=capture(NULL,"hands-before");flushed=0;++now;tick(NULL);assert(before!=capture(NULL,"hands-after")&&flushed>0);--now;}
+    assert(weather_polls==polls&&image_reads==reads);
+    assert(watchface_theme_for(20)==3&&!strcmp(watchface_kind_name(20),"dots"));
+    assert(watchface_index_in_theme(1,2)==7&&watchface_index_in_theme(3,14)==15&&watchface_index_in_theme(3,20)==20&&watchface_index_in_theme(2,20)==10);
     // At 10:08, minute progress must leave six o'clock dark; the hour ring must have passed it.
     watchface_select(12);capture(NULL,"ring-semantics");
     // Between the 30/31 minute dots, the unused outer track must be black.
@@ -100,7 +107,7 @@ int main(int argc,char **argv){
     assert(((pixels[398*466+233]>>5)&63)>15);
     // The unused portion is dotted, not a duplicate complete solid ring.
     assert(pixels[85*466+153]==0);
-    for(int i=0;i<15;++i){watchface_select(i);watchface_set_aod(true);char name[32];snprintf(name,sizeof name,"aod-%02d",i);uint64_t hash=capture(folder,name);
+    for(int i=0;i<21;++i){watchface_select(i);watchface_set_aod(true);char name[32];snprintf(name,sizeof name,"aod-%02d",i);uint64_t hash=capture(folder,name);
         assert(wf_timer->period==39000);now+=9;tick(NULL);assert(hash==capture(NULL,"same-minute"));now-=9;watchface_set_aod(false);assert(wf_timer->period==1000);}
     watchface_select(3);capture(NULL,"before");flushed=0;low=18;high=34;tick(NULL);capture(folder,"weather-range-change");assert(flushed>0&&s_data.low==18&&s_data.high==34);
     weather_ok=false;tick(NULL);capture(folder,"weather-unavailable");assert(!s_data.weather_valid);weather_ok=true;
@@ -116,7 +123,7 @@ int main(int argc,char **argv){
     for(unsigned i=0;i<466*466;++i)image_pixels[0][i]=0xffff;
     lv_obj_invalidate(wf_content);capture(folder,"custom-image-bright");assert((pixels[80*466+233]&31)<=12);
     watchface_set_sleep(true);assert(!wf_timer&&watchface_visible());now+=3660;watchface_set_sleep(false);assert(wf_timer&&s_data.time.tm_hour==11&&s_data.time.tm_min==9);
-    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==14);
+    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==20);
     watchface_hide();assert(!wf_timer&&!watchface_visible());watchface_select(9);watchface_show();assert(watchface_selected()==9);
-    watchface_hide();lv_deinit();puts("15 distinct native faces, AOD/minute scheduling, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
+    watchface_hide();lv_deinit();puts("21 distinct native faces, six hands/second updates, catalogue boundaries, AOD/minute scheduling, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
 }

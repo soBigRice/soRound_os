@@ -1,138 +1,119 @@
-// 重力感应迷宫小球 —— 每次进入 / 过关都【随机生成】一座迷宫(递归回溯法,保证连通可解)。
-// 6×6 网格,墙=矩形;小球用加速度计倾斜驱动(平放=中立,往哪偏往哪滚),滚进右下角红色目标即过关。
+// Fixed, replayable levels; retain the continuous tilt-driven rolling and wall collision model.
 #include "app.h"
 #include "glyph.h"
 #include "imu.h"
 #include "esp_timer.h"
 #include "ui_update.h"
-#include "esp_random.h"
+#include "lvgl_compat.h"
+#include "settings.h"
+#include "watchface_ui.h"
+#include "maze_levels.h"
 #include <math.h>
-
+#include <stdio.h>
 #define MCX 233
 #define MCY 233
-#define N      6            // 网格 N×N
-#define CELL   48           // 每格像素
-#define WT     6            // 墙厚
-#define OX     89           // 网格左上(89..89+288=377,居中落在圆内)
-#define OY     89
-#define BALL_R 7
-#define BOUND_R 215         // 圆屏兜底
-// 真实物理:a = 倾斜分量 × g × 像素/米;按时间(秒)积分,分子步防穿墙
-#define G_MS2  9.8f         // 真实重力
-#define PPM    150.0f       // 像素/米(屏幕很小,取手感值;越大越快)
-#define DT_S   0.05f        // tick 周期(s)
-#define SUBS   5            // 物理子步
-#define BDAMP  0.997f       // 每子步阻尼(接近无摩擦的滚动)
-#define VMAX   560.0f       // px/s 上限(= BALL_R / 子步dt,防穿墙)
-#define MAXW   100
-
-typedef struct { int x, y, w, h; } rect_t;
-static uint8_t  cellw[N][N];        // bit0 上 / bit1 右 / bit2 下 / bit3 左 墙;bit4 已访问
-static rect_t   s_walls[MAXW];
-static int      s_nwall;
-static lv_obj_t *g_wallbox, *g_ball, *g_msg;
-static float    bx, by, vx, vy;
-static int64_t  s_win_until, s_last_us;
-
-static float clampf(float v, float lo, float hi) { return v < lo ? lo : (v > hi ? hi : v); }
-
-/* 递归回溯生成完美迷宫 */
-static void maze_gen(void) {
-    for (int r = 0; r < N; r++) for (int c = 0; c < N; c++) cellw[r][c] = 0x0F;   // 四面墙,未访问
-    int st[N * N][2], sp = 0;
-    cellw[0][0] |= 0x10; st[sp][0] = 0; st[sp][1] = 0; sp++;
-    while (sp > 0) {
-        int r = st[sp - 1][0], c = st[sp - 1][1];
-        int dir[4], nd = 0;
-        if (r > 0     && !(cellw[r - 1][c] & 0x10)) dir[nd++] = 0;   // 上
-        if (c < N - 1 && !(cellw[r][c + 1] & 0x10)) dir[nd++] = 1;   // 右
-        if (r < N - 1 && !(cellw[r + 1][c] & 0x10)) dir[nd++] = 2;   // 下
-        if (c > 0     && !(cellw[r][c - 1] & 0x10)) dir[nd++] = 3;   // 左
-        if (nd == 0) { sp--; continue; }
-        int d = dir[esp_random() % nd], nr = r, nc = c;
-        if (d == 0)      { cellw[r][c] &= ~0x01; nr = r - 1; cellw[nr][c] &= ~0x04; }
-        else if (d == 1) { cellw[r][c] &= ~0x02; nc = c + 1; cellw[r][nc] &= ~0x08; }
-        else if (d == 2) { cellw[r][c] &= ~0x04; nr = r + 1; cellw[nr][c] &= ~0x01; }
-        else             { cellw[r][c] &= ~0x08; nc = c - 1; cellw[r][nc] &= ~0x02; }
-        cellw[nr][nc] |= 0x10;
-        st[sp][0] = nr; st[sp][1] = nc; sp++;
+#define WT 5
+#define OX 95
+#define OY 114
+#define BOARD 276
+#define BALL_R 8
+#define BOUND_R 215
+#define G_MS2 9.8f
+#define PPM 150.0f
+#define DT_S .05f
+#define SUBS 5
+#define BDAMP .997f
+#define VMAX 560.0f
+#define MAXW 100
+typedef struct {int x,y,w,h;} rect_t;
+typedef enum {MAZE_MENU,MAZE_PLAY,MAZE_WIN} maze_mode_t;
+static rect_t s_walls[MAXW];
+static int s_nwall,g_level;
+static uint16_t g_completed;
+static lv_obj_t *g_maze_parent,*g_maze_ui,*g_wallbox,*g_ball,*g_msg;
+static maze_mode_t g_maze_mode;
+static float bx,by,vx,vy;
+static int64_t s_last_us;
+static bool g_maze_queued;
+static float clampf(float v,float lo,float hi){return v<lo?lo:v>hi?hi:v;}
+static const char *maze_word(const char *en,const char *zh){return settings_lang()?zh:en;}
+static const maze_level_t *current_level(void){return &maze_levels[g_level];}
+static void maze_rebuild(void *arg);
+static void maze_queue(void){if(!g_maze_queued){g_maze_queued=true;lv_async_call(maze_rebuild,NULL);}}
+static lv_obj_t *maze_text(const char *value,int cy,const lv_font_t *font,uint32_t color){
+    lv_obj_t *label=lv_label_create(g_maze_ui);lv_obj_set_style_text_font(label,font,0);lv_obj_set_style_text_color(label,lv_color_hex(color),0);
+    lv_obj_set_style_text_align(label,LV_TEXT_ALIGN_CENTER,0);lv_label_set_text(label,value);lv_obj_align(label,LV_ALIGN_TOP_MID,0,cy-font->line_height/2);return label;
+}
+static void maze_choose(lv_event_t *e){g_level=(uintptr_t)lv_event_get_user_data(e);g_maze_mode=MAZE_PLAY;maze_queue();}
+static void maze_retry(lv_event_t *e){(void)e;g_maze_mode=MAZE_PLAY;maze_queue();}
+static void maze_next(lv_event_t *e){(void)e;if(g_level+1<MAZE_LEVEL_COUNT){++g_level;g_maze_mode=MAZE_PLAY;}else g_maze_mode=MAZE_MENU;maze_queue();}
+static lv_obj_t *maze_button(int x,int y,int w,int h,const char *value,const lv_font_t *font,lv_event_cb_t cb,uintptr_t data){
+    lv_obj_t *button=lv_button_create(g_maze_ui);lv_obj_remove_style_all(button);lv_obj_set_pos(button,x,y);lv_obj_set_size(button,w,h);
+    lv_obj_set_style_radius(button,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_color(button,lv_color_hex(0x141418),0);lv_obj_set_style_bg_opa(button,LV_OPA_COVER,0);
+    lv_obj_set_style_border_width(button,1,0);lv_obj_set_style_border_color(button,lv_color_hex(0x45454b),0);
+    ui_obj_set_scrollable(button,false);ui_obj_set_gesture_bubble(button,false);lv_obj_add_event_cb(button,cb,LV_EVENT_CLICKED,(void *)data);
+    lv_obj_t *label=lv_label_create(button);lv_obj_set_style_text_font(label,font,0);lv_obj_set_style_text_color(label,lv_color_hex(COL_TXT),0);lv_label_set_text(label,value);lv_obj_center(label);return button;
+}
+static void add_wall(int x,int y,int w,int h){
+    s_walls[s_nwall++]=(rect_t){x,y,w,h};
+    lv_obj_t *o=lv_obj_create(g_wallbox);lv_obj_remove_style_all(o);lv_obj_set_size(o,w,h);lv_obj_set_pos(o,x,y);
+    lv_obj_set_style_radius(o,2,0);lv_obj_set_style_bg_color(o,lv_color_hex(0x5f6069),0);lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);ui_obj_set_event_bubble(o,true);
+}
+static void maze_build(void){
+    const maze_level_t *level=current_level();int n=level->size;float cell=BOARD/(float)n;s_nwall=0;
+    for(int r=0;r<n;++r)for(int c=0;c<n;++c){int x=(int)lroundf(OX+c*cell),y=(int)lroundf(OY+r*cell);
+        int w=(int)lroundf(OX+(c+1)*cell)-x,h=(int)lroundf(OY+(r+1)*cell)-y;uint8_t walls=level->walls[r*n+c];
+        if(walls&1)add_wall(x-WT/2,y-WT/2,w+WT,WT);
+        if(walls&8)add_wall(x-WT/2,y-WT/2,WT,h+WT);
     }
+    add_wall(OX-WT/2,OY+BOARD-WT/2,BOARD+WT,WT);add_wall(OX+BOARD-WT/2,OY-WT/2,WT,BOARD+WT);
+    int gx=(int)lroundf(OX+BOARD-cell/2),gy=(int)lroundf(OY+BOARD-cell/2);
+    glyph_circle(g_wallbox,gx,gy,13,11,2,COL_RED);glyph_dot(g_wallbox,gx,gy,4,COL_RED);
+    bx=OX+cell/2;by=OY+cell/2;vx=vy=0;s_last_us=esp_timer_get_time();
 }
-
-static void add_wall(int x, int y, int w, int h) {
-    if (s_nwall < MAXW) { s_walls[s_nwall++] = (rect_t){ x, y, w, h }; }
-    lv_obj_t *o = lv_obj_create(g_wallbox);
-    lv_obj_remove_style_all(o);
-    lv_obj_set_size(o, w, h);
-    lv_obj_set_pos(o, x, y);
-    lv_obj_set_style_radius(o, 2, 0);
-    lv_obj_set_style_bg_color(o, lv_color_hex(0x3a3a40), 0);
-    lv_obj_set_style_bg_opa(o, LV_OPA_COVER, 0);
-    lv_obj_add_flag(o, LV_OBJ_FLAG_EVENT_BUBBLE);
-}
-
-/* 把网格墙转成矩形 + 画出来(每面墙只画一次:各格的上墙、左墙 + 下/右外边界) */
-static void maze_build(void) {
-    lv_obj_clean(g_wallbox);
-    s_nwall = 0;
-    for (int r = 0; r < N; r++) for (int c = 0; c < N; c++) {
-        if (cellw[r][c] & 0x01) add_wall(OX + c * CELL - WT / 2, OY + r * CELL - WT / 2, CELL + WT, WT);   // 上
-        if (cellw[r][c] & 0x08) add_wall(OX + c * CELL - WT / 2, OY + r * CELL - WT / 2, WT, CELL + WT);   // 左
+static void maze_rebuild(void *arg){
+    (void)arg;g_maze_queued=false;if(!g_maze_parent)return;
+    if(g_maze_ui)lv_obj_delete(g_maze_ui);
+    g_wallbox=g_ball=g_msg=NULL;
+    g_maze_ui=lv_obj_create(g_maze_parent);lv_obj_remove_style_all(g_maze_ui);lv_obj_set_size(g_maze_ui,466,466);
+    ui_obj_set_scrollable(g_maze_ui,false);ui_obj_set_event_bubble(g_maze_ui,true);
+    if(g_maze_mode==MAZE_MENU){
+        maze_text(maze_word("12 levels. Take your time.","十二关，慢慢走。"),107,UI_FONT_M,COL_TXT);
+        const char *const en[]={"START / 4 x 4","TURN / 5 x 5","PRECISION / 6 x 6"};
+        const char *const zh[]={"入门 / 4 x 4","转向 / 5 x 5","精密 / 6 x 6"};
+        for(int r=0;r<3;++r){maze_text(settings_lang()?zh[r]:en[r],140+r*93,UI_FONT_M,COL_TXT2);
+            for(int c=0;c<4;++c){int id=r*4+c,x=134+c*66,y=177+r*93;char value[4];snprintf(value,sizeof value,"%02d",id+1);
+                lv_obj_t *b=maze_button(x-26,y-26,52,52,value,&font_hand_regular_24,maze_choose,id);
+                if(id==g_level)lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);
+                if(g_completed&(1u<<id))glyph_dot(b,26,45,2,COL_RED);
+            }
+        }
+        maze_text(maze_word("Fixed maps / replay anytime","固定地图 / 随时重玩"),415,UI_FONT_M,COL_TXT2);return;
     }
-    for (int c = 0; c < N; c++) add_wall(OX + c * CELL - WT / 2, OY + N * CELL - WT / 2, CELL + WT, WT);   // 下边界
-    for (int r = 0; r < N; r++) add_wall(OX + N * CELL - WT / 2, OY + r * CELL - WT / 2, WT, CELL + WT);   // 右边界
-
-    int gx = OX + (N - 1) * CELL + CELL / 2, gy = OY + (N - 1) * CELL + CELL / 2;   // 目标=右下格
-    glyph_circle(g_wallbox, gx, gy, 16, 11, 3, COL_RED);
-    glyph_dot(g_wallbox, gx, gy, 4, COL_RED);
-}
-
-static void new_maze(void) {
-    maze_gen();
-    maze_build();
-    bx = OX + CELL / 2; by = OY + CELL / 2;   // 起点=左上格
-    vx = vy = 0;
-    if (g_ball) { lv_obj_set_pos(g_ball, (int)bx - BALL_R, (int)by - BALL_R); lv_obj_set_style_bg_opa(g_ball, LV_OPA_COVER, 0); }
-}
-
-static void maze_enter(lv_obj_t *parent) {
-    g_wallbox = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_wallbox);
-    lv_obj_set_size(g_wallbox, lv_pct(100), lv_pct(100));
-    lv_obj_remove_flag(g_wallbox, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_add_flag(g_wallbox, LV_OBJ_FLAG_EVENT_BUBBLE);
-
-    g_ball = lv_obj_create(parent);
-    lv_obj_remove_style_all(g_ball);
-    lv_obj_set_size(g_ball, BALL_R * 2, BALL_R * 2);
-    lv_obj_set_style_radius(g_ball, LV_RADIUS_CIRCLE, 0);
-    lv_obj_set_style_bg_color(g_ball, lv_color_hex(COL_TXT), 0);
-    lv_obj_set_style_bg_opa(g_ball, LV_OPA_COVER, 0);
-    lv_obj_add_flag(g_ball, LV_OBJ_FLAG_EVENT_BUBBLE);
-
-    g_msg = lv_label_create(parent);
-    lv_obj_set_style_text_font(g_msg, UI_FONT_L, 0);
-    lv_obj_set_style_text_color(g_msg, lv_color_hex(COL_RED), 0);
-    lv_obj_set_style_text_align(g_msg, LV_TEXT_ALIGN_CENTER, 0);
-    lv_label_set_text(g_msg, imu_init() ? "" : "no sensor");
-    lv_obj_align(g_msg, LV_ALIGN_TOP_MID, 0, 40);
-
-    s_win_until = 0; s_last_us = esp_timer_get_time();
-    new_maze();
-}
-
-static void maze_tick(void) {
-    if (!g_ball) return;
-    int64_t now = esp_timer_get_time();
-    float dt = fminf((now - s_last_us) / 1000000.0f, 0.1f);
-    s_last_us = now;
-    if (s_win_until) {
-        if (now >= s_win_until) { s_win_until = 0; lv_label_set_text(g_msg, ""); new_maze(); }
-        else ui_bg_opa(g_ball, (((s_win_until - now) / 150000) & 1) ? LV_OPA_COVER : LV_OPA_40);
-        return;
+    const maze_level_t *level=current_level();char value[64];
+    snprintf(value,sizeof value,"%02d / 12  %s",g_level+1,settings_lang()?level->name_zh:level->name_en);
+    maze_text(value,g_maze_mode==MAZE_PLAY?94:115,UI_FONT_M,COL_TXT2);
+    if(g_maze_mode==MAZE_WIN){
+        for(int i=0;i<12;++i){float a=i*3.14159265f/6;glyph_dot(g_maze_ui,(int)lroundf(233+sinf(a)*71),(int)lroundf(225-cosf(a)*71),3,i<=g_level?COL_RED:0x25252b);}
+        snprintf(value,sizeof value,"%02d",g_level+1);maze_text(value,213,&font_wf_72,COL_TXT);
+        maze_text(maze_word("Complete","完成"),265,UI_FONT_M,COL_TXT2);
+        maze_button(159,322,148,48,g_level==11?maze_word("Levels","返回关卡"):maze_word("Next","下一关"),UI_FONT_M,maze_next,0);
+        maze_button(171,379,124,36,maze_word("Replay","重玩"),UI_FONT_M,maze_retry,0);return;
     }
-    float tx, ty;
-    if (!imu_read_tilt(&tx, &ty)) return;
+    g_wallbox=lv_obj_create(g_maze_ui);lv_obj_remove_style_all(g_wallbox);lv_obj_set_size(g_wallbox,466,466);
+    ui_obj_set_scrollable(g_wallbox,false);ui_obj_set_event_bubble(g_wallbox,true);maze_build();
+    g_ball=lv_obj_create(g_maze_ui);lv_obj_remove_style_all(g_ball);lv_obj_set_size(g_ball,BALL_R*2,BALL_R*2);
+    lv_obj_set_style_radius(g_ball,LV_RADIUS_CIRCLE,0);lv_obj_set_style_bg_color(g_ball,lv_color_hex(COL_TXT),0);lv_obj_set_style_bg_opa(g_ball,LV_OPA_COVER,0);
+    ui_obj_set_event_bubble(g_ball,true);lv_obj_set_pos(g_ball,(int)bx-BALL_R,(int)by-BALL_R);
+    maze_button(311,40,48,48,LV_SYMBOL_REFRESH,UI_FONT_SYM,maze_retry,0);
+    g_msg=maze_text(imu_init()?maze_word("Tilt into the red dot","倾斜设备，滚入红点"):tr(S_FLUID_NOIMU),417,UI_FONT_M,COL_TXT2);
+}
+static void maze_enter(lv_obj_t *parent){g_maze_parent=parent;g_maze_mode=MAZE_MENU;maze_rebuild(NULL);}
+static void maze_tick(void){
+    if(!g_ball||g_maze_mode!=MAZE_PLAY||g_maze_queued)return;
+    int64_t now=esp_timer_get_time();float dt=fminf((now-s_last_us)/1000000.0f,.1f);s_last_us=now;
+    float tx,ty;if(!imu_read_tilt(&tx,&ty)){lv_label_set_text(g_msg,tr(S_FLUID_NOIMU));return;}
+    lv_label_set_text(g_msg,maze_word("Tilt into the red dot","倾斜设备，滚入红点"));
     float ax = tx * G_MS2 * PPM, ay = ty * G_MS2 * PPM;   // 真实重力加速度(px/s^2)
     int steps = (int)ceilf(dt / (DT_S / SUBS));
     if (steps < 1) return;
@@ -163,13 +144,11 @@ static void maze_tick(void) {
     }
     lv_obj_set_pos(g_ball, (int)bx - BALL_R, (int)by - BALL_R);
 
-    int gx = OX + (N - 1) * CELL + CELL / 2, gy = OY + (N - 1) * CELL + CELL / 2;
-    float ggx = bx - gx, ggy = by - gy;
-    if (sqrtf(ggx * ggx + ggy * ggy) < 16) { lv_label_set_text(g_msg, "nice!"); s_win_until = now + 900000; }
+
+    float cell=BOARD/(float)current_level()->size;
+    if(hypotf(bx-(OX+BOARD-cell/2),by-(OY+BOARD-cell/2))<12){g_completed|=1u<<g_level;g_maze_mode=MAZE_WIN;vx=vy=0;maze_queue();}
 }
-
-static void maze_exit(void) { g_wallbox = g_ball = g_msg = NULL; }
-
-static void maze_visibility(bool visible) { (void)visible; s_last_us = esp_timer_get_time(); }
-
-const app_t app_maze = { "maze", COL_TXT, maze_enter, maze_tick, maze_exit, NULL, 20, maze_visibility };
+static bool maze_back(void){if(g_maze_mode==MAZE_MENU)return false;g_maze_mode=MAZE_MENU;vx=vy=0;maze_queue();return true;}
+static void maze_exit(void){if(g_maze_queued)lv_async_call_cancel(maze_rebuild,NULL);g_maze_queued=false;g_maze_parent=g_maze_ui=g_wallbox=g_ball=g_msg=NULL;}
+static void maze_visibility(bool visible){(void)visible;s_last_us=esp_timer_get_time();}
+const app_t app_maze={"maze",COL_TXT,maze_enter,maze_tick,maze_exit,maze_back,20,maze_visibility};

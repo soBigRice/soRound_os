@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+设计假设：沿用真实466×466 AMOLED与黑/白/红；现有15款表盘和实体键不变。
+目标：六款时分指针与秒显示表盘；固定迷宫有难度递进；彩色染料可拖动搅开。
+这是浏览器设计原型，不是固件：鼠标/方向键替代IMU，74%是标注的样例电量。
+染料使用浏览器流场展示交互意图，不代表现有粒子模拟或ESP32实测性能。
+-->
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>soRound · 指针与游乐设计稿</title>
+  <style>
+    @font-face{font-family:Barlow;src:url('../watchfaces/fonts/Barlow-Regular.ttf');font-weight:400;font-display:swap}
+    @font-face{font-family:Barlow;src:url('../watchfaces/fonts/Barlow-SemiBold.ttf');font-weight:600;font-display:swap}
+    :root{--paper:#f2f1ed;--ink:#202022;--muted:#717176;--red:#d1283a;--line:#d9d8d4}
+    *{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Barlow,"PingFang SC",sans-serif}
+    main{max-width:1084px;margin:auto;padding:48px 28px 32px}header{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-bottom:1px solid var(--line);padding-bottom:24px}
+    .wordmark{font-size:17px;font-weight:600;display:flex;align-items:center;gap:9px}.logo{width:19px;height:19px;border:2px solid currentColor;border-radius:50%;position:relative}.logo:after{content:'';position:absolute;background:var(--red);width:6px;height:6px;border-radius:50%;top:-2px;right:-2px}
+    h1{font-size:32px;font-weight:600;margin:18px 0 0;letter-spacing:-.7px}header p{color:var(--muted);font-size:13px;line-height:1.9;margin:0;text-align:right}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:54px 56px;margin-top:36px}
+    .caption{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px}.caption h2{font-size:19px;font-weight:600;margin:0}.caption span{color:var(--muted);font-size:13px;letter-spacing:1px}
+    .round{width:100%;max-width:466px;aspect-ratio:1;position:relative;border-radius:50%;overflow:hidden;background:#000;margin:auto}
+    canvas{width:100%;height:100%;display:block;touch-action:none}.controls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:19px;min-height:36px}
+    button,select{font:inherit;font-size:13px;color:var(--ink);border:1px solid #b9b8b3;border-radius:5px;padding:8px 12px;background:transparent;cursor:pointer;min-height:36px}
+    button:hover,select:hover{border-color:var(--ink)}button[aria-pressed=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}button:focus-visible,select:focus-visible,canvas:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+    .note{font-size:13px;color:var(--muted);line-height:1.85;margin:12px 0 0;max-width:430px}.note strong{color:var(--ink);font-weight:400}
+    .screen-button{position:absolute;border:0;border-radius:50%;color:#f3f1eb;background:transparent;font-size:18px;padding:0;min-height:0;display:flex;align-items:center;justify-content:center;touch-action:manipulation}
+    .back{left:23.4%;top:8.6%;width:10.3%;height:10.3%;background:#16161a;border:1px solid #353539}.round button:hover{background:#202024}
+    .retry{left:68.5%;top:8.6%;width:10.3%;height:10.3%;font-size:23px}.level-hit{border-radius:50%;width:12%;height:12%;font-family:Barlow;font-size:22px;color:transparent}
+    .next{left:34%;top:69%;width:32%;height:11%;border-radius:28px;border:1px solid #68686e;font-size:15px}
+    [hidden]{display:none!important}footer{border-top:1px solid var(--line);margin-top:42px;padding-top:18px;font-size:12px;color:var(--muted);line-height:1.8;display:flex;justify-content:space-between;gap:16px}
+    .status{font-size:12px;color:var(--muted);margin-left:auto}body.capture main{padding-top:26px}body.capture .controls,body.capture .note,body.capture footer{display:none}body.capture .grid{gap:28px 56px;margin-top:26px}body.capture header{padding-bottom:18px}
+    .fluid-screen{position:relative}.fluid-overlay{position:absolute;inset:0;pointer-events:none}.fluid-screen button{pointer-events:auto}.fluid-status{position:absolute;left:25%;right:25%;top:29%;color:#82828a;text-align:center;font-size:14px;line-height:1.5;pointer-events:none}
+    body.clocks-only [data-kind]:not([data-kind=clock]),body.fluid-only [data-kind]:not([data-kind=fluid]){display:none}body.fluid-only .grid{grid-template-columns:1fr}body.fluid-only main{max-width:660px}body.fluid-only header p{max-width:190px}
+    @media(max-width:700px){main{padding:26px 20px}.grid{grid-template-columns:1fr;gap:38px;margin-top:28px}header{align-items:flex-start;flex-direction:column;gap:12px}header p{text-align:left}h1{font-size:27px}.caption{max-width:466px;margin:0 auto 16px}footer{flex-direction:column;gap:4px}.note{max-width:466px}.controls{max-width:466px;margin-left:auto;margin-right:auto}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><div class="wordmark"><span class="logo" aria-hidden="true"></span>soRound OS</div><h1>指针与游乐</h1></div>
+    <p>第二版 · 2026.10.08<br>466 × 466 圆屏 · 浏览器交互样机</p>
+  </header>
+  <div class="grid">
+    <section data-kind="clock" aria-labelledby="mark-title">
+      <div class="caption"><h2 id="mark-title">01　刻度</h2><span>HAND / MARK</span></div>
+      <div class="round"><canvas id="mark" width="466" height="466" role="img" aria-label="刻度指针表盘，示例10点08分，电量74%"></canvas></div>
+      <div class="controls"><button data-aod="mark" aria-pressed="false">常显预览</button><button data-clock="mark" aria-pressed="false">走时预览</button></div>
+      <p class="note">完整分钟刻度、四个大数字、宽窄分明的双针。红色秒针是唯一动态强调；日期与电量留在中心下方。</p>
+    </section>
+    <section data-kind="clock" aria-labelledby="arc-title">
+      <div class="caption"><h2 id="arc-title">02　弧时</h2><span>HAND / ARC</span></div>
+      <div class="round"><canvas id="arc" width="466" height="466" role="img" aria-label="弧时指针表盘，示例10点08分，电量74%"></canvas></div>
+      <div class="controls"><button data-aod="arc" aria-pressed="false">常显预览</button><button data-clock="arc" aria-pressed="false">走时预览</button></div>
+      <p class="note">十二段小时轨道、镂空时针和细长分针。外弧对应当前分钟，小红点随秒移动；比刻度款更疏朗。</p>
+    </section>
+    <section data-kind="clock" aria-labelledby="numeral-title">
+      <div class="caption"><h2 id="numeral-title">03　字时</h2><span>HAND / NUMERAL</span></div>
+      <div class="round"><canvas id="numeral" width="466" height="466" role="img" aria-label="字时指针表盘，十二个数字刻度"></canvas></div>
+      <div class="controls"><button data-aod="numeral" aria-pressed="false">常显预览</button><button data-clock="numeral" aria-pressed="false">走时预览</button></div>
+      <p class="note">十二个数字围绕表盘，细长柳叶指针配独立小秒盘。数字信息最完整，读时更直接。</p>
+    </section>
+    <section data-kind="clock" aria-labelledby="orbit-title">
+      <div class="caption"><h2 id="orbit-title">04　轨迹</h2><span>HAND / ORBIT</span></div>
+      <div class="round"><canvas id="orbit" width="466" height="466" role="img" aria-label="轨迹指针表盘，红色圆形时针与细长分针"></canvas></div>
+      <div class="controls"><button data-aod="orbit" aria-pressed="false">常显预览</button><button data-clock="orbit" aria-pressed="false">走时预览</button></div>
+      <p class="note">红色时针沿内轨道移动，白色分针伸向外圈。大圆点与细线分工，时间更像一组运动轨迹。</p>
+    </section>
+    <section data-kind="clock" aria-labelledby="frame-title">
+      <div class="caption"><h2 id="frame-title">05　方构</h2><span>HAND / FRAME</span></div>
+      <div class="round"><canvas id="frame" width="466" height="466" role="img" aria-label="方构指针表盘，方形轨道与粗短时针"></canvas></div>
+      <div class="controls"><button data-aod="frame" aria-pressed="false">常显预览</button><button data-clock="frame" aria-pressed="false">走时预览</button></div>
+      <p class="note">圆屏内的方形轨道、四段粗刻度与平头指针。以几何结构形成不同于传统钟面的视觉。</p>
+    </section>
+    <section data-kind="clock" aria-labelledby="dots-title">
+      <div class="caption"><h2 id="dots-title">06　点刻</h2><span>HAND / DOTS</span></div>
+      <div class="round"><canvas id="dots" width="466" height="466" role="img" aria-label="点刻指针表盘，点阵刻度与胶囊形指针"></canvas></div>
+      <div class="controls"><button data-aod="dots" aria-pressed="false">常显预览</button><button data-clock="dots" aria-pressed="false">走时预览</button></div>
+      <p class="note">大圆点标小时、小圆点标分钟，圆头双针与点阵日期呼应。整体更轻松，延续设备的点阵语言。</p>
+    </section>
+    <section data-kind="maze" aria-labelledby="maze-title">
+      <div class="caption"><h2 id="maze-title">迷宫关卡</h2><span>12 LEVELS</span></div>
+      <div class="round" id="maze-round">
+        <canvas id="maze" width="466" height="466" tabindex="0" aria-label="迷宫交互预览，方向键或在圆屏内拖动控制小球"></canvas>
+        <button class="screen-button back" id="maze-back" aria-label="返回关卡选择">‹</button>
+        <button class="screen-button retry" id="maze-retry" aria-label="重玩当前关卡">↻</button>
+        <button class="screen-button next" id="maze-next" hidden>下一关 →</button>
+        <div id="level-buttons" hidden></div>
+      </div>
+      <div class="controls"><button id="choose-level">选择关卡</button><button id="show-path" aria-pressed="false">查看路线</button><span class="status" id="maze-status" aria-live="polite">第 5 关 · 蛇形</span></div>
+      <p class="note"><strong>入门 → 转向 → 精密</strong>，每章四关，固定地图可重玩。聚焦圆屏用方向键，或按住拖动模拟倾斜；先练直道，再练折返与窄通道。</p>
+    </section>
+    <section data-kind="fluid" aria-labelledby="fluid-title">
+      <div class="caption"><h2 id="fluid-title">染流</h2><span>LIQUID / INK</span></div>
+      <div class="round fluid-screen">
+        <canvas id="fluid" width="466" height="466" tabindex="0" aria-label="彩色染料交互预览，按住拖动注入染料并搅动流场"></canvas>
+        <canvas id="fluid-overlay" class="fluid-overlay" width="466" height="466" aria-hidden="true"></canvas>
+        <button class="screen-button back" id="fluid-back" aria-label="恢复染料初始状态">‹</button>
+        <span class="fluid-status" id="fluid-status" role="status" hidden></span>
+      </div>
+      <div class="controls"><button id="fluid-motion" aria-pressed="true">流动预览</button><button id="fluid-reset">重新注入</button><select id="fluid-palette" aria-label="染料配色"><option value="coast">青蓝 / 陶橙</option><option value="mineral">松绿 / 米金</option><option value="rose">烟紫 / 珊瑚</option></select></div>
+      <p class="note">色带被流场拉开、卷曲、交融；按住拖动可注入新染料并搅开已有颜色。<strong>浏览器中的真实染料输运预览；设备实现与性能仍需单独验证。</strong></p>
+    </section>
+  </div>
+  <footer><span>沿用现有黑 / 白 / 红、Barlow 字体与共享应用返回区。</span><span>示例时间 10:08 · 电量 74% 为设计样例 · 固件原生图见 native 目录，真机待验收</span></footer>
+</main>
+<script defer src="./levels.js"></script>
+<script defer src="./ink-fluid.js"></script>
+<script defer src="./preview.js"></script>
+</body>
+</html>

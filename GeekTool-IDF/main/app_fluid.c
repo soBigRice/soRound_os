@@ -9,6 +9,9 @@
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "esp_pm.h"
+#include "fluid_ink.h"
+#include "settings.h"
+#include "lvgl_compat.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -52,6 +55,14 @@ static int64_t g_last_us;
 static bool g_pm_held;
 static lv_timer_t *g_timer;
 static esp_pm_lock_handle_t g_pm;                    // 钉住 CPU 240MHz:物理+渲染吃满算力才丝滑(DFS 空闲会掉到 80)
+static unsigned g_mode,g_palette,g_ink_color;
+static fluid_ink_t *g_ink;
+static lv_obj_t *g_scene,*g_parent,*g_modes[2],*g_ink_controls[3];
+static bool g_ink_playing=true,g_visible=true,g_touching;
+static lv_point_t g_touch_point;
+static int64_t g_touch_us;
+static float g_ink_tx,g_ink_ty;
+static void ink_frame(void);
 
 static uint32_t rnd(void) {
     static uint32_t s = 0x9d2c5681;
@@ -92,6 +103,7 @@ static void draw_disc(int cx, int cy, int r, uint16_t c) {
 /* 一帧:按经过时间跑固定物理小步 → 增量擦/画 → 最多 8 条脏带 */
 static void fluid_frame(lv_timer_t *t) {
     (void)t;
+    if(g_mode==1){ink_frame();return;}
     float tx = 0, ty = 1.0f;
     if (g_has_imu && !imu_read_tilt(&tx, &ty)) return;
 
@@ -211,7 +223,7 @@ static void fluid_frame(lv_timer_t *t) {
 static void buf_deleted(lv_event_t *e)  { heap_caps_free(lv_event_get_user_data(e)); }   // 删屏是 async 的,
 static void mem_deleted(lv_event_t *e)  { free(lv_event_get_user_data(e)); }             // 真正删除时才释放
 
-static void fluid_enter(lv_obj_t *parent) {
+static void particle_enter(lv_obj_t *parent) {
     size_t sz_p = NPART * sizeof(part_t), sz_h = HW * HW * sizeof(int16_t), sz_n = NPART * sizeof(int16_t);
     uint8_t *blk = malloc(sz_p + sz_h + sz_n);
     g_buf = heap_caps_malloc(BW * BW * 2, MALLOC_CAP_SPIRAM);     // 画布进 PSRAM,不占内部 RAM
@@ -266,21 +278,146 @@ static void fluid_enter(lv_obj_t *parent) {
     g_timer = lv_timer_create(fluid_frame, 20, NULL);             // 50Hz 渲染,固定时间物理步进
 }
 
-static void fluid_exit(void) {
+static void stop_simulation(void) {
     if (g_timer) { lv_timer_delete(g_timer); g_timer = NULL; }    // 先停定时器,再由删屏回调释放缓冲
     if (g_pm) { pm_hold(false); esp_pm_lock_delete(g_pm); g_pm = NULL; }
     g_canvas = g_hint = NULL;
     g_p = NULL; g_head = g_next = NULL; g_buf = NULL;
+    g_ink=NULL;g_touching=false;
 }
 
 static void fluid_visibility(bool visible) {
+    g_visible=visible;g_touching=false;
     if (!g_timer) return;
     if (visible) {
         g_last_us = esp_timer_get_time(); g_remainder = 0;
-        pm_hold(!g_asleep); lv_timer_resume(g_timer);
+        pm_hold(!g_asleep&&(g_mode==0||g_ink_playing));
+        if(g_mode==0||g_ink_playing)lv_timer_resume(g_timer);
     } else {
         lv_timer_pause(g_timer); pm_hold(false);
     }
+}
+
+static const char *fluid_word(const char *en,const char *zh){return settings_lang()?zh:en;}
+static void ink_redraw(void){
+    fluid_ink_dirty_t dirty[FLUID_INK_BANDS];
+    if(!g_ink||!g_buf||!fluid_ink_render(g_ink,g_buf,dirty))return;
+    lv_area_t bounds;lv_obj_get_coords(g_canvas,&bounds);
+    for(int i=0;i<FLUID_INK_BANDS;++i)if(dirty[i].x1<=dirty[i].x2){
+        lv_area_t a={bounds.x1+dirty[i].x1,bounds.y1+dirty[i].y1,bounds.x1+dirty[i].x2,bounds.y1+dirty[i].y2};
+        lv_obj_invalidate_area(g_canvas,&a);
+    }
+}
+static void ink_wake(void){
+    g_asleep=false;g_calm=0;
+    if(g_timer&&g_ink_playing&&g_visible){lv_timer_set_period(g_timer,20);pm_hold(true);}
+}
+static void ink_frame(void){
+    if(!g_ink||!g_ink_playing||!g_visible)return;
+    int64_t now=esp_timer_get_time();float dt=fminf((now-g_last_us)/1000000.0f,.025f);g_last_us=now;
+    float tx=0,ty=0;
+    if(g_has_imu&&!imu_read_tilt(&tx,&ty)){tx=g_ink_tx;ty=g_ink_ty;}
+    if(g_asleep){if(!motion_wake(tx,ty,g_ltx,g_lty))return;ink_wake();dt=.02f;}
+    float dx=tx-g_ink_tx,dy=ty-g_ink_ty;
+    // A change of tilt stirs the closed dye volume; a constant pose must settle and sleep.
+    if(fabsf(dx)+fabsf(dy)>.003f){
+        fluid_ink_inject(g_ink,.5f,.5f,dx*600,dy*600,0,0);
+        fluid_ink_inject(g_ink,.7f,.6f,-dy*300,dx*300,0,0);
+        g_ink_tx=tx;g_ink_ty=ty;g_calm=0;
+    }
+    float speed=fluid_ink_step(g_ink,dt);ink_redraw();
+    if(speed<.2f&&!g_touching)g_calm+=(uint32_t)(dt*1000000);else g_calm=0;
+    if(g_calm>=693000){g_asleep=true;g_ltx=tx;g_lty=ty;lv_timer_set_period(g_timer,33);pm_hold(false);}
+}
+static void ink_touch(lv_event_t *e){
+    if(!g_ink||!g_visible)return;
+    lv_event_code_t code=lv_event_get_code(e);
+    if(code==LV_EVENT_RELEASED||code==LV_EVENT_PRESS_LOST){if(g_touching)++g_ink_color;g_touching=false;return;}
+    lv_indev_t *input=lv_indev_active();if(!input)return;
+    lv_point_t point;lv_indev_get_point(input,&point);lv_area_t bounds;lv_obj_get_coords(g_canvas,&bounds);
+    int64_t now=esp_timer_get_time();
+    if(!g_touching){g_touch_point=point;g_touch_us=now;g_touching=true;}
+    float elapsed=fmaxf((now-g_touch_us)/1000000.0f,.008f);
+    float dx=(point.x-g_touch_point.x)/(float)FLUID_INK_WIDTH*FLUID_INK_GRID/elapsed;
+    float dy=(point.y-g_touch_point.y)/(float)FLUID_INK_WIDTH*FLUID_INK_GRID/elapsed;
+    int steps=LV_MAX(1,(int)ceilf(hypotf(point.x-g_touch_point.x,point.y-g_touch_point.y)/7));
+    for(int i=1;i<=steps;++i){float t=i/(float)steps;
+        float px=(g_touch_point.x+(point.x-g_touch_point.x)*t-bounds.x1)/(FLUID_INK_WIDTH-1);
+        float py=(g_touch_point.y+(point.y-g_touch_point.y)*t-bounds.y1)/(FLUID_INK_WIDTH-1);
+        fluid_ink_inject(g_ink,px,py,dx/steps,dy/steps,g_ink_color,.4f);
+    }
+    g_touch_point=point;g_touch_us=now;ink_wake();ink_redraw();
+}
+static void ink_enter(lv_obj_t *parent){
+    g_ink=heap_caps_malloc(fluid_ink_bytes(),MALLOC_CAP_SPIRAM);
+    g_buf=heap_caps_malloc(FLUID_INK_WIDTH*FLUID_INK_WIDTH*2,MALLOC_CAP_SPIRAM);
+    if(!g_ink||!g_buf){if(g_ink)heap_caps_free(g_ink);if(g_buf)heap_caps_free(g_buf);g_ink=NULL;g_buf=NULL;return;}
+    memset(g_buf,0,FLUID_INK_WIDTH*FLUID_INK_WIDTH*2);fluid_ink_reset(g_ink,g_palette);g_ink_color=0;
+    g_canvas=lv_canvas_create(parent);lv_canvas_set_buffer(g_canvas,g_buf,FLUID_INK_WIDTH,FLUID_INK_WIDTH,LV_COLOR_FORMAT_RGB565);
+    // In dye mode a drag paints. Keep the shared header/BOOT return; don't interpret a brush stroke as back.
+    ui_obj_set_gesture_bubble(g_canvas,false);ui_obj_set_event_bubble(g_canvas,false);ui_obj_set_clickable(g_canvas,true);
+    lv_obj_add_event_cb(g_canvas,ink_touch,LV_EVENT_PRESSED,NULL);lv_obj_add_event_cb(g_canvas,ink_touch,LV_EVENT_PRESSING,NULL);
+    lv_obj_add_event_cb(g_canvas,ink_touch,LV_EVENT_RELEASED,NULL);lv_obj_add_event_cb(g_canvas,ink_touch,LV_EVENT_PRESS_LOST,NULL);
+    lv_obj_add_event_cb(g_canvas,buf_deleted,LV_EVENT_DELETE,g_buf);lv_obj_add_event_cb(g_canvas,buf_deleted,LV_EVENT_DELETE,g_ink);
+    g_has_imu=imu_init();g_ink_tx=g_ink_ty=0;if(g_has_imu)imu_read_tilt(&g_ink_tx,&g_ink_ty);
+    g_asleep=false;g_calm=0;g_last_us=esp_timer_get_time();g_ink_playing=true;
+    if(esp_pm_lock_create(ESP_PM_CPU_FREQ_MAX,0,"ink",&g_pm)==ESP_OK)pm_hold(true);
+    g_timer=lv_timer_create(fluid_frame,20,NULL);ink_redraw();
+}
+static void ink_action(lv_event_t *e);
+static void mode_action(lv_event_t *e);
+static lv_obj_t *fluid_button(lv_obj_t *parent,int x,int y,int w,const char *name,lv_event_cb_t cb,uintptr_t action){
+    lv_obj_t *button=lv_button_create(parent);lv_obj_remove_style_all(button);lv_obj_set_pos(button,x,y);lv_obj_set_size(button,w,36);
+    lv_obj_set_style_radius(button,12,0);lv_obj_set_style_bg_color(button,lv_color_hex(0x16161a),0);lv_obj_set_style_bg_opa(button,LV_OPA_COVER,0);
+    lv_obj_set_style_border_width(button,1,0);lv_obj_set_style_border_color(button,lv_color_hex(0x353539),0);
+    ui_obj_set_scrollable(button,false);ui_obj_set_gesture_bubble(button,false);lv_obj_add_event_cb(button,cb,LV_EVENT_CLICKED,(void *)action);
+    lv_obj_t *label=lv_label_create(button);lv_obj_set_style_text_font(label,UI_FONT_M,0);lv_obj_set_style_text_color(label,lv_color_hex(COL_TXT),0);
+    lv_label_set_text(label,name);lv_obj_center(label);return button;
+}
+static void update_controls(void){
+    for(int i=0;i<2;++i)lv_obj_set_style_border_color(g_modes[i],lv_color_hex(g_mode==(unsigned)i?COL_RED:0x353539),0);
+    for(int i=0;i<3;++i)ui_obj_set_hidden(g_ink_controls[i],g_mode==0);
+    const char *const en[]={"Blue / teal","Green / gold","Rose / coral"};
+    const char *const zh[]={"青蓝 / 陶橙","松绿 / 米金","烟紫 / 珊瑚"};
+    lv_label_set_text(lv_obj_get_child(g_ink_controls[0],0),settings_lang()?zh[g_palette]:en[g_palette]);
+    lv_label_set_text(lv_obj_get_child(g_ink_controls[1],0),g_ink_playing?fluid_word("Pause","暂停"):fluid_word("Play","播放"));
+}
+static void open_mode(void){
+    stop_simulation();if(g_scene)lv_obj_delete(g_scene);
+    g_scene=lv_obj_create(g_parent);lv_obj_remove_style_all(g_scene);lv_obj_set_size(g_scene,466,466);
+    ui_obj_set_scrollable(g_scene,false);ui_obj_set_event_bubble(g_scene,true);
+    if(g_mode==0)particle_enter(g_scene);else ink_enter(g_scene);
+    if(g_hint)lv_obj_align(g_hint,LV_ALIGN_TOP_MID,0,146);
+    if(!g_timer){pm_hold(false);g_hint=lv_label_create(g_scene);lv_obj_set_style_text_font(g_hint,UI_FONT_M,0);lv_label_set_text(g_hint,fluid_word("Not enough memory","内存不足"));lv_obj_align(g_hint,LV_ALIGN_TOP_MID,0,146);}
+    for(int i=0;i<2;++i)if(g_modes[i])lv_obj_move_foreground(g_modes[i]);
+    for(int i=0;i<3;++i)if(g_ink_controls[i])lv_obj_move_foreground(g_ink_controls[i]);
+    if(!g_visible)fluid_visibility(false);
+}
+static void mode_action(lv_event_t *e){
+    unsigned mode=(uintptr_t)lv_event_get_user_data(e);if(mode==g_mode)return;g_mode=mode;open_mode();update_controls();
+}
+static void ink_action(lv_event_t *e){
+    if(!g_ink)return;
+    unsigned action=(uintptr_t)lv_event_get_user_data(e);
+    if(action==1){g_ink_playing=!g_ink_playing;
+        if(g_ink_playing){g_last_us=esp_timer_get_time();ink_wake();lv_timer_resume(g_timer);}else{lv_timer_pause(g_timer);pm_hold(false);g_touching=false;}}
+    else {if(action==0)g_palette=(g_palette+1)%FLUID_INK_PALETTES;fluid_ink_reset(g_ink,g_palette);g_ink_color=0;ink_wake();ink_redraw();}
+    update_controls();
+}
+static void fluid_enter(lv_obj_t *parent){
+    g_parent=parent;g_visible=true;open_mode();
+    g_modes[0]=fluid_button(parent,126,89,104,fluid_word("Particles","粒子"),mode_action,0);
+    g_modes[1]=fluid_button(parent,238,89,104,fluid_word("Ink","染料"),mode_action,1);
+    g_ink_controls[0]=fluid_button(parent,112,383,140,"",ink_action,0);
+    g_ink_controls[1]=fluid_button(parent,260,383,64,"",ink_action,1);
+    g_ink_controls[2]=fluid_button(parent,332,383,40,LV_SYMBOL_REFRESH,ink_action,2);
+    lv_obj_set_style_text_font(lv_obj_get_child(g_ink_controls[2],0),UI_FONT_SYM,0);
+    update_controls();
+}
+static void fluid_exit(void){
+    stop_simulation();g_scene=g_parent=NULL;
+    for(int i=0;i<2;++i)g_modes[i]=NULL;
+    for(int i=0;i<3;++i)g_ink_controls[i]=NULL;
 }
 
 const app_t app_fluid = { "fluid", COL_TXT, fluid_enter, NULL, fluid_exit, NULL, 0, fluid_visibility };

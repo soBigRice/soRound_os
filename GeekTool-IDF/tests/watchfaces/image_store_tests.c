@@ -63,15 +63,18 @@ int main(void){
     factory=true;assert(!img_store_face_image_for(0));drain();
     // The actual shipped FAT image must not override all three embedded themes.
     assert(!s_ok&&!s_dsc.data);
-    for(int i=0;i<3;++i)assert(!img_store_face_image_for(i));drain();
+    for(int i=0;i<3;++i)assert(!img_store_face_image_for(i));
+    drain();
     for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==&s_defaults[i]&&s_defaults[i].data);
     assert(created==4);reset();
     factory=modified_factory=true;assert(!img_store_face_image_for(0));drain();
     assert(s_ok&&s_dsc.data);
-    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==&s_dsc&&!s_default_started[i]);reset();
+    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==&s_dsc&&!s_default_started[i]);
+    reset();
     custom=true;assert(!img_store_face_image_for(2));drain();
     const lv_image_dsc_t *d=img_store_face_image_for(2);assert(d);
-    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==d&&!s_default_started[i]);assert(created==1);reset();
+    for(int i=0;i<3;++i)assert(img_store_face_image_for(i)==d&&!s_default_started[i]);
+    assert(created==1);reset();
     assert(!img_store_face_image_for(0));drain();task_fail=true;assert(!img_store_face_image_for(0)&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();allocation_fail=true;assert(!img_store_face_image_for(0));drain();assert(!img_store_face_image_for(0)&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();decode_fail=true;assert(!img_store_face_image_for(0));drain();assert(!s_defaults[0].data&&!img_store_face_loading(0));reset();

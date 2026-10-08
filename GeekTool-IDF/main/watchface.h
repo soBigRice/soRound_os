@@ -1,5 +1,5 @@
 #pragma once
-// TYPE / ORBIT / SHIFT 三组，每组五款；前五个 NVS 索引保留原种类对应关系。
+// TYPE / ORBIT / SHIFT 各五款 + HAND 六款；旧 NVS 索引0–14保持原对应关系。
 // 黑底 AMOLED + 红色强调。设置页选择；BOOT 解锁和空闲策略由 lock.c 管理。
 #include "lvgl.h"
 #include <stdbool.h>
@@ -22,6 +22,8 @@ int         watchface_count(void);
 const char *watchface_name(int idx);
 const char *watchface_theme_name(int theme);
 const char *watchface_kind_name(int idx);
+int         watchface_theme_for(int idx);
+int         watchface_index_in_theme(int theme, int current);
 int         watchface_selected(void);
 void        watchface_select(int idx);   // 钳到 [0,count)，刷新当前内容；隐藏时下次显示生效
 // 233px 原生缩略图，共用实际渲染。预览无独立计时器，设置页负责刷新/销毁。

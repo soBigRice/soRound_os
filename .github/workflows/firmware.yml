@@ -44,7 +44,7 @@ jobs:
             GeekTool-IDF/sdkconfig
             GeekTool-IDF/dependencies.lock
 
-      - name: Check startup flow with release LVGL
+      - name: Check startup and play with release LVGL
         run: |
           # Existing LVGL compatibility calls remain supported in 9.6;
           # suppress only their deprecation warnings in this host fixture.
@@ -52,9 +52,11 @@ jobs:
             -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
           cmake --build "$RUNNER_TEMP/startup-host" --parallel 4 --target \
             startup_tests startup_network_tests lock_startup_tests \
-            identity_ui_tests display_frame_gate_tests startup_flow_tests
+            identity_ui_tests display_frame_gate_tests startup_flow_tests \
+            play_tests performance_tests watchface_tests watchface_image_tests \
+            settings_level_tests system_ui_tests buttons_tests
           ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure \
-            -R 'startup_|identity_geometry'
+            -R 'startup_|identity_geometry|fluid_modes|performance_regressions|watchface_|settings_controls|system_memory|system_font|physical_button'
 
       - name: Publish firmware to Release
         if: startsWith(github.ref, 'refs/tags/')

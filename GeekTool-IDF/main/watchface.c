@@ -1,4 +1,4 @@
-// Fifteen faces: TYPE / ORBIT / SHIFT, each with dots / bold / rings / weather / image.
+// Legacy fifteen faces plus six HAND faces; the catalogue owns group boundaries.
 // NVS indices 0..4 retain the original kind mapping. BOOT and power policy belong to lock.c.
 #include "watchface.h"
 #include "watchface_ui.h"
@@ -21,23 +21,14 @@ static int s_idx;
 static bool s_aod,s_sleep;
 static time_t s_last_minute=(time_t)-1;
 static watchface_data_t s_data;
-static const char *const themes[]={"TYPE","ORBIT","SHIFT"};
-static const char *const kinds[]={"dots","bold","rings","weather","image"};
-static const char *const names[]={
-    "TYPE / dots","TYPE / bold","TYPE / rings","TYPE / weather","TYPE / image",
-    "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
-    "SHIFT / dots","SHIFT / bold","SHIFT / rings","SHIFT / weather","SHIFT / image"
-};
-int watchface_count(void){return WATCHFACE_COUNT;}
 int watchface_selected(void){return s_idx;}
-const char *watchface_name(int i){return i>=0&&i<WATCHFACE_COUNT?names[i]:"";}
-const char *watchface_theme_name(int theme){return theme>=0&&theme<WATCHFACE_THEME_COUNT?themes[theme]:"";}
-const char *watchface_kind_name(int index){return index>=0&&index<WATCHFACE_COUNT?kinds[index%WATCHFACE_KIND_COUNT]:"";}
 
 static bool snapshot(bool force) {
     time_t now=time(NULL);struct tm t;localtime_r(&now,&t);
     time_t minute=now/60;bool minute_changed=minute!=s_last_minute;
-    bool dirty=force||minute_changed||(!s_aod&&s_idx%5==0&&t.tm_sec!=s_data.time.tm_sec);
+    bool legacy=s_idx<WATCHFACE_LEGACY_COUNT;
+    bool seconds=!legacy||s_idx%WATCHFACE_KIND_COUNT==0;
+    bool dirty=force||minute_changed||(!s_aod&&seconds&&t.tm_sec!=s_data.time.tm_sec);
     s_data.time=t;s_data.aod=s_aod;
     if(force||minute_changed) {
         wifi_ap_record_t ap;s_data.wifi=wifi_service_ready() && esp_wifi_sta_get_ap_info(&ap)==ESP_OK;
@@ -53,15 +44,15 @@ static bool snapshot(bool force) {
         s_data.battery=LV_CLAMP(0,battery,100);s_data.charging=state==PWR_CHARGING||state==PWR_FULL;
         s_last_minute=minute;
     }
-    if(s_idx%5==3) {
+    if(legacy&&s_idx%WATCHFACE_KIND_COUNT==3) {
         weather_poll();int temp=0,lo=0,hi=0,code=0,hum=0;
         bool ok=weather_cached(&temp,&lo,&hi,&code,&hum);
         dirty|=ok!=s_data.weather_valid||temp!=s_data.temperature||lo!=s_data.low||hi!=s_data.high||code!=s_data.code||hum!=s_data.humidity;
         s_data.weather_valid=ok;s_data.temperature=temp;s_data.low=lo;s_data.high=hi;s_data.code=code;s_data.humidity=hum;
     }
-    if(s_idx%5==4) {
-        const lv_image_dsc_t *image=img_store_face_image_for(s_idx/5);
-        bool loading=img_store_face_loading(s_idx/5);
+    if(legacy&&s_idx%WATCHFACE_KIND_COUNT==4) {
+        const lv_image_dsc_t *image=img_store_face_image_for(watchface_theme_for(s_idx));
+        bool loading=img_store_face_loading(watchface_theme_for(s_idx));
         dirty|=image!=s_data.image||loading!=s_data.image_loading;
         s_data.image=image;s_data.image_loading=loading;
     } else {s_data.image=NULL;s_data.image_loading=false;}

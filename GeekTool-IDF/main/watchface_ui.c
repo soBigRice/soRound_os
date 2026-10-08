@@ -48,6 +48,8 @@ static const lv_font_t *font(const draw_t *d,int size) {
     switch(size) {
         case 14:return d->preview?&font_wf_7:&font_wf_14;
         case 18:return d->preview?&font_wf_9:&font_wf_18;
+        case 24:return d->preview?&font_hand_regular_12:&font_hand_regular_24;
+        case 32:return d->preview?&font_hand_semibold_16:&font_hand_semibold_32;
         case 28:return d->preview?&font_wf_semibold_14:&font_wf_semibold_28;
         case 52:return d->preview?&font_wf_semibold_26:&font_wf_semibold_52;
         case 56:return d->preview?&font_wf_semibold_28:&font_wf_semibold_56;
@@ -266,8 +268,121 @@ static void image_face(const draw_t *d,const watchface_data_t *data,int theme,co
     else {line(d,84,81,116,81,4,COL_RED);aligned_text(d,time,75,143,350,104,WHITE,0,true);date_at(d,&data->time,75,201,true);}
     if(!data->image&&!data->aod)text(d,data->image_loading?"Loading background":"Background unavailable",233,316,300,18,GRAY,0);
 }
+static void needle_polygon(const draw_t *d,float angle,const float points[][2],int count,uint32_t color) {
+    float p[24][2],s=sinf(angle),c=cosf(angle),scale=d->size/466.0f;
+    float top=INFINITY,bottom=-INFINITY;
+    for(int i=0;i<count;++i){p[i][0]=d->x+(233+points[i][0]*c-points[i][1]*s)*scale;
+        p[i][1]=d->y+(233+points[i][0]*s+points[i][1]*c)*scale;
+        top=fminf(top,p[i][1]);bottom=fmaxf(bottom,p[i][1]);}
+    // Triangle fans antialias their shared edges, leaving seams inside solid hands.
+    // Fill each convex contour once; only its outside edge gets four-sample coverage.
+    lv_draw_rect_dsc_t r;lv_draw_rect_dsc_init(&r);r.bg_color=lv_color_hex(color);
+    for(int y=(int)floorf(top);y<=(int)ceilf(bottom);++y){
+        float left[4],right[4],lo=INFINITY,hi=-INFINITY,solid_lo=-INFINITY,solid_hi=INFINITY;
+        int samples=0;
+        for(int sample=0;sample<4;++sample){float sy=y-.375f+sample*.25f;left[sample]=INFINITY;right[sample]=-INFINITY;
+            for(int i=0,j=count-1;i<count;j=i++)if((p[i][1]>sy)!=(p[j][1]>sy)){
+                float x=p[i][0]+(sy-p[i][1])*(p[j][0]-p[i][0])/(p[j][1]-p[i][1]);
+                left[sample]=fminf(left[sample],x);right[sample]=fmaxf(right[sample],x);}
+            if(left[sample]<=right[sample]){++samples;lo=fminf(lo,left[sample]);hi=fmaxf(hi,right[sample]);
+                solid_lo=fmaxf(solid_lo,left[sample]);solid_hi=fminf(solid_hi,right[sample]);}
+        }
+        if(!samples)continue;
+        int first=(int)floorf(lo+.5f),last=(int)ceilf(hi-.5f);
+        int a=samples==4?(int)ceilf(solid_lo+.5f):last+1,b=samples==4?(int)floorf(solid_hi-.5f):first-1;
+        if(a<=b){r.bg_opa=LV_OPA_COVER;lv_area_t area={a,y,b,y};lv_draw_rect(d->layer,&r,&area);}
+        for(int x=first;x<=last;++x){if(x>=a&&x<=b)continue;float coverage=0;
+            for(int sample=0;sample<4;++sample)if(left[sample]<=right[sample]){
+                coverage+=fminf(1,fmaxf(0,right[sample]-x+.5f))-fminf(1,fmaxf(0,left[sample]-x+.5f));}
+            r.bg_opa=(lv_opa_t)lroundf(coverage*255/4);
+            if(r.bg_opa){lv_area_t area={x,y,x,y};lv_draw_rect(d->layer,&r,&area);}
+        }
+    }
+}
+static void needle(const draw_t *d,float angle,float length,float width,uint32_t color,bool hollow,bool flat) {
+    const float p[][2]={{-width/2,14},{-width/2,-length+(flat?0:12)},{0,-length},{width/2,-length+(flat?0:12)},{width/2,14}};
+    needle_polygon(d,angle,p,5,color);
+    if(hollow)bar(d,233+sinf(angle)*22,233-cosf(angle)*22,233+sinf(angle)*(length-23),233-cosf(angle)*(length-23),width-7,0);
+}
+static void leaf(const draw_t *d,float angle,float length,float width,uint32_t color) {
+    float p[20][2];int n=0;
+    for(int i=0;i<=9;++i){float t=i/9.0f;p[n][0]=-width*.5f*sinf(PI*t);p[n++][1]=14-t*(length+14);}
+    for(int i=8;i>0;--i){float t=i/9.0f;p[n][0]=width*.5f*sinf(PI*t);p[n++][1]=14-t*(length+14);}
+    needle_polygon(d,angle,p,n,color);
+}
+static void hand_date(const draw_t *d,const struct tm *t,int y,int size) {
+    char value[24];strftime(value,sizeof value,"%a %d %b",t);
+    for(char *p=value;*p;++p)*p=(char)toupper((unsigned char)*p);
+    text(d,value,233,y,230,size,GRAY,0);
+}
+static void hand_battery(const draw_t *d,const watchface_data_t *data,int y) {
+    uint32_t color=data->charging?COL_CHARGE:GRAY;char value[12];
+    bar(d,203,y-4,219,y-4,1,color);bar(d,203,y+4,219,y+4,1,color);
+    bar(d,203,y-4,203,y+4,1,color);bar(d,219,y-4,219,y+4,1,color);bar(d,222,y-2,222,y+2,2,color);
+    if(data->battery_valid){bar(d,206,y,206+data->battery*.12f,y,4,color);snprintf(value,sizeof value,"%d%%",data->battery);}
+    else strcpy(value,"--%");
+    text(d,value,249,y,58,14,color,0);
+}
+static void hand_face(const draw_t *d,const watchface_data_t *data,int kind) {
+    bool aod=data->aod;uint32_t shade=aod?0x8d8d87:WHITE;
+    float seconds=aod?0:data->time.tm_sec,minutes=data->time.tm_min+seconds/60;
+    float hours=data->time.tm_hour%12+minutes/60,ha=hours*PI/6,ma=minutes*PI/30,sa=seconds*PI/30;
+    if(kind==0){
+        for(int i=0;i<60;++i){bool major=i%5==0;float a=i*PI/30;if(aod&&!major)continue;
+            bar(d,233+sinf(a)*(major?190:203),233-cosf(a)*(major?190:203),233+sinf(a)*214,233-cosf(a)*214,major?4:1.5f,major?shade:0x73737b);}
+        text(d,"12",233,83,64,32,shade,0);text(d,"3",382,235,48,32,shade,0);text(d,"6",233,383,48,32,shade,0);text(d,"9",84,235,48,32,shade,0);
+        if(!aod){text(d,"soRound",233,150,120,14,GRAY,0);hand_date(d,&data->time,308,18);hand_battery(d,data,337);}
+        needle(d,ha,107,14,shade,false,false);needle(d,ma,158,8,shade,false,false);
+        if(!aod){line(d,233-sinf(sa)*31,233+cosf(sa)*31,233+sinf(sa)*179,233-cosf(sa)*179,2,COL_RED);
+            tools_circle(d->layer,d->x+scaled(d,233-sinf(sa)*23),d->y+scaled(d,233+cosf(sa)*23),scaled(d,6),LV_MAX(1,scaled(d,2)),COL_RED);}
+        dot(d,233,233,18,0);dot(d,233,233,11,aod?shade:COL_RED);
+    }else if(kind==1){
+        for(int i=0;i<12;++i)arc(d,181,i*30-92.5f,i*30-87.5f,17,shade);
+        if(!aod){arc(d,212,-90,270,2,DIM);arc(d,212,-90,-90+minutes*6,3,WHITE);dot(d,233+sinf(sa)*212,233-cosf(sa)*212,9,COL_RED);
+            for(int i=0;i<60;++i)if(i%5)dot(d,233+sinf(i*PI/30)*206,233-cosf(i*PI/30)*206,2.2f,0x56565e);
+            arc(d,40,0,360,1,0x1d1d21);text(d,"soRound",233,130,120,14,GRAY,0);
+            char day[8],value[16];strftime(day,sizeof day,"%a",&data->time);strftime(value,sizeof value,"%d %b",&data->time);
+            for(char *p=day;*p;++p)*p=(char)toupper((unsigned char)*p);
+            for(char *p=value;*p;++p)*p=(char)toupper((unsigned char)*p);
+            text(d,day,233,300,96,14,GRAY,0);text(d,value,233,325,120,18,WHITE,0);hand_battery(d,data,354);}
+        needle(d,ha,113,16,shade,true,false);needle(d,ma,171,5,shade,false,false);dot(d,233+sinf(ma)*171,233-cosf(ma)*171,7,aod?shade:COL_RED);
+        dot(d,233,233,16,0);arc(d,7,0,360,2,shade);dot(d,233,233,4,aod?shade:COL_RED);
+    }else if(kind==2){
+        if(!aod)for(int i=0;i<60;++i)if(i%5){float a=i*PI/30;bar(d,233+sinf(a)*207,233-cosf(a)*207,233+sinf(a)*212,233-cosf(a)*212,1.2f,0x62626a);}
+        for(int i=1;i<=12;++i){float a=i*PI/6;char value[4];snprintf(value,sizeof value,"%d",i);text(d,value,(int)lroundf(233+sinf(a)*179),(int)lroundf(233-cosf(a)*179),52,i%3?24:32,shade,0);}
+        if(!aod){hand_date(d,&data->time,151,14);for(int i=0;i<12;++i){float a=i*PI/6;bar(d,233+sinf(a)*26,321-cosf(a)*26,233+sinf(a)*30,321-cosf(a)*30,1,0x73737b);}
+            line(d,233,321,233+sinf(sa)*23,321-cosf(sa)*23,1.5f,COL_RED);dot(d,233,321,4,COL_RED);text(d,"soRound",233,371,120,14,GRAY,0);}
+        leaf(d,ha,119,12,shade);leaf(d,ma,167,6,shade);dot(d,233,233,10,shade);dot(d,233,233,4,0);
+    }else if(kind==3){
+        arc(d,103,0,360,1,aod?0x353539:0x46464d);
+        for(int i=0;i<60;++i){if(aod&&i%5)continue;float a=i*PI/30;dot(d,233+sinf(a)*207,233-cosf(a)*207,i%5?2.2f:6.4f,i%5?0x6b6b73:shade);}
+        if(!aod){hand_date(d,&data->time,83,14);hand_battery(d,data,372);dot(d,233+sinf(sa)*218,233-cosf(sa)*218,7,COL_RED);}
+        float hx=233+sinf(ha)*103,hy=233-cosf(ha)*103,mx=233+sinf(ma)*187,my=233-cosf(ma)*187;
+        line(d,233,233,hx,hy,2,aod?shade:COL_RED);dot(d,hx,hy,38,aod?shade:COL_RED);dot(d,hx,hy,8,0);
+        bar(d,233,233,mx,my,4,shade);dot(d,mx,my,12,shade);dot(d,mx,my,4,0);dot(d,233,233,18,0);dot(d,233,233,6,shade);
+    }else if(kind==4){
+        for(int i=0;i<60;++i){if(aod&&i%15)continue;float a=i*PI/30,s=sinf(a),c=-cosf(a),m=fmaxf(fabsf(s),fabsf(c));
+            float outer=156/m,inner=(i%15==0?139:i%5==0?148:152)/m;
+            bar(d,233+s*inner,233+c*inner,233+s*outer,233+c*outer,i%15==0?14:i%5==0?4:1,i%15==0?shade:GRAY);}
+        if(!aod){bar(d,99,99,367,99,1,0x27272d);bar(d,367,99,367,367,1,0x27272d);bar(d,367,367,99,367,1,0x27272d);bar(d,99,367,99,99,1,0x27272d);
+            text(d,"soRound",233,152,120,14,GRAY,0);char value[16];strftime(value,sizeof value,"%a %d",&data->time);for(char *p=value;*p;++p)*p=(char)toupper((unsigned char)*p);
+            text(d,value,233,309,160,18,shade,0);strftime(value,sizeof value,"%B",&data->time);for(char *p=value;*p;++p)*p=(char)toupper((unsigned char)*p);text(d,value,233,336,180,14,GRAY,0);
+            dot(d,233+sinf(sa)*207,233-cosf(sa)*207,5,COL_RED);}
+        needle(d,ha,101,18,shade,false,true);needle(d,ma,169,6,aod?shade:COL_RED,false,true);
+        bar(d,225,233,241,233,16,0);bar(d,230,233,236,233,6,shade);
+    }else{
+        for(int i=0;i<60;++i){float a=i*PI/30,r=i%5?216:192,x=233+sinf(a)*r,y=233-cosf(a)*r;
+            if(i%5){if(!aod)dot(d,x,y,3.2f,0x5a5a63);}else for(int j=0;j<4;++j)dot(d,x+(j%2?4:-4),y+(j/2?4:-4),5.6f,shade);}
+        if(!aod){char day[4],month[8];snprintf(day,sizeof day,"%02d",data->time.tm_mday);matrix(d,day,233,334,5,3);
+            strftime(month,sizeof month,"%b",&data->time);for(char *p=month;*p;++p)*p=(char)toupper((unsigned char)*p);text(d,month,233,366,100,14,GRAY,0);
+            dot(d,233+sinf(sa)*216,233-cosf(sa)*216,9,COL_RED);}
+        line(d,233,233,233+sinf(ha)*102,233-cosf(ha)*102,16,shade);line(d,233,233,233+sinf(ma)*169,233-cosf(ma)*169,6,aod?shade:COL_RED);
+        dot(d,233,233,16,0);dot(d,233,233,8,shade);
+    }
+}
 void watchface_render(lv_layer_t *layer,const lv_area_t *area,const watchface_data_t *data,int index,bool preview) {
     draw_t d={.layer=layer,.x=area->x1,.y=area->y1,.size=lv_area_get_width(area),.preview=preview};
+    if(index>=WATCHFACE_LEGACY_COUNT&&index<WATCHFACE_COUNT){hand_face(&d,data,index-WATCHFACE_LEGACY_COUNT);return;}
     int theme=index/WATCHFACE_KIND_COUNT,kind=index%WATCHFACE_KIND_COUNT;
     char time[8],hours[4],minutes[4];snprintf(time,sizeof time,"%02d:%02d",data->time.tm_hour,data->time.tm_min);
     snprintf(hours,sizeof hours,"%02d",data->time.tm_hour);snprintf(minutes,sizeof minutes,"%02d",data->time.tm_min);

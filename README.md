@@ -98,8 +98,10 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
-TYPE / ORBIT / SHIFT三组十五款锁屏表盘、真实缩略图、默认/自定义背景和常显状态见
-[锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。当前实现与原生主机检查完成，真机效果待验收。
+TYPE / ORBIT / SHIFT与新增HAND共二十一款锁屏表盘、真实缩略图、默认/自定义背景和常显状态见
+[锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。新增六款已完成原生检查；内测发布见
+[beta.32记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)，真机效果待验收。
+流体“原粒子 / 彩色染料”双模式和三章十二个固定迷宫关卡见[小游戏实现](./GeekTool-IDF/PLAY_UI.md)。
 抛硬币的双层币缘、中文大字、上抛翻面、暂停/退出及骰子回归见
 [硬币实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画)。
 系统信息三页布局、内存统计口径、刷新与字体容量防线见

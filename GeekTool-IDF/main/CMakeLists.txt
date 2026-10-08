@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_ui.c" "font_watchface.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
+    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_catalog.c" "watchface_ui.c" "font_watchface.c" "font_watchface_hands.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
          "quickpanel.c" "tools_ui.c" "font_tools.c" "launcher_icons.c" "control_ui.c" "font_control.c" "identity_ui.c" "font_identity.c"
          "startup.c" "startup_network.c" "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
          "weather_ui.c" "weather_artwork.c" "font_weather_16.c" "font_weather_20.c"
@@ -7,7 +7,7 @@ idf_component_register(
          "weather_locations.c" "weather_locations_data.c" "weather_location_ui.c" "font_location_24.c"
          "settings.c" "app_settings.c" "app_ota.c" "ota_update.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
          "img_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
-         "rtc.c" "imu.c" "app_level.c" "app_maze.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c" "font_coin.c"
+         "rtc.c" "imu.c" "app_level.c" "app_maze.c" "maze_levels.c" "app_stopwatch.c" "app_fluid.c" "fluid_ink.c" "app_dice.c" "font_coin.c"
          "ble_twin.c" "app_twin.c" "ble_core.c" "ble_hid.c" "app_mouse.c"
          "network_http.c" "app_answers.c" "answers_data.c" "answers_fetch.c" "font_answer.c" "font_answer_cjk.c"
          "app_zodiac.c" "zodiac_data.c" "zodiac_fetch.c" "app_merit.c" "merit_artwork.c" "merit_sound.c" "merit_store.c" "weather_frame.c" "weather_refresh.c"

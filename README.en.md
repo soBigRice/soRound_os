@@ -127,7 +127,8 @@ Direct implementation references:
 | --- | --- |
 | Scheduling, animation and resource lifetime | [Performance record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化) |
 | Audio spectrum and level layout | [Audio / Level design](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md) |
-| Fifteen watch faces, images and always-on state | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
+| Twenty-one watch faces, images and always-on state; new HAND group locally verified, device acceptance pending | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
+| Original particles + color dye fluid modes and twelve fixed maze levels; device acceptance pending | [Play implementation](./GeekTool-IDF/PLAY_UI.md) |
 | Coin drawing, animation, pause and exit | [Coin implementation](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画) |
 | Memory statistics and System info pages | [System UI](./GeekTool-IDF/SYSTEM_UI.md) |
 | Nineteen geometric launcher icons | [Launcher icons](./GeekTool-IDF/LAUNCHER_ICONS.md) |

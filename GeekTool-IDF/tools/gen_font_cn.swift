@@ -1,5 +1,5 @@
 // 生成中文精简字库 main/font_cn16.c(LVGL fmt_txt,16px 4bpp,苹方 PingFang SC)。
-// 零外部依赖:macOS 自带 CoreText 渲染。保留历史字集并扫描 i18n/settings 与 System 文案。
+// 零外部依赖:macOS 自带 CoreText 渲染。保留历史字集并扫描现有页面文案。
 // 仅裁掉量化后完全透明的外边缘,用字形偏移保留原有像素位置、字距和基线。
 // 用法:cd GeekTool-IDF && swift tools/gen_font_cn.swift
 import Foundation
@@ -13,6 +13,9 @@ let outPath = "main/font_cn16.c"
 
 // ---- 1) 收集字符集(CJK 统一表意区)----
 var set = Set<Character>()
+func isFallbackCharacter(_ value: UInt32) -> Bool {
+    (0x4E00...0x9FFF).contains(value) || (0x3000...0x303F).contains(value) || (0xFF00...0xFFEF).contains(value)
+}
 for f in srcFiles {
     guard let s = try? String(contentsOfFile: f, encoding: .utf8) else {
         FileHandle.standardError.write("cannot read \(f)\n".data(using: .utf8)!); exit(1)
@@ -21,11 +24,13 @@ for f in srcFiles {
 }
 // System's private labels share this fallback, but comments are not product copy.
 // Keep the added character set scoped to its actual string literals.
-let systemText = try String(contentsOfFile:"main/app_sys.c",encoding:.utf8)
 let literals = try NSRegularExpression(pattern:#""(?:\\.|[^"\\])*""#)
-for match in literals.matches(in:systemText,range:NSRange(systemText.startIndex..<systemText.endIndex,in:systemText)) {
-    for ch in systemText[Range(match.range,in:systemText)!] where ("\u{4E00}"..."\u{9FFF}").contains(ch) {
-        set.insert(ch)
+for filename in ["main/app_sys.c", "main/app_fluid.c", "main/app_maze.c", "main/maze_levels.c"] {
+    let text = try String(contentsOfFile:filename,encoding:.utf8)
+    for match in literals.matches(in:text,range:NSRange(text.startIndex..<text.endIndex,in:text)) {
+        for ch in text[Range(match.range,in:text)!] where isFallbackCharacter(ch.unicodeScalars.first!.value) {
+            set.insert(ch)
+        }
     }
 }
 // 文案索引不覆盖所有页面和历史字符。新增文案时保留已交付字集,
@@ -35,7 +40,7 @@ if let previous = try? String(contentsOfFile: outPath, encoding: .utf8) {
     let range = NSRange(previous.startIndex..<previous.endIndex, in: previous)
     for match in regex.matches(in: previous, range: range) {
         if let hex = Range(match.range(at: 1), in: previous),
-           let value = UInt32(previous[hex], radix: 16), (0x4E00...0x9FFF).contains(value),
+           let value = UInt32(previous[hex], radix: 16), isFallbackCharacter(value),
            let scalar = UnicodeScalar(value) {
             set.insert(Character(String(scalar)))
         }

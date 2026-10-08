@@ -165,7 +165,7 @@ static void pick_face(lv_event_t *e) {
 }
 static void pick_theme(lv_event_t *e) {
     int theme=(int)(intptr_t)lv_event_get_user_data(e);
-    int index=theme*WATCHFACE_KIND_COUNT+watchface_selected()%WATCHFACE_KIND_COUNT;
+    int index=watchface_index_in_theme(theme,watchface_selected());
     watchface_select(index);settings_set_face((uint8_t)index);settings_save();queue_rebuild();
 }
 static void pick_lang(lv_event_t *e) {
@@ -230,10 +230,10 @@ static void rebuild(void *arg) {
         char caption[64];snprintf(caption,sizeof caption,"%s   %d / %d",watchface_kind_name(selected),selected+1,watchface_count());
         center_text(caption,354,278,CONTROL_WHITE,control_small_font());
         for(int theme=0;theme<WATCHFACE_THEME_COUNT;++theme) {
-            lv_obj_t *b=control_button(s_panel,113+theme*84,385,72,44,pick_theme,(void *)(intptr_t)theme);
+            lv_obj_t *b=control_button(s_panel,100+theme*66,379,62,40,pick_theme,(void *)(intptr_t)theme);
             lv_obj_set_style_radius(b,12,0);
-            if(theme==selected/WATCHFACE_KIND_COUNT){lv_obj_set_style_border_width(b,1,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
-            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_18,0,0,64,theme==selected/WATCHFACE_KIND_COUNT?CONTROL_WHITE:CONTROL_GRAY);
+            if(theme==watchface_theme_for(selected)){lv_obj_set_style_border_width(b,1,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
+            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_18,0,0,58,theme==watchface_theme_for(selected)?CONTROL_WHITE:CONTROL_GRAY);
             lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);lv_obj_center(name);
         }
     } else if(s_page==SETTINGS_LANG) {
