@@ -8,9 +8,18 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
+**October 9, 2026 (China time): [v1.7-beta.32](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.32) is published to the beta channel.**
+Six HAND analog faces bring the total to 21. Fluid now offers the original particles and
+soft, draggable color dye; Maze has 12 fixed levels with increasing difficulty. Enable beta
+updates on the device OTA page. The stable channel remains v1.7. All 19 release CI checks
+passed; complete R2 and domestic OTA images, matching digests and Range downloads were verified.
+The 4,185,936-byte image requires two 4 MiB OTA slots. Physical touch, IMU feel and OTA restart
+acceptance remain pending; see the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡).
+
 **October 8, 2026: [v1.7 stable](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) is published.**
-Both stable and beta OTA channels now serve v1.7, with the same production code as
-beta.31. Beta.30 remains withdrawn. Scrolling Settings, separate adjustment pages,
+Both channels served v1.7 at that release; the beta channel now serves beta.32 above.
+The stable v1.7 production code is the same as beta.31. Beta.30 remains withdrawn.
+Scrolling Settings, separate adjustment pages,
 centered watch-face previews, the ring-and-red-dot identity and About screen are included.
 The boot animation lasts at least four seconds; shared initialization, core checks and
 the revealed watch-face frame must pass before a new OTA image is confirmed. Core failures

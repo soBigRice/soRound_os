@@ -2132,4 +2132,15 @@ GCC检查发现新测试和旧图片缓存夹具单行for/if缩进歧义，仅�
 发布流水线将上述相关功能检查纳入现有启动检查步骤，标签与正式/内测上传规则保持。
 
 发布前国内正式OTA完整包仍为v1.7/4,149,792B，SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
-当前状态：源码与发布准备完成，等待标签CI、Release和分发对象核验。发布不代替真机触摸/帧耗时/IMU/OTA软件重启验收；本轮不执行设备烧录。
+北京时间2026-10-09发布完成（GitHub发布时间2026-10-08T16:03:13Z）。标签`v1.7-beta.32`对应源码`0e37e238ba57ab3e61decf20a5e9887ec54b7a25`；
+[标签CI 37804889119](https://github.com/soBigRice/soRound_os/actions/runs/37804889119)构建、19项回归、Release及R2上传均成功，
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.32)为已发布prerelease。
+最终发布包4,185,936B，4MiB槽余8,368B，SHA256 `f3adbed0afc42919c8ecc80892c99fbfb33ecb1b673e2e0d99cca81a32b43f79`。
+R2及国内OTA完整包均通过镜像身份/段边界/XOR/附加SHA检查，逐字节相同且与GitHub资产声明摘要一致；
+两地址的`bytes=1024-2047`加If-Match请求均返回206，Content-Range及内容与完整包切片一致。
+发布后两处正式OTA完整包仍为上面的v1.7，摘要与发布前相同。官网离线版本快照更新至正式v1.7/内测beta.32。
+[官网Pages CI 37806630603](https://github.com/soBigRice/soRound_os/actions/runs/37806630603)部署成功；公开中英文首页均HTTP200，
+完整页面与本地静态构建逐字节相同，正式v1.7/内测beta.32两个入口均核对通过。
+本机GitHub CDN整包及诊断zip下载超时，未将部分下载视为完整包验证；ELF/map/sdkconfig/锁文件仅由上述CI产物保留7天，未宣称本地诊断归档完成。
+已校验的最终bin另存本地`build/releases/v1.7-beta.32/GeekTool.bin`，小型发布证据存`build/flash-records/beta32-release-20261009/`（均位于GeekTool-IDF下且被Git忽略）。
+发布不代替真机触摸/帧耗时/IMU/OTA软件重启验收；本轮不执行设备烧录。
