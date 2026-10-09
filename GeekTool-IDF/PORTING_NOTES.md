@@ -2144,3 +2144,34 @@ R2及国内OTA完整包均通过镜像身份/段边界/XOR/附加SHA检查，逐
 本机GitHub CDN整包及诊断zip下载超时，未将部分下载视为完整包验证；ELF/map/sdkconfig/锁文件仅由上述CI产物保留7天，未宣称本地诊断归档完成。
 已校验的最终bin另存本地`build/releases/v1.7-beta.32/GeekTool.bin`，小型发布证据存`build/flash-records/beta32-release-20261009/`（均位于GeekTool-IDF下且被Git忽略）。
 发布不代替真机触摸/帧耗时/IMU/OTA软件重启验收；本轮不执行设备烧录。
+
+
+## 2026-10-09 v1.7-beta.33 方块像素场
+
+用户明确要求“发一个beta版”，纳入已确认“像素场”方向的「方块 / Pixels」应用。
+源提交及标签为`22271148d4db3f0889aa6e14df0472029748e46c / v1.7-beta.33`；启动器尾部追加第20项，原19项顺序、共享返回/电量环、BOOT和已有应用保留。
+拖动拨开、摇动重排、三配色和重聚的真实调用链、状态、字体保护及原生图见[方块像素场](./PIXELS_UI.md)。
+本轮复核修正单次持续冲击误作两峰，要求中间回落；I2C读取失败也清除旧回落状态。
+
+开发阶段LVGL9.5下12项相关回归通过。发布前使用v1.7归档配置与依赖锁、ESP-IDF6.0.1隔离构建，候选4,191,952B，4MiB槽余2,352B；镜像校验通过。
+候选SHA256为`251d2799be131833e0ce3db2d788fa870e3bfcf7dabaa682f0f020c55c540763`，不是CI发布包。
+[云端手动候选检查37900998816](https://github.com/soBigRice/soRound_os/actions/runs/37900998816)在确切源提交上构建并通过20/20回归，未写Release或OTA对象。
+独立本地GCC15/LVGL9.6仅完成CMake配置，云端候选通过后停止重复构建并清理；不把该配置步骤报告为本地20项测试通过。
+
+[标签CI37901788770](https://github.com/soBigRice/soRound_os/actions/runs/37901788770)构建、20项回归、Release与R2上传均成功。
+实际依赖为LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300驱动2.2.0，SDK为ESP-IDF6.0.1。
+[beta.33 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33)为非draft的prerelease，已补齐功能说明和设备验收边界。
+最终发布包4,191,952B，4MiB槽剩2,352B；未通过扩大分区、降画质或删功能换取空间。
+SHA256：`661bf4f5a926d796ef1f9894d2dd5656a487b2863e748d35acdff28076e22513`。
+
+准确CI诊断包下载完成；其bin与R2/国内OTA完整包逐字节相同，并匹配GitHub资产声明digest。
+三份包通过ESP32-S3/GeekTool/版本、段边界、XOR checksum及附加SHA校验。
+R2与国内beta对象的`If-Match + bytes=1024-2047`返回206，Content-Range、长度及正文切片一致，响应为no-store。
+发布前后两处正式整包仍为v1.7/4,149,792B，SHA256：
+`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
+
+准确bin/ELF/map/sdkconfig/依赖锁保存在`build/releases/v1.7-beta.33/`，小型发布回执位于`build/flash-records/beta33-release-20261009/`。
+ELF完整SHA256 `e7c64152844f8c07830f883230505e7fb02aaf861a88edc6374ff5cc6cfe42b2`与镜像应用描述符一致，可供后续设备回溯。
+官网离线版本快照和中英文README同步为正式v1.7/内测beta.33。
+[官网Pages CI37903706836](https://github.com/soBigRice/soRound_os/actions/runs/37903706836)成功；公开中英文首页均HTTP200，完整正文与本地静态构建逐字节相同，两种语言的正式v1.7/内测beta.33入口核对通过。
+本轮不烧录设备。发布、自动回归和原生截图不代替真机拖动/摇动/功耗、OTA升级、软件重启及首启验收。

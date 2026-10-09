@@ -8,7 +8,16 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**October 9, 2026 (China time): [v1.7-beta.32](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.32) is published to the beta channel.**
+**October 9, 2026 (China time): [v1.7-beta.33](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33) is published to the beta channel.**
+Pixels adds a colorful interactive field: drag blocks apart, shake to remix, cycle three
+palettes and regroup. The interface supports Chinese and English. Enable beta updates on
+the device OTA page; stable remains v1.7. All 20 release CI checks passed. Exact CI, R2 and
+domestic OTA images match, including digests and conditional Range responses.
+The 4,191,952-byte image leaves 2,352 bytes in each 4 MiB slot. Physical touch, shake feel,
+power consumption and OTA reboot acceptance remain pending; see the
+[release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-09-v17-beta33-方块像素场).
+
+**Previously: [v1.7-beta.32](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.32) was published on October 9, 2026 (China time).**
 Six HAND analog faces bring the total to 21. Fluid now offers the original particles and
 soft, draggable color dye; Maze has 12 fixed levels with increasing difficulty. Enable beta
 updates on the device OTA page. The stable channel remains v1.7. All 19 release CI checks
@@ -17,7 +26,7 @@ The 4,185,936-byte image requires two 4 MiB OTA slots. Physical touch, IMU feel 
 acceptance remain pending; see the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡).
 
 **October 8, 2026: [v1.7 stable](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) is published.**
-Both channels served v1.7 at that release; the beta channel now serves beta.32 above.
+Both channels served v1.7 at that release; the beta channel now serves beta.33 above.
 The stable v1.7 production code is the same as beta.31. Beta.30 remains withdrawn.
 Scrolling Settings, separate adjustment pages,
 centered watch-face previews, the ring-and-red-dot identity and About screen are included.
@@ -82,7 +91,7 @@ screen or PWR key, with an explicit fallback label when requests fail.
 - **20 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
   Settings, OTA updates, Audio visualizer, Level, Maze, Fluid, Dice & coin, Bluetooth
   remote (mouse / slides / media), Digital twin, Book of Answers, Horoscope, Wooden Fish and Pixels.
-  [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is a new development implementation and is not included in the published versions above.
+  [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is included in beta.33; physical-device acceptance remains pending.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.
 - Dual OTA partitions, boot rollback protection, version checks and Cloudflare R2 distribution.
