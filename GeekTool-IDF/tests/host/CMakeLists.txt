@@ -21,6 +21,14 @@ target_include_directories(play_tests PRIVATE stubs ../ota/stubs ../../main)
 target_link_libraries(play_tests PRIVATE lvgl m)
 target_compile_options(play_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME fluid_modes_and_fixed_maze_levels COMMAND play_tests)
+add_executable(pixel_tests pixel_tests.c ../../main/pixel_field.c ../../main/glyph.c
+               ../../main/i18n.c ../../main/font_cn16.c ../../main/font_weather_16.c
+               ../../main/font_location_24.c
+               ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c)
+target_include_directories(pixel_tests PRIVATE stubs ../ota/stubs ../../main)
+target_link_libraries(pixel_tests PRIVATE lvgl m)
+target_compile_options(pixel_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME pixels_interaction_and_lifecycle COMMAND pixel_tests)
 add_executable(ota_ui_tests ota_ui_tests.c ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(ota_ui_tests PRIVATE ../ota/stubs ../../main)
 target_link_libraries(ota_ui_tests PRIVATE lvgl m)

@@ -53,10 +53,10 @@ jobs:
           cmake --build "$RUNNER_TEMP/startup-host" --parallel 4 --target \
             startup_tests startup_network_tests lock_startup_tests \
             identity_ui_tests display_frame_gate_tests startup_flow_tests \
-            play_tests performance_tests watchface_tests watchface_image_tests \
+            play_tests pixel_tests performance_tests watchface_tests watchface_image_tests \
             settings_level_tests system_ui_tests buttons_tests
           ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure \
-            -R 'startup_|identity_geometry|fluid_modes|performance_regressions|watchface_|settings_controls|system_memory|system_font|physical_button'
+            -R 'startup_|identity_geometry|fluid_modes|pixels_|performance_regressions|watchface_|settings_controls|system_memory|system_font|physical_button'
 
       - name: Publish firmware to Release
         if: startsWith(github.ref, 'refs/tags/')

@@ -36,6 +36,11 @@ static void box(ink_t *p,int x,int y,int w,int h,int radius,uint32_t color) {
     d.border_color=lv_color_hex(color);d.border_width=STROKE;d.radius=radius;
     lv_area_t a={p->x+x,p->y+y,p->x+x+w-1,p->y+y+h-1};lv_draw_rect(p->layer,&d,&a);
 }
+static void tile(ink_t *p,int x,int y,int size,uint32_t color) {
+    lv_draw_rect_dsc_t d;lv_draw_rect_dsc_init(&d);
+    d.base.obj=p->obj;d.bg_opa=p->opa;d.bg_color=lv_color_hex(color);d.radius=1;
+    lv_area_t a={p->x+x,p->y+y,p->x+x+size-1,p->y+y+size-1};lv_draw_rect(p->layer,&d,&a);
+}
 static void stroke(ink_t *p,int x1,int y1,int x2,int y2) {line(p,x1,y1,x2,y2,STROKE,INK);}
 static void circle(ink_t *p,int x,int y,int r,uint32_t color) {arc(p,x,y,r,0,360,STROKE,color);}
 static void cube(ink_t *p,int cx) {
@@ -140,6 +145,11 @@ static void paint(ink_t *p,launcher_icon_t kind) {
         box(p,22,60,104,68,34,INK);box(p,36,75,76,39,19,INK);
         stroke(p,54,64,84,105);dot(p,83,106,9,COL_RED);
         stroke(p,90,42,127,21);dot(p,85,43,18,COL_RED);break;
+    case LAUNCHER_PIXELS:
+        // A displaced red tile hints at the field's touch-and-shake motion.
+        tile(p,26,31,25,INK);tile(p,62,31,25,INK);tile(p,106,23,25,COL_RED);
+        tile(p,26,67,25,INK);tile(p,62,67,25,INK);tile(p,98,67,25,INK);
+        tile(p,62,103,25,INK);tile(p,98,103,25,INK);break;
     default: break;
     }
 }

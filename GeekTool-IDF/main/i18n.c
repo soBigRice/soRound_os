@@ -118,6 +118,7 @@ static const char *const APP_ZH[][2] = {
     { "Answers",   "答案之书" },
     { "Zodiac",    "星座运势" },
     { "Merit",     "木鱼" },
+    { "Pixels",    "方块" },
 };
 
 const char *tr(str_id_t id) {

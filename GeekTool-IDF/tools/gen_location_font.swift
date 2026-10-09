@@ -5,6 +5,13 @@ import CoreText
 import CoreGraphics
 let text = try String(contentsOfFile:"artwork/locations/names.txt",encoding:.utf8)
 var codes = Set<UInt32>(32...126)
+// Page-string scans can shrink after copy changes. Retain every shipped glyph,
+// including historical labels, before adding the current pages' characters.
+let previous = try String(contentsOfFile:"main/font_location_24.c",encoding:.utf8)
+let historical=try NSRegularExpression(pattern:#"U\+([0-9A-Fa-f]{4,6})"#)
+for match in historical.matches(in:previous,range:NSRange(previous.startIndex..<previous.endIndex,in:previous)) {
+    if let range=Range(match.range(at:1),in:previous),let code=UInt32(previous[range],radix:16) {codes.insert(code)}
+}
 for c in (text+"省市区选择地址常用最近其他地点确认保存失败亮度音量常显静音表盘语言关于开启关闭拖动调整上下滑动切换点击试听中文").unicodeScalars where c.value>126 { if c.value != 10 { codes.insert(c.value) } }
 let literals=try NSRegularExpression(pattern:#""(?:\\.|[^"\\])*""#)
 for source in ["main/weather_location_ui.c","main/app_settings.c","main/app_wifi.c","main/app_answers.c","main/app_zodiac.c","main/zodiac_data.c","main/app_merit.c","main/i18n.c"] {

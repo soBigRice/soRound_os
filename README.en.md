@@ -79,9 +79,10 @@ screen or PWR key, with an explicit fallback label when requests fail.
   dot-matrix elements and restrained colors for weather icons.
 - Radial launcher, quick panel, lock-screen watch faces, brightness, volume, always-on
   display and persistent settings in NVS.
-- **19 built-in apps:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
+- **20 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
   Settings, OTA updates, Audio visualizer, Level, Maze, Fluid, Dice & coin, Bluetooth
-  remote (mouse / slides / media), Digital twin, Book of Answers, Horoscope and Wooden Fish.
+  remote (mouse / slides / media), Digital twin, Book of Answers, Horoscope, Wooden Fish and Pixels.
+  [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is a new development implementation and is not included in the published versions above.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.
 - Dual OTA partitions, boot rollback protection, version checks and Cloudflare R2 distribution.

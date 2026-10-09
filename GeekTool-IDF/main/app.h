@@ -58,6 +58,7 @@ extern const app_t app_mouse;
 extern const app_t app_answers;
 extern const app_t app_zodiac;
 extern const app_t app_merit;
+extern const app_t app_pixels;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
 uint32_t launcher_heartbeat(void);

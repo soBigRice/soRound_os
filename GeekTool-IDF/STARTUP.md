@@ -36,7 +36,7 @@ main.c:app_main
 | --- | --- |
 | 触摸 | 驱动沿用原初始化，LVGL输入设备注册成功；`TOUCH`。早期SDK致命错误仍走既有panic/reboot。 |
 | 启动器 | App调度、渲染看门狗、电量、按键及省电计时器创建成功；`UI`。 |
-| App表 | `APP_COUNT > 0`，每项对象/name/enter存在；`APPS`。遵守原接口，exit/tick/back等可选入口允许为空，现有日历即无exit。已核对实际19项注册。 |
+| App表 | `APP_COUNT > 0`，每项对象/name/enter存在；`APPS`。遵守原接口，exit/tick/back等可选入口允许为空，现有日历即无exit。2026-10-09核对实际20项注册，方块追加于原19项之后。 |
 | 设置存储 | NVS settings命名空间只读打开/关闭成功；首次未创建命名空间允许默认值；其他错误为`STORAGE`。不写测试数据。 |
 | 公共服务 | 音频总线互斥量、Wi-Fi服务初始化完成；`AUDIO / WIFI`。Wi-Fi关联、IP、互联网不属于核心有效性条件。 |
 | 内存 | PSRAM已初始化，内部堆完整性检查通过；内部RAM与PSRAM各分配512B，写读模式后释放；`MEMORY`。不扫描活跃内存或整个PSRAM堆。 |

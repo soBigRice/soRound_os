@@ -11,6 +11,7 @@ idf_component_register(
          "ble_twin.c" "app_twin.c" "ble_core.c" "ble_hid.c" "app_mouse.c"
          "network_http.c" "app_answers.c" "answers_data.c" "answers_fetch.c" "font_answer.c" "font_answer_cjk.c"
          "app_zodiac.c" "zodiac_data.c" "zodiac_fetch.c" "app_merit.c" "merit_artwork.c" "merit_sound.c" "merit_store.c" "weather_frame.c" "weather_refresh.c"
+         "app_pixels.c" "pixel_field.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common

@@ -23,7 +23,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -47,11 +47,12 @@ static void header_app_style(void) {
     bool weather = cur_app == &app_weather;
     bool controls = cur_app == &app_settings || cur_app == &app_wifi;
     bool book = cur_app == &app_answers || cur_app == &app_zodiac || cur_app == &app_merit;
+    bool pixels = cur_app == &app_pixels;
     bool compact = weather || controls || book;
     bool tools = cur_app == &app_audio || cur_app == &app_level;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
-    lv_obj_set_style_text_font(g_title, compact ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_style_text_font(g_title, (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
     lv_obj_set_style_text_letter_space(g_title, 0, 0);
     lv_obj_set_style_text_color(g_title, lv_color_hex(COL_TXT), 0);
     lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
