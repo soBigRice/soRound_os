@@ -44,11 +44,11 @@ def main():
             frame(f'hand-{i:02d}', f'hand-{name.lower()}')
         gallery([(f'hand-{i:02d}', f'HAND / {name}') for i, name in enumerate(HANDS)],
                 3, 'hands', 'NATIVE LVGL / 466 x 466 / device acceptance pending')
-        for name in ('particles-zh', 'ink-zh', 'maze-menu-zh', 'maze-05-zh', 'maze-win-zh'):
+        for name in ('particles-zh', 'maze-menu-zh', 'maze-05-zh', 'maze-win-zh'):
             frame(name, name)
         frame('face-15-zh', 'selector')
-        gallery([('particles-zh', 'PARTICLES / original mode'), ('ink-zh', 'INK / real pointer stirring')],
-                2, 'fluid', 'Native app content / launcher header omitted / device acceptance pending')
+        gallery([('particles-zh', 'PARTICLES / tilt to flow')],
+                1, 'fluid', 'Native app content / launcher header omitted / device acceptance pending')
         gallery([('maze-menu-zh', '12 FIXED LEVELS'), ('maze-05-zh', '05 / 5 x 5'), ('maze-win-zh', 'COMPLETE / replay or choose next')],
                 3, 'maze', 'Native app content / launcher header omitted / device acceptance pending')
     print('Saved native review PNGs to', args.out, '; temporary PPMs removed.')

@@ -1,4 +1,4 @@
-// Real LVGL, dye solver and maze/particle controllers. Only the clock, IMU,
+// Real LVGL and maze/particle controllers. Only the clock, IMU,
 // allocator failure and PM APIs are fixtures; pointers drive the actual widgets.
 #include <assert.h>
 #include <math.h>
@@ -40,7 +40,6 @@ static void *test_heap_malloc(size_t size,unsigned caps){(void)caps;return test_
 #undef free
 #undef heap_caps_malloc
 #undef heap_caps_free
-#include "../../main/fluid_ink.c"
 #include "../../main/app_maze.c"
 #define W 466
 static uint16_t pixels[W*W];
@@ -75,60 +74,39 @@ static void capture(const char *name){
     char filename[1024];snprintf(filename,sizeof filename,"%s/%s.ppm",folder,name);FILE *f=fopen(filename,"wb");assert(f);fprintf(f,"P6\n466 466\n255\n");
     for(int i=0;i<W*W;++i){uint16_t p=pixels[i];uint8_t rgb[]={((p>>11)&31)*255/31,((p>>5)&63)*255/63,(p&31)*255/31};assert(fwrite(rgb,1,3,f)==3);}assert(fclose(f)==0);
 }
-static void brush(int x1,int y1,int x2,int y2){
-    touch_at(x1,y1,true);for(int i=1;i<=16;++i)touch_at(x1+(x2-x1)*i/16,y1+(y2-y1)*i/16,true);touch_at(x2,y2,false);
-}
-static void solver_boundaries(void){
-    fluid_ink_t *ink=malloc(fluid_ink_bytes()),*copy=malloc(fluid_ink_bytes());
-    uint16_t *guarded=calloc(W*W+16,sizeof(uint16_t));assert(guarded);
-    for(int i=0;i<8;++i)guarded[i]=guarded[W*W+8+i]=0x5aa5;
-    fluid_ink_dirty_t dirty[FLUID_INK_BANDS];
-    for(unsigned palette=0;palette<3;++palette){
-        fluid_ink_reset(ink,palette);memcpy(copy,ink,fluid_ink_bytes());
-        fluid_ink_inject(ink,NAN,.5f,1,1,0,1);fluid_ink_inject(ink,.5f,.5f,INFINITY,1,0,1);
-        fluid_ink_inject(ink,-1,2,1,1,0,1);assert(!memcmp(copy,ink,fluid_ink_bytes()));
-        for(int frame=0;frame<180;++frame){
-            float angle=frame*.29f;
-            fluid_ink_inject(ink,.5f+cosf(angle)*.38f,.5f+sinf(angle)*.38f,cosf(angle)*10000,sinf(angle)*10000,frame,.8f);
-            assert(isfinite(fluid_ink_step(ink,frame%2?.02f:10)));
-            for(int k=0;k<FC;++k){assert(isfinite(ink->u[k])&&isfinite(ink->v[k]));for(int c=0;c<3;++c)assert(isfinite(ink->dye[c][k])&&ink->dye[c][k]>=0);}
-        }
-        assert(fluid_ink_render(ink,guarded+8,dirty));
-        for(int i=0;i<FLUID_INK_BANDS;++i)if(dirty[i].x1<=dirty[i].x2)assert(dirty[i].x1>=0&&dirty[i].y1>=0&&dirty[i].x2<W&&dirty[i].y2<W);
-        assert(!fluid_ink_render(ink,guarded+8,dirty));
-        for(int i=0;i<8;++i)assert(guarded[i]==0x5aa5&&guarded[W*W+8+i]==0x5aa5);
-    }
-    free(guarded);free(copy);free(ink);
-    puts("Dye solver: nonfinite/outside inputs, extreme stirring/elapsed time, three palettes, bounded output and stable repeated render passed.");
-}
-static void particle_and_ink(void){
+static void particles(void){
     for(language=0;language<2;++language){
-        i18n_init();g_mode=0;page=new_page();fluid_enter(page);assert(g_p&&g_timer&&g_pm_held&&live==2);capture(language?"particles-zh":"particles-en");
-        tap(290,107);assert(g_mode==1&&g_ink&&!g_p&&live==2&&g_timer&&g_pm_held);
-        brush(125,183,343,288);brush(353,283,133,325);brush(133,313,268,153);
-        for(int i=0;i<20;++i)advance(20);
-        capture(language?"ink-zh":"ink-en");
-        tap(292,401);assert(!g_ink_playing&&lv_timer_get_paused(g_timer)&&!g_pm_held);
-        uint16_t *copy=malloc(W*W*2);memcpy(copy,g_buf,W*W*2);advance(1000);assert(!memcmp(copy,g_buf,W*W*2));
-        fluid_visibility(false);fluid_visibility(true);assert(lv_timer_get_paused(g_timer)&&!g_pm_held);
-        brush(150,240,315,245);assert(memcmp(copy,g_buf,W*W*2)&&!g_pm_held);free(copy);
-        for(int i=0;i<3;++i){unsigned before=g_palette;tap(177,401);assert(g_palette==(before+1)%3);capture(language?"ink-palette-zh":"ink-palette-en");}
-        tap(292,401);assert(g_ink_playing&&!lv_timer_get_paused(g_timer)&&g_pm_held);
-        fluid_visibility(false);assert(lv_timer_get_paused(g_timer)&&!g_pm_held);host_time_us+=10000000;fluid_visibility(true);assert(!lv_timer_get_paused(g_timer)&&g_pm_held&&g_last_us==host_time_us);
-        // A settled field must sleep, then wake under a slow accumulated change of tilt.
-        memset(g_ink->u,0,sizeof(g_ink->u));memset(g_ink->v,0,sizeof(g_ink->v));tilt_x=tilt_y=0;
-        for(int i=0;i<42;++i)advance(20);
-        assert(g_asleep&&!g_pm_held);
-        for(int i=1;i<=10;++i){tilt_x=.006f*i;advance(80);}assert(!g_asleep&&g_pm_held);
-        tilt_x=0;tap(176,107);assert(g_mode==0&&g_p&&!g_ink&&live==2);tap(290,107);assert(g_ink&&live==2);
-        fluid_exit();assert(!g_timer&&!g_pm);lv_obj_delete(page);assert(!live);advance(20);
+        i18n_init();page=new_page();fluid_enter(page);
+        assert(g_p&&g_timer&&g_pm_held&&live==2);
+        // A single canvas and hint: the removed mode and dye controls cannot return.
+        assert(lv_obj_get_child_count(page)==2);
+        capture(language?"particles-zh":"particles-en");
+        part_t *original=g_p;
+        tap(290,107);tap(177,401);tap(292,401);
+        assert(g_p==original&&live==2&&!lv_timer_get_paused(g_timer));
+        fluid_visibility(false);assert(lv_timer_get_paused(g_timer)&&!g_pm_held);
+        uint16_t *copy=malloc(BW*BW*2);assert(copy);memcpy(copy,g_buf,BW*BW*2);
+        advance(1000);assert(!memcmp(copy,g_buf,BW*BW*2));free(copy);
+        fluid_visibility(true);
+        assert(!lv_timer_get_paused(g_timer)&&g_pm_held&&g_last_us==host_time_us&&g_remainder==0);
+        fluid_exit();assert(!g_timer&&!g_pm&&!g_p&&!g_buf);
+        // Buffers stay alive until the canvas DELETE event, including deferred screen deletion.
+        assert(live==2);lv_obj_delete(page);assert(!live);advance(20);
     }
-    sensor=false;g_mode=1;page=new_page();fluid_enter(page);assert(g_ink&&!g_has_imu);brush(140,240,320,240);fluid_exit();lv_obj_delete(page);assert(!live);sensor=true;
-    for(unsigned mode=0;mode<2;++mode)for(unsigned failure=1;failure<=2;++failure){
-        allocations=0;fail_at=failure;g_mode=mode;page=new_page();fluid_enter(page);assert(!g_timer&&!g_pm_held&&live==0);capture("allocation-failure");
-        fail_at=0;tap(mode?176:290,107);assert(g_timer&&live==2);fluid_exit();lv_obj_delete(page);assert(!live);
+    sensor=false;page=new_page();fluid_enter(page);
+    assert(g_p&&!g_has_imu&&!strcmp(lv_label_get_text(g_hint),tr(S_FLUID_NOIMU)));
+    for(int i=0;i<20;++i)advance(20);
+    for(int i=0;i<NPART;++i)assert(isfinite(g_p[i].x)&&isfinite(g_p[i].y));
+    fluid_exit();lv_obj_delete(page);assert(!live);sensor=true;
+    for(unsigned failure=1;failure<=2;++failure){
+        allocations=0;fail_at=failure;page=new_page();fluid_enter(page);
+        assert(!g_timer&&!g_pm&&!g_pm_held&&live==0);
+        assert(!strcmp(lv_label_get_text(g_hint),settings_lang()?"内存不足":"Not enough memory"));
+        capture("allocation-failure");fluid_exit();lv_obj_delete(page);assert(!live);
+        fail_at=0;page=new_page();fluid_enter(page);assert(g_timer&&live==2);
+        fluid_exit();lv_obj_delete(page);assert(!live);
     }
-    puts("Both fluid modes EN/ZH: real drag, palette, pause/draw, no IMU, settled sleep/slow wake, visibility and allocation/switch/exit cleanup passed.");
+    puts("Particles EN/ZH: direct entry, no mode controls, no IMU, visibility clock/PM, allocation failure and deferred exit cleanup passed.");
 }
 static int route_for(const maze_level_t *l,int route[36]){
     int prev[36],queue[36],head=0,tail=1,n=l->size;for(int i=0;i<n*n;++i)prev[i]=-1;prev[0]=0;queue[0]=0;
@@ -179,7 +157,7 @@ static void native_hands(void){
         // The event callback below invokes the exact production renderer.
         lv_obj_add_event_cb(preview,hands_capture_draw,LV_EVENT_DRAW_MAIN,(void *)(uintptr_t)i);
         char name[32];snprintf(name,sizeof name,"hand-%02d",i-15);capture(name);
-        if(i==15){float angle=(10+(8+36/60.0f)/60.0f)*PI/6;
+        if(i==15){float angle=(10+(8+36/60.0f)/60.0f)*3.14159265358979323846f/6;
             for(int length=40;length<90;++length)for(int offset=-3;offset<=3;++offset){
                 int x=(int)lroundf(233+sinf(angle)*length+cosf(angle)*offset);
                 int y=(int)lroundf(233-cosf(angle)*length+sinf(angle)*offset);uint16_t p=pixels[y*W+x];
@@ -199,5 +177,5 @@ int main(int argc,char **argv){
     lv_display_set_buffers(display,buffer,NULL,sizeof(buffer),LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_black(),0);lv_indev_t *input=lv_indev_create();lv_indev_set_type(input,LV_INDEV_TYPE_POINTER);lv_indev_set_read_cb(input,read_pointer);
     lv_timer_set_period(lv_indev_get_read_timer(input),20);
-    solver_boundaries();particle_and_ink();maze_levels_and_physics();native_hands();lv_deinit();return 0;
+    particles();maze_levels_and_physics();native_hands();lv_deinit();return 0;
 }

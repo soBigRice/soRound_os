@@ -7,7 +7,7 @@ set(CONFIG_LV_USE_THORVG_INTERNAL OFF CACHE BOOL "" FORCE)
 set(LVGL_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../managed_components/lvgl__lvgl"
     CACHE PATH "LVGL source used to check local and release-version compatibility")
 add_subdirectory("${LVGL_SOURCE_DIR}" lvgl)
-add_executable(performance_tests performance_tests.c countdown_tests.c ../../main/glyph.c ../../main/fluid_ink.c)
+add_executable(performance_tests performance_tests.c countdown_tests.c ../../main/glyph.c)
 target_include_directories(performance_tests PRIVATE stubs ../../main)
 target_link_libraries(performance_tests PRIVATE lvgl m)
 target_compile_options(performance_tests PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
@@ -20,7 +20,7 @@ add_executable(play_tests play_tests.c ../../main/maze_levels.c ../../main/glyph
 target_include_directories(play_tests PRIVATE stubs ../ota/stubs ../../main)
 target_link_libraries(play_tests PRIVATE lvgl m)
 target_compile_options(play_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
-add_test(NAME fluid_modes_and_fixed_maze_levels COMMAND play_tests)
+add_test(NAME fluid_particles_and_fixed_maze_levels COMMAND play_tests)
 add_executable(pixel_tests pixel_tests.c ../../main/pixel_field.c ../../main/glyph.c
                ../../main/i18n.c ../../main/font_cn16.c ../../main/font_weather_16.c
                ../../main/font_location_24.c
