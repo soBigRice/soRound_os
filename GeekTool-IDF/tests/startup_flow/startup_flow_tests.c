@@ -12,11 +12,13 @@
 #include "lock.h"
 #include "img_store.h"
 #include "tools_ui.h"
+#include "esp_heap_caps.h"
 #include <stdio.h>
 static int64_t now;
 static bool held,wifi,home_dma,ui_lock_failure;
 static unsigned lock_calls;
 static unsigned confirmations,rollbacks,transfers;
+static unsigned memory_samples,memory_caps;
 static uint8_t face,language;
 static uint32_t requested,completed;
 static lv_display_t *display;
@@ -73,6 +75,12 @@ esp_err_t esp_pm_lock_create(int type,int arg,const char *name,esp_pm_lock_handl
 esp_err_t esp_pm_lock_acquire(esp_pm_lock_handle_t h){h->held=1;return ESP_OK;}
 esp_err_t esp_pm_lock_release(esp_pm_lock_handle_t h){h->held=0;return ESP_OK;}
 size_t heap_caps_get_free_size(unsigned cap){(void)cap;return 100000;}
+void heap_caps_get_info(multi_heap_info_t *info,uint32_t caps){
+    assert(caps==(MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT) || caps==(MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT));
+    assert(!(memory_caps&caps&~MALLOC_CAP_8BIT));
+    memory_caps|=caps;++memory_samples;
+    *info=(multi_heap_info_t){.total_free_bytes=100000,.largest_free_block=32000,.minimum_free_bytes=56000};
+}
 void *heap_caps_malloc(size_t size,uint32_t caps){(void)caps;return malloc(size);}
 void heap_caps_free(void *p){free(p);}
 bool heap_caps_check_integrity(uint32_t caps,bool errors){assert(caps==MALLOC_CAP_INTERNAL && errors);return true;}
@@ -134,7 +142,7 @@ int main(int argc,char **argv) {
     home_dma=argc<4 || strcmp(argv[3],"stall");
     ui_lock_failure=argc>3 && !strcmp(argv[3],"lock-stall");
     app_main();assert(!held && APP_COUNT==20 && APPS[19]==&app_pixels && lock_is_locked());
-    if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());}
-    else {assert(!confirmations && rollbacks==1 && identity_boot_active());}
+    if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
+    else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
     lv_deinit();puts("Full startup flow and revealed watchface frame/OTA gate passed");return 0;
 }

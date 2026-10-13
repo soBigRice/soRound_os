@@ -117,6 +117,12 @@ TYPE / ORBIT / SHIFT与新增HAND共二十一款锁屏表盘、真实缩略图�
 [硬币实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画)。
 系统信息三页布局、内存统计口径、刷新与字体容量防线见
 [系统信息 UI](./GeekTool-IDF/SYSTEM_UI.md)。
+内部 RAM / PSRAM 分配策略与真机对照验收见
+[资源分配记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-13-beta33-rampsram-分配候选优化)。
+天气的 DMA 交替搬运、PSRAM 图片缓存和软件对照见
+[天气优化候选](./GeekTool-IDF/WEATHER_DETAILS_DESIGN.md#2026-10-13-传输流水线与图片缓存候选)；
+当前源码采用双8MiB OTA / 15.875MiB文件区，用户已授权一次USB迁移。旧设备的实际分区不会随普通OTA扩大；
+迁移状态、文件备份及恢复要求见[容量规划记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-13-天气优化与32mib容量规划)。
 启动器20个几何图标、原生圆屏预览及切换绘制逻辑见
 [启动器图标](./GeekTool-IDF/LAUNCHER_ICONS.md)。
 答案之书的联网中英文答案、断网备用、实体键翻页与生命周期见

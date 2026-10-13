@@ -29,6 +29,7 @@ const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 static lv_obj_t *launcher_screen, *app_screen;
 static lv_obj_t *g_icon, *g_iconart, *g_name, *g_title, *g_back, *g_batt, *g_bolt;
 static lv_obj_t *g_back_label, *g_backdots;
+static lv_obj_t *g_batt_percent;
 static lv_obj_t *g_nextart;
 static const app_t *cur_app;
 static int cur, pending_app;
@@ -61,6 +62,7 @@ static void header_app_style(void) {
     lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, compact ? 52 : 46);
     lv_obj_set_size(g_back, (controls || book) ? 44 : (compact ? 40 : 48), (controls || book) ? 44 : (compact ? 40 : 48));
     lv_obj_align(g_back, LV_ALIGN_TOP_MID, (controls || book) ? -110 : -100, compact ? 52 : 40);
+    lv_obj_align(g_bolt,LV_ALIGN_TOP_MID,weather?-30:0,14);
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
     lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);
@@ -317,6 +319,15 @@ static void build_overlay(void) {
     lv_obj_set_style_arc_color(g_batt, lv_color_hex(COL_RING), LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(g_batt, 8, LV_PART_INDICATOR);
 
+    // Weather uses a small percentage instead of rasterizing a screen-sized
+    // battery arc for every partial scroll tile. The other pages retain it.
+    g_batt_percent=lv_label_create(top);
+    lv_label_set_text(g_batt_percent,"--%");
+    lv_obj_set_style_text_font(g_batt_percent,&lv_font_montserrat_14,0);
+    lv_obj_set_style_text_color(g_batt_percent,lv_color_hex(COL_TXT),0);
+    lv_obj_align(g_batt_percent,LV_ALIGN_TOP_MID,12,16);
+    lv_obj_add_flag(g_batt_percent,LV_OBJ_FLAG_HIDDEN);
+
     // 充电状态图标(⚡):顶端居中,默认隐藏。充电时呼吸、充满时常亮(只动这一小块)
     g_bolt = lv_label_create(top);
     lv_label_set_text(g_bolt, LV_SYMBOL_CHARGE);
@@ -393,15 +404,18 @@ static void bolt_breath(bool on) {
 }
 
 static void battery_visibility(bool covered) {
-    static bool was_covered;
-    if (covered == was_covered) return;
-    was_covered = covered;
+    static int previous=-1;
+    int mode=covered?0:cur_app==&app_weather?1:2;
+    if(mode==previous)return;
+    previous=mode;
+    if(mode==2)lv_obj_remove_flag(g_batt,LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(g_batt,LV_OBJ_FLAG_HIDDEN);
+    if(mode==1)lv_obj_remove_flag(g_batt_percent,LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(g_batt_percent,LV_OBJ_FLAG_HIDDEN);
     if (covered) {
-        lv_obj_add_flag(g_batt, LV_OBJ_FLAG_HIDDEN);
         lv_obj_add_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
         bolt_breath(false);
     } else {
-        lv_obj_remove_flag(g_batt, LV_OBJ_FLAG_HIDDEN);
         if (s_last_pwr == PWR_CHARGING || s_last_pwr == PWR_FULL)
             lv_obj_remove_flag(g_bolt, LV_OBJ_FLAG_HIDDEN);
         bolt_breath(s_last_pwr == PWR_CHARGING);
@@ -414,6 +428,7 @@ static void battery_timer_cb(lv_timer_t *t) {
     if (soc < 0)   soc = 0;
     if (soc > 100) soc = 100;
     lv_arc_set_value(g_batt, soc);
+    lv_label_set_text_fmt(g_batt_percent,"%d%%",soc);
 
     uint32_t col;
     switch (st) {
@@ -425,6 +440,7 @@ static void battery_timer_cb(lv_timer_t *t) {
     if (col != s_last_batt_color) {
         lv_obj_set_style_arc_color(g_batt, lv_color_hex(col), LV_PART_INDICATOR);
         lv_obj_set_style_text_color(g_bolt, lv_color_hex(col), 0);
+        lv_obj_set_style_text_color(g_batt_percent,lv_color_hex(col),0);
         s_last_batt_color = col;
     }
 

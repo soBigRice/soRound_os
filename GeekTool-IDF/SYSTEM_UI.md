@@ -20,6 +20,12 @@
 接口依据：[ESP-IDF 6.0.1 堆统计](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/system/heap_debug.html)、
 [能力分配](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/system/mem_alloc.html)。
 
+普通分配的内部 RAM / PSRAM 优先级、DMA 与任务栈边界，以及 beta33 的资源对照验收见
+[资源分配记录](./PORTING_NOTES.md#2026-10-13-beta33-rampsram-分配候选优化)。
+2026-10-13 的后续候选开启 1MiB 有界图片解码缓存，按需分配大块像素到 PSRAM；
+退出天气后缓存可继续保留，达到预算时由 LVGL 淘汰，不应把这部分稳定占用误判成泄漏。
+天气传输与缓存对照见 [天气优化](./WEATHER_DETAILS_DESIGN.md#2026-10-13-传输流水线与图片缓存候选)。
+
 ## 刷新与生命周期
 
 `launcher → sys_enter → select_page → sys_tick` 读取首次快照；
@@ -64,3 +70,6 @@ beta.17 标签构建通过，发布镜像 3,139,552B，4MiB 槽剩余 1,054,752B
 人工验收：打开“系统”，切换三页；已用+可用约等于总量（显示有单位舍入），
 RAM/PSRAM 进度与各自比例一致；设备页时长递增。盖住页面再返回，应恢复更新；
 切换中英文后按钮无缺字、不越过电量环，返回与电量环沿用原行为。
+
+
+2026-10-13天气性能取舍（用户明确批准去圆弧）：`launcher.c/battery_visibility`按遮挡、天气、其他页面三种状态切换电量层。天气显示`g_batt_percent`实时百分比，保留`g_bolt`充电/充满状态与低电颜色；其他页面继续使用原`g_batt`环。`header_app_style`同步充电图标位置，离开天气恢复居中位置；锁屏/遮挡隐藏相关电量层。天气详情的弧形滚动提示改成5个小刻度，完整说明以[天气文档](./WEATHER_DETAILS_DESIGN.md#2026-10-13-用户批准去除天气圆弧)为准。

@@ -79,7 +79,10 @@ if __name__ == "__main__":
         parser.error("provide a framebuffer directory or --render-with executable")
     if args.render_with:
         with tempfile.TemporaryDirectory(prefix="weather-artwork-") as directory:
-            subprocess.run([str(args.render_with), directory], check=True)
+            # Retain the archived header fixture for the existing content
+            # hashes. Current arc-free header/geometry runs in the default UI
+            # regressions; do not replace old hashes to accept a new layout.
+            subprocess.run([str(args.render_with), directory, "--legacy-header"], check=True)
             version = subprocess.check_output([str(args.render_with), "--lvgl-version"], text=True).strip()
             compare(Path(directory), version)
     else:

@@ -11,6 +11,7 @@
 #include "esp_log.h"
 #include "esp_system.h"
 #include "esp_ota_ops.h"
+#include "esp_heap_caps.h"
 
 #include "board_config.h"
 #include "display.h"
@@ -154,5 +155,14 @@ void app_main(void) {
     }
     identity_boot_release(boot);lvgl_port_unlock();
 
+    multi_heap_info_t internal,external;
+    heap_caps_get_info(&internal,MALLOC_CAP_INTERNAL|MALLOC_CAP_8BIT);
+    heap_caps_get_info(&external,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    // Match the System page's disjoint byte-addressable heaps. This startup
+    // snapshot still includes app_main's stack; it is not an idle/peak estimate.
+    ESP_LOGI("memory","startup malloc_threshold=%u internal free=%u largest=%u minimum=%u psram free=%u largest=%u minimum=%u",
+        (unsigned)CONFIG_SPIRAM_MALLOC_ALWAYSINTERNAL,
+        (unsigned)internal.total_free_bytes,(unsigned)internal.largest_free_block,(unsigned)internal.minimum_free_bytes,
+        (unsigned)external.total_free_bytes,(unsigned)external.largest_free_block,(unsigned)external.minimum_free_bytes);
     ESP_LOGI(TAG, "GeekTool M2a up — 左右滑/箭头切换,点图标进入,app 内右滑/‹ 返回");
 }

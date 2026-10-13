@@ -27,7 +27,7 @@ static int64_t header_result;
 static bool read_fail,response_complete=true;
 struct mock_client { int unused; };
 static struct mock_client client;
-static lv_obj_t *heading;
+static lv_obj_t *heading,*fixture_battery;
 uint8_t settings_lang(void) { return language; }
 void launcher_set_title(const char *text) { lv_label_set_text(heading,text); }
 esp_err_t esp_wifi_sta_get_ap_info(wifi_ap_record_t *ap) { (void)ap; return online?ESP_OK:ESP_FAIL; }
@@ -74,11 +74,13 @@ void display_weather_mode(bool enabled){frame_mode=enabled;}
 #include "../../main/app_weather.c"
 
 #define W 466
-static uint16_t buffer[W*W],pixels[W*W];
+// Match the device's partial buffer so custom drawing crosses tile boundaries.
+static uint16_t buffer[W*40],pixels[W*W];
 static lv_display_t *display;
 static lv_obj_t *page;
 static unsigned renders, audited_labels;
 static uint64_t flushed_pixels;
+static bool swapped;
 static int audit_section=-1;
 static lv_point_t pointer;
 static lv_indev_state_t pointer_state;
@@ -92,6 +94,7 @@ static void click_city(void) {
 }
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map) {
     int width=lv_area_get_width(a);
+    if(swapped)lv_draw_sw_rgb565_swap(map,(uint32_t)lv_area_get_size(a));
     flushed_pixels+=(uint64_t)width*lv_area_get_height(a);
     for(int y=a->y1;y<=a->y2;++y) { memcpy(pixels+y*W+a->x1,map,(size_t)width*2); map+=width*2; }
     lv_display_flush_ready(d);
@@ -123,7 +126,7 @@ static void label_bounds(lv_obj_t *obj) {
 }
 static void capture(const char *directory,const char *name) {
     lv_obj_update_layout(page); lv_obj_update_layout(lv_layer_top());
-    label_bounds(page); label_bounds(heading);
+    label_bounds(page); label_bounds(heading);if(fixture_battery)label_bounds(fixture_battery);
     lv_obj_invalidate(page); lv_tick_inc(20); lv_timer_handler(); lv_refr_now(display); ++renders;
     assert(lv_obj_get_child_count(s_ui.icon)==0 && lv_obj_get_child_count(s_ui.temperature)==0);
     assert(lv_obj_get_child_count(s_details.hero)==7); // Hero points remain drawing objects, not per-dot widgets.
@@ -202,6 +205,7 @@ static void advance(unsigned ms) {
 }
 static void draw_audit(lv_event_t *e) {
     lv_draw_task_t *task=lv_event_get_draw_task(e);
+    assert(lv_draw_task_get_type(task)!=LV_DRAW_TASK_TYPE_ARC);
     lv_draw_label_dsc_t *d=lv_draw_task_get_label_dsc(task);if(!d)return;
     uint32_t offset=0;
     while(d->text[offset]) {
@@ -253,6 +257,8 @@ static void detail_checks(const char *directory,bool motion,const char *fixture)
         ui_obj_set_send_draw_task_events(s_details.sections[i],true);
         lv_obj_add_event_cb(s_details.sections[i],draw_audit,LV_EVENT_DRAW_TASK_ADDED,NULL);
     }
+    ui_obj_set_send_draw_task_events(s_details.indicator,true);
+    lv_obj_add_event_cb(s_details.indicator,draw_audit,LV_EVENT_DRAW_TASK_ADDED,NULL);
     capture(directory,"forecast-hero");
     for(int i=0;i<4;++i) {
         lv_obj_scroll_to_y(s_details.scroll,(i+1)*W,LV_ANIM_OFF);advance(20);
@@ -298,12 +304,17 @@ int main(int argc,char **argv) {
     if(argc==2 && strcmp(argv[1],"--lvgl-version")==0) {
         printf("%d.%d.%d\n",LVGL_VERSION_MAJOR,LVGL_VERSION_MINOR,LVGL_VERSION_PATCH);return 0;
     }
-    const char *directory=argc>1?argv[1]:NULL;
+    const char *directory=NULL;bool motion=false,legacy_header=false;
+    for(int i=1;i<argc;++i) {
+        if(strcmp(argv[i],"--motion")==0)motion=true;
+        else if(strcmp(argv[i],"--swapped")==0)swapped=true;
+        else if(strcmp(argv[i],"--legacy-header")==0)legacy_header=true;
+        else {assert(!directory);directory=argv[i];}
+    }
     char *fixture=load_forecast();parse_forecast_checks(fixture);
-    bool motion=argc>2 && strcmp(argv[2],"--motion")==0;
     const int codes[]={0,1,2,3,45,48,51,53,55,56,57,61,63,65,66,67,71,73,75,77,80,81,82,85,86,95,96,97,99};
     lv_init(); i18n_init();
-    display=lv_display_create(W,W); lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
+    display=lv_display_create(W,W);lv_display_set_color_format(display,swapped?LV_COLOR_FORMAT_RGB565_SWAPPED:LV_COLOR_FORMAT_RGB565);
     input=lv_indev_create();lv_indev_set_type(input,LV_INDEV_TYPE_POINTER);lv_indev_set_read_cb(input,read_pointer);
     lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(display,flush);
@@ -312,6 +323,10 @@ int main(int argc,char **argv) {
     lv_obj_set_width(heading,166);lv_label_set_long_mode(heading,LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(heading,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_set_style_text_color(heading,lv_color_hex(0xf2eee6),0); lv_obj_align(heading,LV_ALIGN_TOP_MID,0,56);
+    // The archived full-screen hashes include the old decorative header.
+    // Only artwork/content compatibility renders use that fixture; default
+    // tests exercise the newly approved arc-free weather header.
+    if(legacy_header) {
     lv_obj_t *ring=lv_arc_create(lv_layer_top()); lv_obj_set_size(ring,458,458); lv_obj_center(ring);
     ui_obj_set_clickable(ring,false);
     lv_arc_set_rotation(ring,270); lv_arc_set_bg_angles(ring,0,360); lv_arc_set_value(ring,6);
@@ -319,6 +334,12 @@ int main(int argc,char **argv) {
     lv_obj_set_style_arc_width(ring,6,LV_PART_MAIN); lv_obj_set_style_arc_width(ring,6,LV_PART_INDICATOR);
     lv_obj_set_style_arc_color(ring,lv_color_hex(0x22272a),LV_PART_MAIN);
     lv_obj_set_style_arc_color(ring,lv_color_hex(0xf2eee6),LV_PART_INDICATOR);
+    }else {
+        fixture_battery=lv_label_create(lv_layer_top());lv_label_set_text(fixture_battery,"74%");
+        lv_obj_set_style_text_font(fixture_battery,&lv_font_montserrat_14,0);
+        lv_obj_set_style_text_color(fixture_battery,lv_color_hex(COL_TXT),0);
+        lv_obj_align(fixture_battery,LV_ALIGN_TOP_MID,12,16);
+    }
     lv_obj_t *back=lv_obj_create(lv_layer_top()); lv_obj_remove_style_all(back); lv_obj_set_size(back,40,40);
     lv_obj_set_style_radius(back,LV_RADIUS_CIRCLE,0); lv_obj_set_style_bg_opa(back,LV_OPA_COVER,0);
     lv_obj_set_style_bg_color(back,lv_color_hex(0x22272a),0); lv_obj_align(back,LV_ALIGN_TOP_MID,-100,52);

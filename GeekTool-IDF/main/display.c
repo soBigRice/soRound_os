@@ -13,8 +13,11 @@
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_pm.h"
+#include "esp_timer.h"
+#include "esp_rom_sys.h"
 #include "driver/gpio.h"
 #include "freertos/semphr.h"
+#include <string.h>
 
 static const char *TAG = "display";
 
@@ -27,6 +30,25 @@ static bool s_te_ready,s_te_warned;
 static volatile uint32_t s_transfer_count;
 static display_frame_gate_t s_frame_gate;
 static weather_refresh_t s_refresh;
+static struct {
+    int64_t started_us;
+    uint64_t total_us,te_us,flush_us,submit_us,wait_us,bytes;
+    uint32_t frames,max_us,te_timeouts,tiles,cpu80_frames,cpu240_frames;
+    bool painted;
+} s_weather_timing;
+static void weather_timing_event(lv_event_t *event) {
+    if(!s_refresh.frame.pixels)return;
+    if(lv_event_get_code(event)==LV_EVENT_REFR_START) {
+        s_weather_timing.started_us=esp_timer_get_time();s_weather_timing.painted=false;
+        uint32_t mhz=esp_rom_get_cpu_ticks_per_us();
+        if(mhz==80)++s_weather_timing.cpu80_frames;
+        if(mhz==240)++s_weather_timing.cpu240_frames;
+    }else if(s_weather_timing.painted) {
+        uint32_t elapsed=(uint32_t)(esp_timer_get_time()-s_weather_timing.started_us);
+        s_weather_timing.total_us+=elapsed;++s_weather_timing.frames;
+        if(elapsed>s_weather_timing.max_us)s_weather_timing.max_us=elapsed;
+    }
+}
 #if CONFIG_PM_ENABLE
 static esp_pm_lock_handle_t s_te_awake;
 #endif
@@ -47,26 +69,45 @@ static bool color_done(esp_lcd_panel_io_handle_t io,esp_lcd_panel_io_event_data_
 static void wait_te(void *arg) {
     (void)arg;
     if(!s_te_ready)return;
+    int64_t started=esp_timer_get_time();
 #if CONFIG_PM_ENABLE
     // GPIO edge ISR cannot wake automatic light sleep. Hold only across this bounded TE wait.
     if(s_te_awake)esp_pm_lock_acquire(s_te_awake);
 #endif
     xSemaphoreTake(s_te,0);
-    if(xSemaphoreTake(s_te,pdMS_TO_TICKS(25))!=pdTRUE&&!s_te_warned) {
-        ESP_LOGW(TAG,"TE timeout; sending the completed weather frame");s_te_warned=true;
+    if(xSemaphoreTake(s_te,pdMS_TO_TICKS(25))!=pdTRUE) {
+        ++s_weather_timing.te_timeouts;
+        if(!s_te_warned){ESP_LOGW(TAG,"TE timeout; sending the completed weather frame");s_te_warned=true;}
     }
+    s_weather_timing.te_us+=(uint64_t)(esp_timer_get_time()-started);
 #if CONFIG_PM_ENABLE
     if(s_te_awake)esp_pm_lock_release(s_te_awake);
 #endif
 }
 static void send_frame_tile(void *arg,weather_frame_area_t a,uint8_t *pixels) {
+    int64_t started=esp_timer_get_time();
     (void)arg;s_frame_sending=true;xSemaphoreTake(s_dma,0);
     ESP_ERROR_CHECK(esp_lcd_panel_draw_bitmap(s_panel,a.x1,a.y1,a.x2+1,a.y2+1,pixels));
-    // DMA completion owns the staging-buffer lifetime; never overwrite pixels while it is being read.
+    s_weather_timing.submit_us+=(uint64_t)(esp_timer_get_time()-started);
+    s_weather_timing.bytes+=(uint64_t)(a.x2-a.x1+1)*(a.y2-a.y1+1)*2;
+    ++s_weather_timing.tiles;
+}
+static void wait_frame_tile(void *arg) {
+    (void)arg;
+    // The refresh pipeline may prepare the other buffer while DMA owns this
+    // one. Both remain borrowed until the final completion is consumed.
+    int64_t started=esp_timer_get_time();
     xSemaphoreTake(s_dma,portMAX_DELAY);s_frame_sending=false;
+    s_weather_timing.wait_us+=(uint64_t)(esp_timer_get_time()-started);
 }
 static void synchronized_flush(lv_display_t *disp,const lv_area_t *a,uint8_t *pixels) {
-    if(weather_refresh_flush(&s_refresh,disp,a,pixels))return;
+    if(s_refresh.frame.pixels) {
+        s_weather_timing.painted=true;
+        int64_t started=esp_timer_get_time();
+        bool handled=weather_refresh_flush(&s_refresh,disp,a,pixels);
+        s_weather_timing.flush_us+=(uint64_t)(esp_timer_get_time()-started);
+        if(handled)return;
+    }
     // Capture the request when the last tile is submitted, rather than in the
     // ISR. A DMA already in flight before home is revealed cannot satisfy it.
     display_frame_gate_submit(&s_frame_gate,lv_display_flush_is_last(disp));
@@ -80,10 +121,22 @@ void display_weather_mode(bool enabled) {
         s_refresh.frame.pixels=heap_caps_calloc(1,WEATHER_FRAME_BYTES,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
         if(!s_refresh.frame.pixels){ESP_LOGW(TAG,"weather frame allocation failed; keeping partial refresh");return;}
         s_refresh.frame.dirty=false;s_te_warned=false;
+        memset(&s_weather_timing,0,sizeof s_weather_timing);
         if(s_te_ready)gpio_intr_enable(LCD_TE);
         lv_obj_invalidate(lv_screen_active());lv_obj_invalidate(lv_layer_top());
         ESP_LOGI(TAG,"weather frame: %u PSRAM bytes, TE=%s",(unsigned)WEATHER_FRAME_BYTES,s_te_ready?"GPIO13":"unavailable");
     }else {
+        if(s_weather_timing.frames)ESP_LOGI(TAG,"weather timing frames=%u render_transfer_avg_us=%llu max_us=%u te_avg_us=%llu te_timeouts=%u",
+            (unsigned)s_weather_timing.frames,(unsigned long long)(s_weather_timing.total_us/s_weather_timing.frames),
+            (unsigned)s_weather_timing.max_us,(unsigned long long)(s_weather_timing.te_us/s_weather_timing.frames),
+            (unsigned)s_weather_timing.te_timeouts);
+        if(s_weather_timing.frames)ESP_LOGI(TAG,"weather phases draw_avg_us=%llu flush_avg_us=%llu submit_avg_us=%llu dma_wait_avg_us=%llu tiles=%u bytes=%llu refresh_cpu80=%u cpu240=%u",
+            (unsigned long long)((s_weather_timing.total_us-s_weather_timing.flush_us)/s_weather_timing.frames),
+            (unsigned long long)(s_weather_timing.flush_us/s_weather_timing.frames),
+            (unsigned long long)(s_weather_timing.submit_us/s_weather_timing.frames),
+            (unsigned long long)(s_weather_timing.wait_us/s_weather_timing.frames),
+            (unsigned)s_weather_timing.tiles,(unsigned long long)s_weather_timing.bytes,
+            (unsigned)s_weather_timing.cpu80_frames,(unsigned)s_weather_timing.cpu240_frames);
         if(s_te_ready)gpio_intr_disable(LCD_TE);
         heap_caps_free(s_refresh.frame.pixels);s_refresh.frame=(weather_frame_t){0};
     }
@@ -200,7 +253,7 @@ lv_display_t *display_init(void) {
     assert(disp);s_disp=disp;s_dma=xSemaphoreCreateBinary();s_te=xSemaphoreCreateBinary();assert(s_dma&&s_te);
     esp_lcd_panel_io_callbacks_t callbacks={.on_color_trans_done=color_done};
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(io,&callbacks,disp));
-    s_refresh.wait_te=wait_te;s_refresh.send=send_frame_tile;
+    s_refresh.wait_te=wait_te;s_refresh.send=send_frame_tile;s_refresh.wait_send=wait_frame_tile;
     lv_display_set_flush_cb(disp,synchronized_flush);
     gpio_config_t te={.pin_bit_mask=1ULL<<LCD_TE,.mode=GPIO_MODE_INPUT,.intr_type=GPIO_INTR_POSEDGE};
     esp_err_t isr=gpio_install_isr_service(0);
@@ -213,6 +266,8 @@ lv_display_t *display_init(void) {
 #endif
     esp_log_level_set("co5300_spi", ESP_LOG_INFO);   // 恢复,后续真有错误照常打印
     lv_display_add_event_cb(disp, rounder_cb, LV_EVENT_INVALIDATE_AREA, NULL);
+    lv_display_add_event_cb(disp,weather_timing_event,LV_EVENT_REFR_START,NULL);
+    lv_display_add_event_cb(disp,weather_timing_event,LV_EVENT_REFR_READY,NULL);
     lvgl_port_unlock();
     return disp;
 }

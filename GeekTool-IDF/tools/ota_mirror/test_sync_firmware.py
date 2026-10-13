@@ -161,23 +161,39 @@ class MirrorTests(unittest.TestCase):
         self.source.images["GeekTool-beta.bin"] = b"x" * (MAX_IMAGE_SIZE + 1)
         self.assertEqual(self.mirror.run(), 1)
 
-    def test_migrated_ota_slots_allow_firmware_above_three_mib(self):
+    def test_migrated_ota_slots_allow_firmware_above_four_mib(self):
         partitions = Path(__file__).resolve().parents[2] / "partitions.csv"
         rows = csv.reader(line for line in partitions.read_text().splitlines()
                           if line.strip() and not line.lstrip().startswith("#"))
         slots = {row[0].strip(): int(row[4].strip(), 0) for row in rows
                  if row[0].strip() in ("ota_0", "ota_1")}
-        self.assertEqual(slots, {"ota_0": 0x400000, "ota_1": 0x400000})
+        self.assertEqual(slots, {"ota_0": 0x800000, "ota_1": 0x800000})
         self.assertEqual(MAX_IMAGE_SIZE, min(slots.values()))
         stable = (self.root / "public" / CHANNELS["stable"]).read_bytes()
         name, path = self.change()
-        image = firmware("v1.7-beta.19", extra=bytes(0x300000))
-        self.assertGreater(len(image), 0x300000)
+        image = firmware("v1.7-beta.33-test", extra=bytes(0x400000))
+        self.assertGreater(len(image), 0x400000)
         self.source.images[name] = image
         self.assertEqual(self.mirror.run(), 0)
         self.assertEqual(path.read_bytes(), image)
         self.assertEqual((self.root / "public" / CHANNELS["stable"]).read_bytes(), stable)
-        self.assertEqual(json.loads((self.root / "state/beta.json").read_text())["version"], "v1.7-beta.19")
+        self.assertEqual(json.loads((self.root / "state/beta.json").read_text())["version"], "v1.7-beta.33-test")
+
+    def test_32_mib_layout_preserves_system_addresses_and_uses_chip_capacity(self):
+        partitions = Path(__file__).resolve().parents[2] / "partitions.csv"
+        rows = csv.reader(line for line in partitions.read_text().splitlines()
+                          if line.strip() and not line.lstrip().startswith("#"))
+        regions = {row[0].strip(): (int(row[3].strip(), 0), int(row[4].strip(), 0))
+                   for row in rows}
+        for name, original in {"nvs": (0x9000, 0x6000), "otadata": (0xf000, 0x2000),
+                               "phy_init": (0x11000, 0x1000)}.items():
+            self.assertEqual(regions[name], original)
+        self.assertEqual(regions["ota_0"][0], 0x20000)
+        for left, right in (("ota_0", "ota_1"), ("ota_1", "storage")):
+            start, size = regions[left]
+            self.assertEqual(start + size, regions[right][0])
+        self.assertEqual(regions["storage"][1], 0xfe0000)
+        self.assertEqual(sum(regions["storage"]), 32 * 1024 * 1024)
 
     def test_stable_never_accepts_beta_and_project_is_checked(self):
         with self.assertRaises(MirrorError):

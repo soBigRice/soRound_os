@@ -20,7 +20,8 @@ GitHub Actions 继续将正式版和 beta 包发布到 `geektool-fw` R2 桶；�
 2. 源地址、ETag、本地大小和本地 SHA-256 全部一致时跳过 GET。
 3. GET 使用 HEAD 的 `If-Match`，要求完整、未压缩响应及相同 ETag/大小。
 4. 在同一文件系统临时下载；单次 socket 等待 15 秒，下载总期限 180 秒，每个镜像不超过
-   `partitions.csv` 的 `0x400000` OTA 槽。旧3MiB设备须先USB迁移；镜像更新不会替设备迁移分区。
+   `partitions.csv` 的 `0x800000` OTA 槽。旧3MiB/4MiB设备安装超过各自槽容量的固件前须先USB迁移；
+   镜像更新不会替设备迁移分区。设备仍按运行时槽容量检查包大小。2026-10-13仅更新仓库工具，未部署服务器。
 5. `verify_image()` 检查 ESP32-S3 芯片 ID、段边界、校验和、附加 SHA-256、应用描述中的
    `GeekTool` 项目及版本。正式通道拒绝 `-beta`。当前发布为附加哈希的未签名镜像，
    不引入新的签名契约；将来启用 Secure Boot 时需先更新镜像校验器。

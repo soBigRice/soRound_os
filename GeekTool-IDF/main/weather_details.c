@@ -16,7 +16,6 @@ LV_FONT_DECLARE(font_wx_detail_20);
 #define AMBER 0xe4b967
 #define LINE 0x27333a
 #define PANEL 0x0b1013
-#define PI 3.14159265f
 typedef struct {lv_layer_t *layer;lv_obj_t *obj;int x,y;lv_opa_t opa;} paint_t;
 static const char *words(const char *en,const char *zh) {return settings_lang()?zh:en;}
 static void text(paint_t *p,const char *s,int cx,int cy,const lv_font_t *font,uint32_t color) {
@@ -36,14 +35,6 @@ static void rect(paint_t *p,int x,int y,int width,int height,int radius,uint32_t
     lv_area_t a={p->x+x,p->y+y,p->x+x+width-1,p->y+y+height-1};lv_draw_rect(p->layer,&d,&a);
 }
 static void dot(paint_t *p,int x,int y,int radius,uint32_t color) {rect(p,x-radius,y-radius,radius*2,radius*2,LV_RADIUS_CIRCLE,color);}
-static void arc(paint_t *p,int cx,int cy,float radius,float from,float to,int width,uint32_t color) {
-    // One native arc task keeps the edge smooth and avoids dozens of line tasks per frame.
-    if(to<=from)return;
-    lv_draw_arc_dsc_t d;lv_draw_arc_dsc_init(&d);d.base.obj=p->obj;
-    d.center=(lv_point_t){p->x+cx,p->y+cy};d.radius=(uint16_t)lroundf(radius+width*.5f);
-    d.start_angle=(int)lroundf(from+360)%360;d.end_angle=(int)lroundf(to+360)%360;
-    d.width=width;d.color=lv_color_hex(color);d.opa=p->opa;d.rounded=true;lv_draw_arc(p->layer,&d);
-}
 static void number(char *out,size_t size,float value,int decimals) {
     if(!isfinite(value))snprintf(out,size,"--");else snprintf(out,size,decimals?"%.1f":"%.0f",value);
 }
@@ -154,13 +145,13 @@ static int minutes(const char *s) {return s[0]?(s[0]-'0')*600+(s[1]-'0')*60+(s[3
 static void daylight_draw(paint_t *p,const weather_data_t *d,float reveal) {
     text(p,words("DAYLIGHT & UV","日光与 UV"),233,110,&font_wx_detail_20,IVORY);
     const weather_day_t *today=&d->days[0];
-    arc(p,233,304,129,180,360,3,LINE);line(p,92,304,374,304,1,LINE);
+    rect(p,92,302,282,3,0,LINE);
     int rise=minutes(today->sunrise),set=minutes(today->sunset),now=minutes(d->updated);
     if(d->day_count && rise>=0 && set>rise && now>=0) {
         float fraction=fminf(1,fmaxf(0,(now-rise)/(float)(set-rise)));
-        arc(p,233,304,129,180,180+180*fraction*reveal,3,AMBER);
-        float angle=(180+180*fraction)*PI/180;
-        dot(p,233+(int)lroundf(cosf(angle)*129),304+(int)lroundf(sinf(angle)*129),6,d->is_day?AMBER:BLUE);
+        int width=(int)lroundf(282*fraction*reveal);
+        if(width>0)rect(p,92,302,width,3,0,AMBER);
+        dot(p,92+(int)lroundf(282*fraction),303,4,d->is_day?AMBER:BLUE);
     }
     text(p,words("TODAY'S MAX UV","今日最高 UV"),233,231,&font_wx_detail_16,MUTED);
     char uv[16];number(uv,sizeof uv,d->day_count?today->uv:NAN,1);
@@ -194,13 +185,14 @@ static void indicator_draw(lv_event_t *e) {
     lv_area_t a;lv_obj_get_coords(v->indicator,&a);paint_t p={lv_event_get_layer(e),v->indicator,a.x1,a.y1,v->indicator_opa};
     float total=lv_obj_get_scroll_y(v->scroll)+lv_obj_get_scroll_bottom(v->scroll);
     float fraction=total>0?lv_obj_get_scroll_y(v->scroll)/total:0;fraction=fminf(1,fmaxf(0,fraction));
-    float thumb=fmaxf(14,104*W/(total+W));
-    arc(&p,233,233,214,-52,52,2,LINE);
-    arc(&p,233,233,214,-52+fraction*(104-thumb),-52+fraction*(104-thumb)+thumb,3,BLUE);
+    int selected=(int)lroundf(fraction*4);
+    // Five small marks preserve page position and the existing fade without
+    // scanning a large-radius arc mask on every partial refresh tile.
+    for(int i=0;i<5;++i)rect(&p,i==selected?429:433,174+i*30,i==selected?10:6,3,0,i==selected?BLUE:LINE);
 }
 static void indicator_invalidate(weather_details_t *v) {
     lv_area_t a;lv_obj_get_coords(v->indicator,&a);
-    lv_area_t dirty={a.x1+363,a.y1+60,a.x1+452,a.y1+406};lv_obj_invalidate_area(v->indicator,&dirty);
+    lv_area_t dirty={a.x1+429,a.y1+174,a.x1+439,a.y1+297};lv_obj_invalidate_area(v->indicator,&dirty);
 }
 static void indicator_fade(void *obj,int32_t value) {weather_details_t *v=obj;v->indicator_opa=(uint8_t)value;indicator_invalidate(v);}
 static void top_mask(lv_event_t *e) {

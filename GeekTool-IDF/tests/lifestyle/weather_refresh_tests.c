@@ -5,10 +5,27 @@
 #include <stdlib.h>
 static weather_refresh_t refresh;
 static unsigned waits,sends,old_path;
+static uint8_t *pending;
+static weather_frame_area_t pending_area;
+static size_t pending_size;
+static uint32_t pending_hash,other_hash;
+static unsigned completions,buffer_mask,overlaps;
 static uint8_t panel[WEATHER_FRAME_BYTES];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint8_t first[466*40*2],second[466*40*2];
 static void wait_te(void *arg){assert(arg==&refresh&&refresh.frame.dirty);++waits;}
 static void send(void *arg,weather_frame_area_t a,uint8_t *p){assert(arg==&refresh&&waits);assert(a.x1%2==0&&a.y1%2==0&&a.x2%2==1&&a.y2%2==1);++sends;int w=(a.x2-a.x1+1)*2;assert((a.y2-a.y1+1)*w<=(int)sizeof first);for(int y=a.y1;y<=a.y2;++y)memcpy(panel+(y*466+a.x1)*2,p+(y-a.y1)*w,(size_t)w);}
+static uint32_t checksum(const uint8_t *p,size_t size){uint32_t h=2166136261u;for(size_t i=0;i<size;++i)h=(h^p[i])*16777619u;return h;}
+static void submit(void *arg,weather_frame_area_t a,uint8_t *p){
+ assert(arg==&refresh&&waits&&!pending);assert(p==first||p==second);
+ pending=p;pending_area=a;pending_size=(size_t)(a.x2-a.x1+1)*(a.y2-a.y1+1)*2;
+ assert(pending_size<=sizeof first);pending_hash=checksum(p,pending_size);
+ other_hash=checksum(p==first?second:first,sizeof first);buffer_mask|=p==first?1u:2u;
+}
+static void complete(void *arg){
+ assert(arg==&refresh&&pending);assert(checksum(pending,pending_size)==pending_hash);
+ if(checksum(pending==first?second:first,sizeof first)!=other_hash)++overlaps;
+ send(arg,pending_area,pending);pending=NULL;++completions;
+}
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *p){if(!weather_refresh_flush(&refresh,d,a,p)){++old_path;lv_display_flush_ready(d);}}
 static void rounder(lv_event_t *e){lv_area_t *a=lv_event_get_param(e);a->x1&=~1;a->y1&=~1;a->x2|=1;a->y2|=1;}
 int main(void){
@@ -24,5 +41,19 @@ int main(void){
  lv_obj_t *o=lv_obj_create(screen);lv_obj_remove_style_all(o);lv_obj_set_pos(o,102,104);lv_obj_set_size(o,30,26);lv_obj_set_style_bg_color(o,lv_color_hex(0xff0000),0);lv_obj_set_style_bg_opa(o,LV_OPA_COVER,0);lv_refr_now(d);
  assert(waits==2&&sends>sent&&!memcmp(panel,original,sizeof original)&&!memcmp(panel,refresh.frame.pixels,sizeof panel));
  sent=sends;lv_refr_now(d);assert(waits==2&&sends==sent);
- free(refresh.frame.pixels);refresh.frame.pixels=NULL;lv_obj_invalidate(screen);lv_refr_now(d);assert(old_path==12&&waits==2&&sends==sent);lv_deinit();
+ free(refresh.frame.pixels);refresh.frame.pixels=NULL;lv_obj_invalidate(screen);lv_refr_now(d);assert(old_path==12&&waits==2&&sends==sent);
+ for(unsigned count=2;count;--count){
+  refresh=(weather_refresh_t){.frame.pixels=calloc(1,WEATHER_FRAME_BYTES),.wait_te=wait_te,.send=submit,.wait_send=complete,.arg=&refresh};assert(refresh.frame.pixels);
+  lv_display_set_buffers(d,first,count==2?second:NULL,sizeof first,LV_DISPLAY_RENDER_MODE_PARTIAL);
+  waits=sends=completions=buffer_mask=overlaps=0;
+  lv_obj_set_style_bg_color(screen,lv_color_hex(count==2?0x345678:0xabcdef),0);lv_obj_invalidate(screen);lv_refr_now(d);
+  assert(waits==1&&sends==12&&completions==sends&&!pending&&!refresh.frame.dirty);
+  assert(buffer_mask==(count==2?3u:1u));assert(!memcmp(panel,refresh.frame.pixels,sizeof panel));
+  if(count==2)assert(overlaps>0);else assert(!overlaps);
+  lv_obj_set_style_bg_color(o,lv_color_hex(0x00ff00),0);lv_refr_now(d);
+  assert(waits==2&&completions==sends&&!pending&&!memcmp(panel,refresh.frame.pixels,sizeof panel));
+  sent=sends;lv_refr_now(d);assert(sends==sent&&waits==2);
+  free(refresh.frame.pixels);refresh.frame.pixels=NULL;
+ }
+ lv_deinit();
  puts("weather refresh: real LVGL double-buffer/40-line flushes, complete-frame pixels before TE, one wait per frame, bounded staging, unchanged RGB565 byte order, dirty unions, idle and original-path fallback passed");}
