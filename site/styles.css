@@ -149,6 +149,18 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 .release-links a:hover { color: var(--red); }
 .release-links .mono { font-size: 14px; }
 
+/* 作者介绍沿用开放布局，独立于安装操作。 / Keep author details separate from setup actions in the open layout. */
+.about-author { background: var(--bg); padding-block: 72px; }
+.author-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 100px; align-items: center; }
+.about-author h2 { color: var(--muted); font-size: 15px; font-weight: 600; }
+.author-name { margin-top: 12px; font: 600 clamp(40px, 4.8vw, 64px)/1.15 Barlow, var(--font); letter-spacing: -.045em; }
+.author-copy { min-width: 0; }
+.author-copy > p { color: var(--muted); font-size: 17px; line-height: 1.9; }
+.author-copy > .author-intro { color: var(--ink); font-size: 22px; margin-bottom: 8px; }
+.author-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 24px; }
+.author-actions .text-link { display: inline-flex; align-items: center; gap: 10px; }
+.author-domain { color: var(--muted); font-size: 14px; }
+
 .site-footer { background: #fff; }
 .site-footer > .wrap { border-top: 1px solid var(--rule); padding-block: 30px 24px; }
 .footer-main { display: flex; justify-content: space-between; align-items: center; gap: 36px; }
@@ -157,6 +169,8 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 .footer-main nav { display: flex; flex-wrap: wrap; gap: 30px; color: #555963; font-size: 14px; }
 .footer-main nav a:hover { color: var(--red); }
 .footer-bottom { display: flex; justify-content: space-between; gap: 24px; margin-top: 30px; font: 400 14px/1.7 Barlow, var(--font); color: #777b83; }
+.footer-bottom a { text-decoration: underline; text-underline-offset: 3px; }
+.footer-bottom a:hover { color: var(--red); }
 
 @media (max-width: 1100px) {
   .hero { gap: 36px; padding-block: 76px 58px; }
@@ -165,6 +179,7 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
   .hero-copy .actions { gap: 24px; }
   .face-explorer { gap: 56px; }
   .start-grid { gap: 64px; }
+  .author-grid { gap: 64px; }
   .app-explorer { gap: 48px; }
   .feature-columns { gap: 24px; }
   .feature-columns article + article { padding-left: 24px; }
@@ -236,6 +251,11 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
   .steps p { font-size: 14px; }
   .install-actions { gap: 12px; }
   .install-actions .button { flex-basis: 135px; padding-inline: 14px; gap: 12px; font-size: 14px; }
+  .about-author { padding-block: 44px; }
+  .author-grid { grid-template-columns: 1fr; gap: 24px; }
+  .author-copy > p { font-size: 15px; }
+  .author-copy > .author-intro { font-size: 19px; }
+  .author-actions { margin-top: 18px; }
   .footer-main { display: block; }
   .footer-brand { font-size: 28px; }
   .footer-main nav { margin-top: 24px; gap: 28px; font-size: 13px; }
