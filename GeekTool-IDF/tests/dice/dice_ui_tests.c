@@ -160,7 +160,8 @@ int main(int argc, char **argv) {
         sensor_up = true; accel_x = 0; page = enter_page();
         for (int i = 0; i < 3; ++i) step();
         accel_x = 2; for (int i = 0; i < 3; ++i) step(); assert(s_coin_toss);
-        for (int i = 0; i < 62; ++i) step(); capture(NULL, "settled");
+        for (int i = 0; i < 62; ++i) { step(); }
+        capture(NULL, "settled");
         flushed_pixels = 0; for (int i = 0; i < 10; ++i) step(); lv_refr_now(display);
         assert(flushed_pixels == 0);
         dice_exit(); lv_obj_delete(page);

@@ -2283,3 +2283,7 @@ ELF完整SHA256 `e7c64152844f8c07830f883230505e7fb02aaf861a88edc6374ff5cc6cfe42b
 线上镜像服务器原程序仍为4MiB限制，与源码已有8MiB槽不符。本轮通过既有1Panel会话，仅将 `/opt/geektool-ota/sync_firmware.py` 的MAX_IMAGE_SIZE从0x400000调整为0x800000；备份为同目录 `sync_firmware.py.pre-beta34-20261019`，其余校验、来源和发布规则未改。更新后脚本SHA256为 `5e2156fff91df50c6aa973629a52fda6f6df2dd5d8851278e40ed86652ba01b4`，语法检查通过；手动执行既有同步service成功、timer active，日志确认stable v1.7与beta.33均unchanged。正式镜像4149792B、SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`，作为发布前保护基线。
 
 下一步：等待功能任务收尾、冻结当前源码，刷新受影响测试；显式暂存本轮相关路径，提交并推送精确提交，运行手动CI。手动CI通过后才创建beta.34标签，验证标签CI、GitHub资产、R2与国内整包/Range及正式包保护，最后更新中英文发布状态与网站快照。临时构建和下载位于本机专用临时目录，发布结束后清理；源码历史里的旧木鱼候选等未纳入整合的初始文件保留，不夹带提交。
+
+首轮手动CI39262783061的固件编译成功，但新增全量host gate暴露旧HID夹具的GCC误导缩进告警。本地GCC15全目标继续编译后定位到同类旧网络/音频/UI夹具和声音胶囊计数的有符号比较；仅补明确代码块及已知非负语言索引的无符号转换，保留原断言和Werror。Clang通过不代表GCC门禁通过，下次扩大CI目标前先核对两类编译器。原生PNG比较使用的Pillow固定为本地已验证12.2.0，CI在临时venv中安装；[PyPI官方元数据](https://pypi.org/project/pillow/12.2.0/)核对其Python>=3.10与MIT-CMU许可证（2026-10-19）。该依赖仅用于主机图片检查，不进入固件。
+
+同轮GCC运行阶段还定位到遥控台夹具未声明LVGL绘制缓冲对齐：线程采样停在`lv_display_set_buffers`的对齐断言。夹具改用`_Alignas(LV_DRAW_BUF_ALIGN)`，不修改产品布局或绘制逻辑；最终GCC15本地47/47通过（19.81秒），发布ctest增加90秒单项超时，避免断言停机长期占用运行器。

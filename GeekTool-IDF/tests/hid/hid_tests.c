@@ -76,7 +76,8 @@ int main(void) {
     connect_all();
     for(int i=0;i<8;i++) assert(ble_hid_key_tap(HID_KEY_PAGE_UP));
     assert(!ble_hid_key_tap(HID_KEY_PAGE_UP));
-    for(int i=0;i<16;i++) step(); assert(hid_packet_count==16);
+    for(int i=0;i<16;i++) { step(); }
+    assert(hid_packet_count==16);
     assert(ble_hid_key_tap(HID_KEY_PAGE_DOWN)); ble_hid_release_all(); step(); assert(hid_packet_count==16);
     assert(ble_hid_media_tap(HID_MEDIA_PLAY_PAUSE)); step(); ble_hid_release_all(); step(); packet(17,HID_MEDIA,2,0);
     assert(hid_packet_count==18);
@@ -108,7 +109,8 @@ int main(void) {
     step(); assert(hid_packet_count==2 && s_count==0);
     connect_all(); assert(ble_hid_key_tap(HID_KEY_PAGE_DOWN)); step();
     hid_test_subscribe(1,HID_KEYBOARD,false);
-    for(int i=0;i<28;i++) step(); assert(hid_terminations==1 && !ble_hid_connected());
+    for(int i=0;i<28;i++) { step(); }
+    assert(hid_terminations==1 && !ble_hid_connected());
     connect_all(); hid_notify_hook=reconnect_during_send;
     assert(ble_hid_key_tap(HID_KEY_PAGE_DOWN)); step(); step(); assert(hid_packet_count==1 && s_count==0);
 

@@ -34,14 +34,16 @@ esp_http_client_handle_t esp_http_client_init(const esp_http_client_config_t *cf
     else assert(!strcmp(cfg->url,previous_url));
     assert(cfg->timeout_ms==6000&&cfg->disable_auto_redirect);
     ++init_calls;
-    if(init_fail)return NULL;assert(!handles);++handles;client.at=0;return &client;
+    if(init_fail) { return NULL; }
+    assert(!handles);++handles;client.at=0;return &client;
 }
 esp_err_t esp_http_client_set_header(esp_http_client_handle_t h,const char *key,const char *value){
     assert(h==&client&&key&&value);return header_fail?ESP_FAIL:ESP_OK;
 }
 esp_err_t esp_http_client_open(esp_http_client_handle_t h,int length){
     assert(h==&client&&length==0);clock_us+=open_delay;
-    if(open_fail)return ESP_FAIL;if(open_fail_count>0){--open_fail_count;return ESP_FAIL;}++opens;return ESP_OK;
+    if(open_fail) { return ESP_FAIL; }
+    if(open_fail_count>0){--open_fail_count;return ESP_FAIL;}++opens;return ESP_OK;
 }
 int64_t esp_http_client_fetch_headers(esp_http_client_handle_t h){assert(h==&client);return declared==-2?(int64_t)strlen(payload):declared;}
 int esp_http_client_get_status_code(esp_http_client_handle_t h){assert(h==&client);if(status_fail_count>0){--status_fail_count;return 503;}return status;}
@@ -59,7 +61,8 @@ esp_err_t esp_http_client_cleanup(esp_http_client_handle_t h){assert(h==&client&
 int64_t esp_timer_get_time(void){return clock_us;}
 int xTaskCreate(void (*task)(void *),const char *name,unsigned stack,void *arg,unsigned priority,void *handle){
     (void)name;(void)priority;(void)handle;assert(stack==8192&&!arg&&!queued);
-    if(create_fail)return 0;first_attempt=true;queued=task;return pdPASS;
+    if(create_fail) { return 0; }
+    first_attempt=true;queued=task;return pdPASS;
 }
 void vTaskDelete(void *p){assert(!p);++deletes;}
 static void run(void){assert(queued);void (*task)(void *)=queued;queued=NULL;task(NULL);assert(!handles);}

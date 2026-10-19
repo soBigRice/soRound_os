@@ -65,20 +65,20 @@ int main(int argc,char **argv) {
         memset(&fixture,0,sizeof fixture);fixture.state=CAPSULE_READY;fixture.result=CAPSULE_OK;fixture.catalog.free_bytes=7000000;
         lv_label_set_text(title,tools_text("CAPSULES","声音胶囊"));tools_header(title,back,arrow);lv_obj_set_style_text_font(title,&font_companion_24,0);tools_label_center(title,233,63);
         lv_obj_t *page=tools_surface(lv_screen_active(),0,0,466,466);capsules_enter(page);capture(dir,"idle");
-        lv_obj_send_event(g_record,LV_EVENT_CLICKED,NULL);assert(recordings==language+1);
+        lv_obj_send_event(g_record,LV_EVENT_CLICKED,NULL);assert(recordings==(unsigned)language+1u);
         fixture.state=CAPSULE_RECORDING;fixture.samples=18*CAPSULE_RATE;
         for(unsigned i=0;i<32;++i)fixture.waveform[i]=(uint8_t)((i*29+51)%220);
         capsules_tick();assert(!strcmp(lv_label_get_text(g_time),"00") && !strcmp(lv_label_get_text(g_seconds),"18"));capture(dir,"recording");
-        lv_obj_send_event(g_record,LV_EVENT_CLICKED,NULL);assert(stops==language*2+1);
-        capsules_visibility(false);assert(stops==language*2+2);capsules_visibility(true);
+        lv_obj_send_event(g_record,LV_EVENT_CLICKED,NULL);assert(stops==(unsigned)language*2u+1u);
+        capsules_visibility(false);assert(stops==(unsigned)language*2u+2u);capsules_visibility(true);
         fixture.state=CAPSULE_ERROR;fixture.result=CAPSULE_UNCONFIGURED;capsules_tick();capture(dir,"unconfigured");
         unsigned before=recordings;lv_obj_send_event(g_record,LV_EVENT_CLICKED,NULL);assert(recordings==before);
         fixture.state=CAPSULE_READY;fixture.result=CAPSULE_OK;fixture.catalog.count=2;
         for(unsigned i=0;i<2;++i){capsule_entry_t *entry=&fixture.catalog.entries[i];snprintf(entry->name,sizeof entry->name,"%08X.WAV",i+1);entry->created=1792396800+i*70;entry->bytes=(18+i*10)*32000;entry->valid=true;}
         capsules_tick();show_list(true);capture(dir,"list");
         lv_obj_send_event(g_rows[0],LV_EVENT_LONG_PRESSED,NULL);assert(s_delete==0);capture(dir,"delete-confirm");
-        lv_obj_send_event(g_rows[0],LV_EVENT_SHORT_CLICKED,NULL);assert(deletes==language+1);
-        lv_obj_send_event(g_rows[1],LV_EVENT_SHORT_CLICKED,NULL);assert(plays==language+1 && !s_listing);
+        lv_obj_send_event(g_rows[0],LV_EVENT_SHORT_CLICKED,NULL);assert(deletes==(unsigned)language+1u);
+        lv_obj_send_event(g_rows[1],LV_EVENT_SHORT_CLICKED,NULL);assert(plays==(unsigned)language+1u && !s_listing);
         show_list(true);assert(capsules_back() && !s_listing);assert(!capsules_back());
         capsules_exit();assert(!g_main);lv_obj_delete(page);
     }

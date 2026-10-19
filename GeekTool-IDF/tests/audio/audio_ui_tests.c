@@ -91,7 +91,8 @@ int main(int argc,char **argv) {
         const float voice[]={.21,.28,.39,.52,.65,.82,.69,.49,.61,.75,.59,.43,.34,.28,.19,.15,.13,.08};
         memcpy(s_band,voice,sizeof voice);audio_tick();capture(dir,"voice");
         for(int b=0;b<NB;++b) {int n=(int)roundf(voice[b]*16);if(n<1)n=1;assert(s_colors[b][n-1]==COL_RED);}
-        for(int b=0;b<NB;++b)s_band[b]=.95f;audio_tick();capture(dir,"strong");
+        for(int b=0;b<NB;++b) { s_band[b]=.95f; }
+        audio_tick();capture(dir,"strong");
         assert(s_colors[0][14]!=s_colors[0][0] && s_colors[0][14]!=TOOLS_FAINT);
         flushed_pixels=0;audio_tick();lv_refr_now(display);assert(flushed_pixels==0);
         s_band[7]=.70f;audio_tick();lv_refr_now(display);assert(flushed_pixels>0 && flushed_pixels<5000);

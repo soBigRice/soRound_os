@@ -66,7 +66,8 @@ static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map){
     lv_display_flush_ready(d);
 }
 static void labels(lv_obj_t *o,const lv_area_t *clip){
-    if(ui_obj_is_hidden(o))return;lv_area_t a;lv_obj_get_coords(o,&a);
+    if(ui_obj_is_hidden(o)) { return; }
+    lv_area_t a;lv_obj_get_coords(o,&a);
     lv_area_t visible;if(!lv_area_intersect(&visible,&a,clip))return;
     if(lv_obj_check_type(o,&lv_label_class)){
         lv_obj_t *parent=lv_obj_get_parent(o);

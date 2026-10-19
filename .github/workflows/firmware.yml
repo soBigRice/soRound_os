@@ -46,16 +46,22 @@ jobs:
 
       - name: Check firmware UI and storage with release LVGL
         run: |
+          # 固定像素检查器依赖，避免依赖 runner 偶然预装的软件包。
+          # Pin the pixel-check dependency instead of relying on runner packages.
+          python3 -m venv "$RUNNER_TEMP/ui-test-python"
+          source "$RUNNER_TEMP/ui-test-python/bin/activate"
+          python3 -m pip install --disable-pip-version-check --no-cache-dir "Pillow==12.2.0"
           # Existing LVGL compatibility calls remain supported in 9.6;
           # suppress only their deprecation warnings in this host fixture.
           cmake -S GeekTool-IDF/tests/host -B "$RUNNER_TEMP/startup-host" \
-            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
+            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations \
+            -DPython3_EXECUTABLE="$VIRTUAL_ENV/bin/python"
           cmake --build "$RUNNER_TEMP/startup-host" --parallel 4
-          ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure
+          ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure --timeout 90
           cmake -S GeekTool-IDF/tests/companion_apps -B "$RUNNER_TEMP/companion-host" \
             -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
           cmake --build "$RUNNER_TEMP/companion-host" --parallel 4
-          ctest --test-dir "$RUNNER_TEMP/companion-host" --output-on-failure
+          ctest --test-dir "$RUNNER_TEMP/companion-host" --output-on-failure --timeout 90
           cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -pthread \
             -I GeekTool-IDF/tests/remote_media/stubs -I GeekTool-IDF/main \
             GeekTool-IDF/tests/remote_media/remote_media_tests.c -o "$RUNNER_TEMP/remote-media-tests"

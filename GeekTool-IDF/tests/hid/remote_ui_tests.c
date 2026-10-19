@@ -41,7 +41,10 @@ int64_t host_time_us;
 static uint8_t language;
 uint8_t settings_lang(void) { return language; }
 static uint32_t clock_ms(void) { return (uint32_t)(host_time_us/1000); }
-static uint16_t buffer[466*466], pixels[466*466];
+// 显式满足LVGL缓冲区契约，不依赖Clang/GCC默认静态变量对齐。
+// Honor LVGL's buffer contract without relying on Clang/GCC default alignment.
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466*466];
+static uint16_t pixels[466*466];
 static lv_display_t *display;
 static lv_obj_t *page, *heading;
 static lv_point_t pointer;

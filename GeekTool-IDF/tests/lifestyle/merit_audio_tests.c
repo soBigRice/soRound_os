@@ -108,5 +108,6 @@ int main(int argc,char **argv){
     fail_write=true;pump(3);assert(chunks==1);fail_write=false;
     pump(2);assert(samples==RATE*1300/1000);pump(1);assert(samples==RATE*80/1000);
     muted=true;pump(3);assert(!samples);muted=false;audio_out_knock();assert(!s_req);
-    if(argc>1)wav(argv[1]);puts("merit audio: actual worker PCM, idle DMA silence, 4000-tap burst stop, retrigger continuity, idle resume, cancellation/I2S failure cleanup, mute/volume, preserved alarm and preview passed");
+    if(argc>1) { wav(argv[1]); }
+    puts("merit audio: actual worker PCM, idle DMA silence, 4000-tap burst stop, retrigger continuity, idle resume, cancellation/I2S failure cleanup, mute/volume, preserved alarm and preview passed");
 }
