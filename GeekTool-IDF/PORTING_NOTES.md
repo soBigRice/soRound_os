@@ -2311,13 +2311,15 @@ R2与国内beta完整下载均5068512B，ESP32-S3、GeekTool/v1.7-beta.34描述�
 
 GitHub在2026-10-19T15:49Z公布[Actions/Pages故障](https://www.githubstatus.com/)。状态接口曾长时间显示queued、无运行器和0步骤，但随后日志证实手动构建在15:52Z、回归在15:53Z已完成；因此故障期不能把队列显示直接等同于实际未执行，应交叉核对日志、产物与状态。没有跳过实际门禁或重复触发同一个任务。
 
-`github.com:443`的Git查询在本机连接超时，改用官方Git数据库API发布同一个本地annotated tag对象（SHA `95d80845e96c966ac844ae2732e9c399eab14d69`），没有改工作流或签名/权限。标签精确指向上述源码，正常触发push标签流水线[39284415656](https://github.com/soBigRice/soRound_os/actions/runs/39284415656)。该任务的聚合状态在实际产物生成后仍延迟显示queued，未将它误报为已完成；Release和分发单独以实际结果核验。
+`github.com:443`的Git查询在本机连接超时，改用官方Git数据库API发布同一个本地annotated tag对象（SHA `95d80845e96c966ac844ae2732e9c399eab14d69`），没有改工作流或签名/权限。标签精确指向上述源码，正常触发push标签流水线[39284415656](https://github.com/soBigRice/soRound_os/actions/runs/39284415656)。该任务的聚合状态在实际产物生成后仍延迟显示queued，随后已回读到completed/success；Release和分发仍单独以实际结果核验。
 
 [Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35)于2026-10-19T16:25:16Z（北京时间10月20日00:25）发布，为非draft的prerelease。应用镜像5,068,848B，8MiB槽余3,319,760B（约40%）；GitHub资产API声明SHA256：
 `1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1`。
 
 R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一致；生产镜像校验器验证ESP32-S3/GeekTool身份、段边界、XOR与内嵌SHA通过。两处强ETag配合`If-Match / bytes=1024-2047`均返回准确206切片，`no-store`有效。两处正式完整包仍为4149792B/v1.7且与发布前SHA一致。因本机GitHub直连传输故障，GitHub侧使用官方资产摘要声明，没有声称完成GitHub整包下载。
 
-准确发布bin与SHA保留于`build/releases/v1.7-beta.35/`；小型测试、tag与分发回执在`build/flash-records/beta35-release-20261019/`，CI的bin/ELF/map/config/依赖锁由既有Actions产物保留7天。中英文README和`site/releases.json`已准备同步内测beta.35，静态网站双语本地校验通过；官网上线回读待本段后续补充。
+准确发布bin与SHA保留于`build/releases/v1.7-beta.35/`；小型测试、tag与分发回执在`build/flash-records/beta35-release-20261019/`，CI的bin/ELF/map/config/依赖锁由既有Actions产物保留7天。中英文README和`site/releases.json`已通过`b72343c`同步内测beta.35，静态网站双语本地校验通过。[Pages39286095339](https://github.com/soBigRice/soRound_os/actions/runs/39286095339)仍受平台故障影响排队；2026-10-19T16:39Z公开中英文首页均HTTP200，但仍显示beta.34，不能宣称官网已更新。已提交的正常Pages任务可继续部署，后续只需回读该任务及两种语言完整HTML，无需重新发布固件或重建标签。网页核验回执为同目录`website.json`。
+
+本轮主机编译目录、完整核验下载副本和静态网站测试输出在结束时清理，保留发布bin和小型回执；本地工作流观察进程已经退出。远端正常Pages任务保持排队，不创建重复部署或后台本机轮询。
 
 本轮没有设备USB/串口、烧录或分区迁移，也未继续修补或真实重试ATT链路。蓝牙三键仍为标准HID；封面/文字的ATT超时、歌词仅本地LRC、录音分区未初始化等限制均在发布说明中保留。发布与代码自动验证不代替真机验收。
