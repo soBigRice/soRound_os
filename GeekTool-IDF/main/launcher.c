@@ -10,6 +10,8 @@
 #include "weather_ui.h"
 #include "weather_location_ui.h"
 #include "quickpanel.h"
+#include "companion_icons.h"
+#include "font_companion.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
 #include "esp_system.h"
@@ -23,7 +25,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels, &app_garden, &app_focus, &app_capsules };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -51,9 +53,10 @@ static void header_app_style(void) {
     bool pixels = cur_app == &app_pixels;
     bool compact = weather || controls || book;
     bool tools = cur_app == &app_audio || cur_app == &app_level;
+    bool companion = cur_app == &app_garden || cur_app == &app_focus || cur_app == &app_capsules || cur_app == &app_mouse;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
-    lv_obj_set_style_text_font(g_title, (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_style_text_font(g_title, companion ? &font_companion_24 : (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
     lv_obj_set_style_text_letter_space(g_title, 0, 0);
     lv_obj_set_style_text_color(g_title, lv_color_hex(COL_TXT), 0);
     lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
@@ -93,9 +96,9 @@ static void header_app_style(void) {
 }
 
 /* ---- Native icon widget; the registry order is unchanged. ---- */
-_Static_assert(sizeof(APPS)/sizeof(APPS[0])==LAUNCHER_ICON_COUNT,"Every app needs a launcher icon");
+_Static_assert(sizeof(APPS)/sizeof(APPS[0])==LAUNCHER_ICON_COUNT+COMPANION_ICON_COUNT,"Every app needs a launcher icon");
 static void draw_icon(int i) {
-    launcher_icon_set(g_iconart,(launcher_icon_t)i);
+    companion_launcher_icon_set(g_iconart,i);
 }
 
 /* ---- 切换当前居中 app:换几何图标 + 名字 ---- */
@@ -147,7 +150,7 @@ static void nav(int dir) {
     if (lv_anim_get(&swap_exit_x, swap_exec)) { queued_dir = dir; return; }  // 最多缓存一个后续方向,快速连击也有响应
     pending_app = (cur + dir + APP_COUNT) % APP_COUNT;
     // 准备下一图标发生在动画开始前;中间帧只交换已建好的对象。
-    launcher_icon_set(g_nextart,(launcher_icon_t)pending_app);
+    companion_launcher_icon_set(g_nextart,pending_app);
     swap_exit_x = -SWAP_SLIDE * dir;                   // 左滑(下一个)向左出,右滑反之
     swapped     = false;
 
@@ -477,12 +480,12 @@ bool launcher_start(void) {
     lv_obj_add_event_cb(g_icon, icon_pressed,  LV_EVENT_PRESSED,  NULL);
     lv_obj_add_event_cb(g_icon, icon_released, LV_EVENT_RELEASED, NULL);
 
-    g_iconart = launcher_icon_create(g_icon,LAUNCHER_WIFI);
+    g_iconart = companion_launcher_icon_create(g_icon,LAUNCHER_WIFI);
     lv_obj_center(g_iconart);
     lv_obj_remove_flag(g_iconart, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_EVENT_BUBBLE);
 
-    g_nextart = launcher_icon_create(g_icon,LAUNCHER_WIFI);
+    g_nextart = companion_launcher_icon_create(g_icon,LAUNCHER_WIFI);
     lv_obj_center(g_nextart);
     lv_obj_remove_flag(g_nextart, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(g_nextart, LV_OBJ_FLAG_EVENT_BUBBLE | LV_OBJ_FLAG_HIDDEN);

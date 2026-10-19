@@ -189,11 +189,16 @@ class MirrorTests(unittest.TestCase):
                                "phy_init": (0x11000, 0x1000)}.items():
             self.assertEqual(regions[name], original)
         self.assertEqual(regions["ota_0"][0], 0x20000)
-        for left, right in (("ota_0", "ota_1"), ("ota_1", "storage")):
+        for left, right in (("ota_0", "ota_1"), ("ota_1", "storage"),
+                            ("storage", "capsule_meta"), ("capsule_meta", "capsules")):
             start, size = regions[left]
             self.assertEqual(start + size, regions[right][0])
-        self.assertEqual(regions["storage"][1], 0xfe0000)
-        self.assertEqual(sum(regions["storage"]), 32 * 1024 * 1024)
+        # 已批准的独立录音区不能覆盖系统分区，也不能留下未核对的间隙。
+        # The approved recording volume must preserve system regions and exact adjacency.
+        self.assertEqual(regions["storage"], (0x1020000, 0x7e0000))
+        self.assertEqual(regions["capsule_meta"], (0x1800000, 0x1000))
+        self.assertEqual(regions["capsules"], (0x1801000, 0x7ff000))
+        self.assertEqual(sum(regions["capsules"]), 32 * 1024 * 1024)
 
     def test_stable_never_accepts_beta_and_project_is_checked(self):
         with self.assertRaises(MirrorError):

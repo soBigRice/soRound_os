@@ -27,6 +27,7 @@ _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffers[2][466*40];
 static void fixture_enter(lv_obj_t *parent){(void)parent;}
 #define APP(n) const app_t app_##n={.name=#n,.enter=fixture_enter}
 APP(wifi);APP(i2c);APP(sys);APP(weather);APP(calendar);APP(countdown);APP(stopwatch);APP(settings);APP(ota);APP(audio);APP(level);APP(maze);APP(fluid);APP(dice);APP(mouse);APP(twin);APP(answers);APP(zodiac);APP(merit);APP(pixels);
+APP(garden);APP(focus);APP(capsules);
 #undef APP
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
     unsigned w=(unsigned)lv_area_get_width(a);
@@ -141,7 +142,8 @@ int main(int argc,char **argv) {
     face=argc>1?(uint8_t)atoi(argv[1]):0;language=argc>2?(uint8_t)atoi(argv[2]):0;
     home_dma=argc<4 || strcmp(argv[3],"stall");
     ui_lock_failure=argc>3 && !strcmp(argv[3],"lock-stall");
-    app_main();assert(!held && APP_COUNT==20 && APPS[19]==&app_pixels && lock_is_locked());
+    app_main();assert(!held && APP_COUNT==23 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
+        APPS[21]==&app_focus && APPS[22]==&app_capsules && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
     lv_deinit();puts("Full startup flow and revealed watchface frame/OTA gate passed");return 0;

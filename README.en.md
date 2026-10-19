@@ -88,12 +88,13 @@ screen or PWR key, with an explicit fallback label when requests fail.
   dot-matrix elements and restrained colors for weather icons.
 - Radial launcher, quick panel, lock-screen watch faces, brightness, volume, always-on
   display and persistent settings in NVS.
-- **20 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
+- **23 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
   Settings, OTA updates, Audio visualizer, Level, Maze, Fluid, Dice & coin, Bluetooth
-  remote (mouse / slides / media), Digital twin, Book of Answers, Horoscope, Wooden Fish and Pixels.
+  remote (mouse / slides / music), Digital twin, Book of Answers, Horoscope, Wooden Fish, Pixels, Garden, Focus and Voice Capsules.
   [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is included in beta.33; physical-device acceptance remains pending.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.
+- The October 19, 2026 local candidate adds Garden, the Focus record player and WAV Voice Capsules, plus three music controls and a manual Mac bridge for track information. It requires two 8 MiB app slots; recording also requires a separately approved storage migration. A normal OTA update does not migrate the recording volume. See the [implementation and verification map](./GeekTool-IDF/COMPANION_APPS.md).
 - Dual OTA partitions, boot rollback protection, version checks and Cloudflare R2 distribution.
 - A React / Three.js GeekTwin companion that displays orientation and battery data through
   Web Bluetooth. Its 3D scene loads separately; failed connection attempts clean up the GATT session.

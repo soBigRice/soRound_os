@@ -3,6 +3,10 @@
 #include <string.h>
 #include "../../main/ble_hid.c"
 
+// 本目标隔离 HID 报告；媒体协议在独立目标覆盖。/ Isolate HID reports; media has its own tests.
+void ble_media_hid_link(uint16_t connection, bool encrypted) { (void)connection; (void)encrypted; }
+void remote_media_tick(void) {}
+
 int64_t host_time_us;
 static void step(void) { host_time_us+=40000; ble_hid_tick(); }
 static void connect_all(void) {

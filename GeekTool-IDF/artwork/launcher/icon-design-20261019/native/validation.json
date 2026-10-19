@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-19",
+  "direction": "A",
+  "icons": 20,
+  "lvgl": "9.5.0",
+  "esp_idf": "6.0.1",
+  "native_pixel_states": 60,
+  "startup_regressions": 6,
+  "max_rgb_error": 12,
+  "visible_long_edge_px": [
+    116,
+    117
+  ],
+  "max_approved_optical_bbox_offset_px": 3.5,
+  "compressed_mask_bytes": 62871,
+  "mask_count": 25,
+  "firmware_build": {
+    "baseline": "80d4007d1e0f2210d3ba1358e25875d93bf5ef61",
+    "scope": "committed baseline plus launcher_icons.c and launcher_artwork.inc; excludes unrelated concurrent edits",
+    "bytes": 4211792,
+    "sha256": "f04267ff10ae90a09f6cd96b1bcd71a5cc410a74a4c4a69dad62c4c44ab93ebd"
+  },
+  "device_acceptance": "pending",
+  "flashed": false,
+  "committed": false,
+  "artwork_sha256": "526ecc8faa2381a86ae3cec81ea99c5213c06706587411fc0139d15857ceaa2f",
+  "initial_mixed_snapshot_build": {
+    "status": "failed",
+    "cause": "unrelated capsule_wav.h:39 misleading-indentation warning treated as error",
+    "note": "live file was subsequently corrected by concurrent work; this task did not modify audio code"
+  },
+  "temporary_build_and_conversion_dependencies_removed": true
+}

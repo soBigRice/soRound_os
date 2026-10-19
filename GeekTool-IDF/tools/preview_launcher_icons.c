@@ -1,6 +1,8 @@
 // Native 466x466 launcher previews. The 74% battery is a visual fixture, not device telemetry.
 #include "app.h"
 #include "launcher_icons.h"
+#include "companion_icons.h"
+#include "font_companion.h"
 #include "weather_location_ui.h"
 #include "tools_ui.h"
 #include "settings.h"
@@ -19,8 +21,10 @@ static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
     lv_display_flush_ready(d);
 }
 static const char *const names[]={"WiFi","I2C","System","weather","calendar","countdown","stopwatch","settings",
-                                "ota","audio","level","maze","fluid","dice","mouse","twin","Answers","Zodiac","Merit","Pixels"};
-_Static_assert(sizeof(names)/sizeof(names[0]) == LAUNCHER_ICON_COUNT, "Preview every registered icon");
+                                "ota","audio","level","maze","fluid","dice","mouse","twin","Answers","Zodiac","Merit","Pixels",
+                                "Garden","Focus","Capsules"};
+#define PREVIEW_ICON_COUNT (LAUNCHER_ICON_COUNT + COMPANION_ICON_COUNT)
+_Static_assert(sizeof(names)/sizeof(names[0]) == PREVIEW_ICON_COUNT, "Preview every registered icon");
 static void battery(void) {
     lv_obj_t *ring=lv_arc_create(lv_layer_top());lv_obj_set_size(ring,458,458);lv_obj_center(ring);
     lv_arc_set_rotation(ring,270);lv_arc_set_bg_angles(ring,0,360);lv_arc_set_range(ring,0,100);lv_arc_set_value(ring,74);
@@ -29,7 +33,7 @@ static void battery(void) {
     lv_obj_set_style_arc_color(ring,lv_color_hex(0x15151a),LV_PART_MAIN);
     lv_obj_set_style_arc_color(ring,lv_color_hex(COL_TXT),LV_PART_INDICATOR);
 }
-static lv_obj_t *button;
+static lv_obj_t *button, *art;
 static void screen(unsigned index) {
     lv_obj_clean(lv_screen_active());
     button=lv_obj_create(lv_screen_active());lv_obj_set_size(button,196,196);
@@ -37,9 +41,9 @@ static void screen(unsigned index) {
     lv_obj_set_style_border_color(button,lv_color_hex(LAUNCHER_FRAME_COLOR),0);
     lv_obj_set_style_bg_opa(button,LV_OPA_TRANSP,0);lv_obj_align(button,LV_ALIGN_CENTER,0,-16);
     ui_obj_set_scrollable(button,false);
-    lv_obj_t *icon=launcher_icon_create(button,(launcher_icon_t)index);lv_obj_center(icon);
+    art=companion_launcher_icon_create(button,(int)index);lv_obj_center(art);
     lv_obj_t *name=lv_label_create(lv_screen_active());lv_label_set_text(name,tr_app_name(names[index]));
-    lv_obj_set_style_text_font(name,&font_location_24,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
+    lv_obj_set_style_text_font(name,index>=LAUNCHER_ICON_COUNT?&font_companion_24:&font_location_24,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
     lv_obj_set_width(name,300);lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(name,LV_ALIGN_CENTER,0,112);
     lv_obj_t *left=launcher_icon_create(lv_screen_active(),LAUNCHER_PREV);lv_obj_align(left,LV_ALIGN_LEFT_MID,14,0);
@@ -56,13 +60,31 @@ static void export(const char *folder,const char *name) {
     if(fclose(file)){perror(path);exit(1);}
 }
 int main(int argc,char **argv) {
-    if(argc!=2){fprintf(stderr,"usage: %s existing-output-folder\n",argv[0]);return 1;}
+    if(argc<2 || argc>3 || (argc==3 && strcmp(argv[2],"--verify"))){fprintf(stderr,"usage: %s existing-output-folder [--verify]\n",argv[0]);return 1;}
     lv_init();i18n_init();display=lv_display_create(466,466);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
     lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_hex(COL_BG),0);battery();
-    for(language=0;language<2;++language)for(unsigned i=0;i<LAUNCHER_ICON_COUNT;++i) {
+    for(language=0;language<2;++language)for(unsigned i=0;i<PREVIEW_ICON_COUNT;++i) {
         screen(i);export(argv[1],names[i]);
     }
     language=1;screen(LAUNCHER_SYSTEM);lv_obj_set_style_opa_layered(button,LV_OPA_50,0);export(argv[1],"system-fade");
-    printf("Exported %u native launcher screens and one swap-opacity frame.\n",2u*LAUNCHER_ICON_COUNT);lv_deinit();return 0;
+    screen(LAUNCHER_MERIT);lv_obj_set_style_opa_layered(button,LV_OPA_50,0);export(argv[1],"merit-fade");
+    if(argc==3) {
+        screen(0);
+        // 排除按钮外圈，复用同一控件验证身份、失效重绘和父层坐标。
+        // Exclude the button frame; reuse one widget to verify identity, invalidation and parent coordinates.
+        lv_obj_set_style_border_width(button,0,0);
+        for(unsigned i=0;i<PREVIEW_ICON_COUNT;++i) {
+            char name[64];companion_launcher_icon_set(art,(int)i);
+            lv_obj_set_style_translate_x(button,0,0);lv_obj_set_style_translate_y(button,0,0);
+            lv_obj_set_style_opa_layered(button,LV_OPA_COVER,0);
+            snprintf(name,sizeof name,"verify-static-%02u",i);export(argv[1],name);
+            lv_obj_set_style_opa_layered(button,LV_OPA_50,0);
+            snprintf(name,sizeof name,"verify-fade-%02u",i);export(argv[1],name);
+            lv_obj_set_style_opa_layered(button,LV_OPA_COVER,0);
+            lv_obj_set_style_translate_x(button,-37,0);lv_obj_set_style_translate_y(button,23,0);
+            snprintf(name,sizeof name,"verify-shift-%02u",i);export(argv[1],name);
+        }
+    }
+    printf("Exported %u native launcher screens and two swap-opacity frames.\n",2u*PREVIEW_ICON_COUNT);lv_deinit();return 0;
 }

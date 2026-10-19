@@ -1,0 +1,309 @@
+{
+  "canvas": [
+    148,
+    148
+  ],
+  "source": "approved SVG rendered on black; native pixels checked separately",
+  "icons": [
+    {
+      "id": "wifi",
+      "visible_bounds": [
+        16,
+        33,
+        132,
+        122
+      ],
+      "width": 116,
+      "height": 89,
+      "optical_bbox_offset": [
+        0.0,
+        3.5
+      ]
+    },
+    {
+      "id": "scan",
+      "visible_bounds": [
+        18,
+        18,
+        135,
+        135
+      ],
+      "width": 117,
+      "height": 117,
+      "optical_bbox_offset": [
+        2.5,
+        2.5
+      ]
+    },
+    {
+      "id": "system",
+      "visible_bounds": [
+        16,
+        16,
+        132,
+        132
+      ],
+      "width": 116,
+      "height": 116,
+      "optical_bbox_offset": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "weather",
+      "visible_bounds": [
+        15,
+        18,
+        131,
+        123
+      ],
+      "width": 116,
+      "height": 105,
+      "optical_bbox_offset": [
+        -1.0,
+        -3.5
+      ]
+    },
+    {
+      "id": "calendar",
+      "visible_bounds": [
+        20,
+        12,
+        128,
+        129
+      ],
+      "width": 108,
+      "height": 117,
+      "optical_bbox_offset": [
+        0.0,
+        -3.5
+      ]
+    },
+    {
+      "id": "countdown",
+      "visible_bounds": [
+        29,
+        16,
+        119,
+        132
+      ],
+      "width": 90,
+      "height": 116,
+      "optical_bbox_offset": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "stopwatch",
+      "visible_bounds": [
+        24,
+        13,
+        124,
+        130
+      ],
+      "width": 100,
+      "height": 117,
+      "optical_bbox_offset": [
+        0.0,
+        -2.5
+      ]
+    },
+    {
+      "id": "settings",
+      "visible_bounds": [
+        16,
+        20,
+        132,
+        128
+      ],
+      "width": 116,
+      "height": 108,
+      "optical_bbox_offset": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "ota",
+      "visible_bounds": [
+        16,
+        14,
+        132,
+        131
+      ],
+      "width": 116,
+      "height": 117,
+      "optical_bbox_offset": [
+        0.0,
+        -1.5
+      ]
+    },
+    {
+      "id": "audio",
+      "visible_bounds": [
+        15,
+        25,
+        132,
+        123
+      ],
+      "width": 117,
+      "height": 98,
+      "optical_bbox_offset": [
+        -0.5,
+        0.0
+      ]
+    },
+    {
+      "id": "level",
+      "visible_bounds": [
+        16,
+        48,
+        132,
+        100
+      ],
+      "width": 116,
+      "height": 52,
+      "optical_bbox_offset": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "maze",
+      "visible_bounds": [
+        16,
+        17,
+        132,
+        133
+      ],
+      "width": 116,
+      "height": 116,
+      "optical_bbox_offset": [
+        0.0,
+        1.0
+      ]
+    },
+    {
+      "id": "fluid",
+      "visible_bounds": [
+        28,
+        14,
+        120,
+        131
+      ],
+      "width": 92,
+      "height": 117,
+      "optical_bbox_offset": [
+        0.0,
+        -1.5
+      ]
+    },
+    {
+      "id": "dice",
+      "visible_bounds": [
+        16,
+        16,
+        132,
+        132
+      ],
+      "width": 116,
+      "height": 116,
+      "optical_bbox_offset": [
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "id": "remote",
+      "visible_bounds": [
+        32,
+        12,
+        116,
+        129
+      ],
+      "width": 84,
+      "height": 117,
+      "optical_bbox_offset": [
+        0.0,
+        -3.5
+      ]
+    },
+    {
+      "id": "twin",
+      "visible_bounds": [
+        16,
+        25,
+        132,
+        122
+      ],
+      "width": 116,
+      "height": 97,
+      "optical_bbox_offset": [
+        0.0,
+        -0.5
+      ]
+    },
+    {
+      "id": "answers",
+      "visible_bounds": [
+        26,
+        16,
+        125,
+        132
+      ],
+      "width": 99,
+      "height": 116,
+      "optical_bbox_offset": [
+        1.5,
+        0.0
+      ]
+    },
+    {
+      "id": "zodiac",
+      "visible_bounds": [
+        17,
+        14,
+        134,
+        131
+      ],
+      "width": 117,
+      "height": 117,
+      "optical_bbox_offset": [
+        1.5,
+        -1.5
+      ]
+    },
+    {
+      "id": "merit",
+      "visible_bounds": [
+        14,
+        26,
+        130,
+        118
+      ],
+      "width": 116,
+      "height": 92,
+      "optical_bbox_offset": [
+        -2.0,
+        -2.0
+      ]
+    },
+    {
+      "id": "pixels",
+      "visible_bounds": [
+        16,
+        17,
+        131,
+        133
+      ],
+      "width": 115,
+      "height": 116,
+      "optical_bbox_offset": [
+        -0.5,
+        1.0
+      ]
+    }
+  ]
+}

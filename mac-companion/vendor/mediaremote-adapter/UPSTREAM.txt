@@ -1,0 +1,5 @@
+Source: https://github.com/ungive/mediaremote-adapter
+Commit: 0e82bf1c44ec39554fbfc402ec88a48c6ae2a0fd
+Retrieved: 2026-10-19
+License: BSD-3-Clause (see LICENSE)
+Unmodified upstream src/include/bin/CMakeLists.txt/LICENSE; no submodules.

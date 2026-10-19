@@ -43,7 +43,7 @@ target_include_directories(hid_tests PRIVATE ../hid/stubs stubs ../../main)
 target_compile_options(hid_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME remote_hid_protocol COMMAND hid_tests)
 add_executable(remote_ui_tests ../hid/remote_ui_tests.c ../hid/hid_fake.c ../../main/ble_hid.c
-               ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c)
+               ../../main/glyph.c ../../main/i18n.c ../../main/font_cn16.c ../../main/font_companion.c)
 target_include_directories(remote_ui_tests PRIVATE ../hid/stubs stubs ../../main)
 target_link_libraries(remote_ui_tests PRIVATE lvgl m)
 target_compile_options(remote_ui_tests PRIVATE -Wall -Wextra -Werror)
@@ -101,7 +101,7 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
     ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
     ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/tools_ui.c
-    ../../main/font_tools.c ../../main/weather_artwork.c)
+    ../../main/font_tools.c ../../main/weather_artwork.c ../../main/companion_icons.c ../../main/font_companion.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
 target_link_libraries(startup_flow_tests PRIVATE lvgl m)
 target_compile_options(startup_flow_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
@@ -173,10 +173,15 @@ add_test(NAME weather_artwork_pixels
 
 # Visual review tool; preview fixtures are not device acceptance or an automated design verdict.
 add_executable(preview_launcher_icons ../../tools/preview_launcher_icons.c ../../main/launcher_icons.c
+               ../../main/companion_icons.c ../../main/font_companion.c
                ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c)
 target_include_directories(preview_launcher_icons PRIVATE ../weather/stubs stubs ../../main)
 target_link_libraries(preview_launcher_icons PRIVATE lvgl m)
 target_compile_options(preview_launcher_icons PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME launcher_approved_artwork
+         COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_launcher_artwork.py
+                 --render-with $<TARGET_FILE:preview_launcher_icons>)
+set_tests_properties(launcher_approved_artwork PROPERTIES TIMEOUT 90)
 
 add_executable(zodiac_network_tests ../lifestyle/zodiac_network_tests.c ../../main/zodiac_data.c ../../main/zodiac_fetch.c ../../managed_components/espressif__cjson/cJSON/cJSON.c)
 target_include_directories(zodiac_network_tests PRIVATE ../answers/stubs ../../main ../../managed_components/espressif__cjson/cJSON)
@@ -215,3 +220,9 @@ target_include_directories(merit_audio_tests PRIVATE ../lifestyle/audio_stubs st
 target_link_libraries(merit_audio_tests PRIVATE m)
 target_compile_options(merit_audio_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME merit_sound_and_output_worker COMMAND merit_audio_tests)
+include("${CMAKE_CURRENT_SOURCE_DIR}/../capsules.cmake")
+add_executable(companion_icons_tests ../companion_icons_tests.c ../../main/companion_icons.c ../../main/launcher_icons.c)
+target_include_directories(companion_icons_tests PRIVATE ../../main)
+target_link_libraries(companion_icons_tests PRIVATE lvgl m)
+target_compile_options(companion_icons_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME companion_icons_preserve_catalog COMMAND companion_icons_tests)

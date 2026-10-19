@@ -12,6 +12,8 @@ idf_component_register(
          "network_http.c" "app_answers.c" "answers_data.c" "answers_fetch.c" "font_answer.c" "font_answer_cjk.c"
          "app_zodiac.c" "zodiac_data.c" "zodiac_fetch.c" "app_merit.c" "merit_artwork.c" "merit_sound.c" "merit_store.c" "weather_frame.c" "weather_refresh.c"
          "app_pixels.c" "pixel_field.c"
+         "app_garden.c" "garden_state.c" "app_focus.c" "focus_state.c" "font_companion.c" "companion_icons.c"
+         "app_capsules.c" "capsule_store.c" "capsule_recorder.c" "remote_media.c" "ble_media.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common
@@ -19,7 +21,7 @@ idf_component_register(
              bt
              esp_http_client esp-tls mbedtls esp_https_ota app_update
              esp_driver_i2s esp_codec_dev
-             fatfs esp_jpeg
+             fatfs esp_jpeg wear_levelling
 )
 
 # 图片表盘:把 images/ 目录打包成 storage 分区的只读 FAT 镜像,随 idf.py flash 一起烧入。

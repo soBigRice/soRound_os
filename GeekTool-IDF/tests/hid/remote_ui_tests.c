@@ -1,8 +1,40 @@
 #include "hid_sdk.h"
 #include "app.h"
 #include "settings.h"
+#include "remote_media.h"
+#include "font_companion.h"
 #include <string.h>
 #include <math.h>
+#include <stdlib.h>
+
+// 协议在独立真实解析器测试中验证；这里只替换跨线程快照输入。
+// Protocol tests exercise the real parser; this fixture isolates UI snapshot input.
+static remote_media_snapshot_t media_fixture;
+static bool media_fixture_visible;
+static bool read_media_fixture(const char *name,void *dst,size_t bytes) {
+    const char *folder=getenv("SOROUND_MEDIA_FIXTURES");
+    if(!folder) return false;
+    char path[1024]; snprintf(path,sizeof path,"%s/%s",folder,name);
+    FILE *f=fopen(path,"rb"); assert(f);
+    assert(fread(dst,1,bytes,f)==bytes && fgetc(f)==EOF); assert(fclose(f)==0); return true;
+}
+void ble_media_hid_link(uint16_t connection,bool encrypted) { (void)connection; (void)encrypted; }
+void remote_media_set_visible(bool visible) { media_fixture_visible=visible; if(!visible) memset(&media_fixture,0,sizeof media_fixture); }
+void remote_media_reset(void) { memset(&media_fixture,0,sizeof media_fixture); }
+void remote_media_tick(void) {}
+void remote_media_get_snapshot(remote_media_snapshot_t *out) { *out=media_fixture; }
+bool remote_media_copy_artwork(void *dst,size_t capacity,uint32_t revision) {
+    if(!media_fixture_visible || !media_fixture.has_artwork || revision!=media_fixture.artwork_revision || capacity<REMOTE_MEDIA_ARTWORK_BYTES) return false;
+    if(read_media_fixture("synthetic-cover.rgb565",dst,REMOTE_MEDIA_ARTWORK_BYTES)) return true;
+    uint16_t *p=dst;
+    for(unsigned y=0;y<466;y++) for(unsigned x=0;x<466;x++) p[y*466+x]=(uint16_t)(((x/15)<<11)|((y/8)<<5)|12);
+    return true;
+}
+bool remote_media_copy_overlay(void *dst,size_t capacity,uint32_t revision) {
+    if(!media_fixture_visible || !media_fixture.has_overlay || revision!=media_fixture.overlay_revision || capacity<REMOTE_MEDIA_OVERLAY_BYTES) return false;
+    if(read_media_fixture("synthetic-overlay.a8",dst,REMOTE_MEDIA_OVERLAY_BYTES)) return true;
+    memset(dst,0,REMOTE_MEDIA_OVERLAY_BYTES); return true;
+}
 #include "../../main/app_mouse.c"
 
 int64_t host_time_us;
@@ -15,6 +47,7 @@ static lv_obj_t *page, *heading;
 static lv_point_t pointer;
 static lv_indev_state_t pointer_state;
 static lv_indev_t *indev;
+void launcher_set_title(const char *title) { if(heading) lv_label_set_text(heading,title); }
 
 static void flush(lv_display_t *d, const lv_area_t *a, uint8_t *map) {
     int width=lv_area_get_width(a);
@@ -96,11 +129,21 @@ int main(int argc,char **argv) {
     lv_obj_set_style_arc_color(ring,lv_color_hex(COL_TXT),LV_PART_INDICATOR);
     lv_obj_set_style_arc_width(ring,8,LV_PART_MAIN); lv_obj_set_style_arc_width(ring,8,LV_PART_INDICATOR);
     lv_obj_remove_style(ring,NULL,LV_PART_KNOB); ui_obj_set_clickable(ring,false);
-    heading=lv_label_create(lv_layer_top()); lv_obj_set_style_text_font(heading,UI_FONT_L,0);
+    heading=lv_label_create(lv_layer_top()); lv_obj_set_style_text_font(heading,&font_companion_24,0);
+    lv_obj_t *back=lv_button_create(lv_layer_top()); lv_obj_set_size(back,48,48); lv_obj_set_pos(back,109,40);
+    lv_obj_set_style_radius(back,LV_RADIUS_CIRCLE,0); lv_obj_set_style_bg_color(back,lv_color_hex(0x16161a),0);
+    lv_obj_set_style_border_width(back,1,0); lv_obj_set_style_border_color(back,lv_color_hex(COL_TXT2),0);
+    lv_obj_set_style_shadow_width(back,0,0); lv_obj_t *arrow=lv_label_create(back);
+    lv_obj_set_style_text_font(arrow,&lv_font_montserrat_20,0); lv_label_set_text(arrow,LV_SYMBOL_LEFT); lv_obj_center(arrow);
     lv_obj_set_style_text_color(heading,lv_color_hex(COL_TXT),0);
     indev=lv_indev_create(); lv_indev_set_type(indev,LV_INDEV_TYPE_POINTER); lv_indev_set_read_cb(indev,read_pointer);
 
     enter(); assert(!s_ready && lv_obj_has_state(g_drag,LV_STATE_DISABLED));
+    lv_obj_update_layout(page);
+    // 第三版把左右键做成独立圆形触点，不允许回退为窄小的字母按钮。
+    // Direction three keeps separate round mouse targets instead of narrow letter keys.
+    assert(lv_obj_get_width(g_controls[2]) >= 64);
+    assert(lv_obj_get_height(g_controls[2]) == lv_obj_get_width(g_controls[2]));
     snapshot(directory,"remote-pair-en");
     click(g_modes[HID_KEYBOARD]); assert(s_mode==HID_KEYBOARD && !s_ready);
     // 本地演示计时不依赖蓝牙;暂停、恢复、跨模式和一小时边界。
@@ -129,7 +172,12 @@ int main(int argc,char **argv) {
     mouse_visibility(true); mouse_tick(); click(g_drag); click(g_modes[HID_MEDIA]); step();
     assert(!s_drag && hid_packets[hid_packet_count-1].bytes[0]==0 && s_ready);
     before=hid_advertisements; click(g_modes[HID_KEYBOARD]); click(g_modes[HID_MEDIA]); assert(hid_advertisements==before);
+    assert(s_control_count==6 && ui_obj_is_hidden(g_volume_panel));
+    for(int i=0;i<3;i++) assert(!ui_obj_is_hidden(g_controls[i]));
+    lv_obj_send_event(g_modes[HID_MEDIA],LV_EVENT_LONG_PRESSED,NULL);
+    assert(s_volume_open && !ui_obj_is_hidden(g_volume_panel));
     for(int i=0;i<6;i++) { int n=hid_packet_count; click(g_controls[i]); step(); step(); assert(hid_packet_count==n+2); }
+    assert(mouse_back() && ui_obj_is_hidden(g_volume_panel) && !mouse_back());
     for(int i=0;i<8;i++) click(g_controls[0]);
     click(g_controls[0]); assert(strcmp(lv_label_get_text(g_status),tr(S_REMOTE_BUSY))==0);
     clear_input(); step();
@@ -142,6 +190,20 @@ int main(int argc,char **argv) {
             snapshot(directory,name);
         }
     }
+    // 元数据与真实控制分离：封面可旋转，文字层不转，暂停/隐藏不补算动画。
+    // Metadata is separate from controls: cover rotates, overlay stays fixed, pause/hide freezes it.
+    media_fixture=(remote_media_snapshot_t){.revision=1,.artwork_revision=1,.overlay_revision=1,
+        .connected=true,.playing=true,.has_artwork=true,.has_overlay=true,.lyrics_available=true};
+    step(); assert(s_cover_pixels && s_overlay_pixels && !ui_obj_is_hidden(g_cover) && !ui_obj_is_hidden(g_overlay));
+    int angle=s_rotation; host_time_us+=200000; mouse_tick(); assert(s_rotation>angle);
+    assert(lv_image_get_rotation(g_overlay)==0);
+    snapshot(directory,"remote-media-lyrics-fixture");
+    media_fixture.playing=false; angle=s_rotation; host_time_us+=1000000; mouse_tick(); assert(s_rotation==angle);
+    media_fixture.has_artwork=false; media_fixture.has_overlay=false; step();
+    assert(ui_obj_is_hidden(g_cover) && ui_obj_is_hidden(g_overlay) && !ui_obj_is_hidden(g_media_hint));
+    snapshot(directory,"remote-media-no-artwork");
+    mouse_visibility(false); assert(!media_fixture_visible); mouse_visibility(true); step();
+    assert(!media_fixture.connected && ui_obj_is_hidden(g_cover));
     // 断连应清掉拖拽状态;新连接不继承旧鼠标按键。
     click(g_modes[HID_MOUSE]); click(g_drag);
     struct ble_gap_event e={.type=BLE_GAP_EVENT_DISCONNECT,.disconnect={.conn={.conn_handle=1}}};

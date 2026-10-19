@@ -79,7 +79,7 @@ static const char *const TXT[S__COUNT][2] = {
     [S_REMOTE_TITLE]  = { "remote",                     "遥控台" },
     [S_REMOTE_MOUSE]  = { "mouse",                      "鼠标" },
     [S_REMOTE_SLIDES] = { "slides",                     "演示" },
-    [S_REMOTE_MEDIA]  = { "media",                      "媒体" },
+    [S_REMOTE_MEDIA]  = { "music",                      "音乐" },
     [S_REMOTE_DRAG]   = { "drag",                       "拖拽" },
     [S_REMOTE_PREPARING] = { "waiting for host controls...", "等待设备启用控制..." },
     [S_REMOTE_BUSY]   = { "busy - try again",           "繁忙 - 请重试" },
@@ -92,6 +92,14 @@ static const char *const TXT[S__COUNT][2] = {
     [S_REMOTE_TIMER_HINT] = { "tap time: start / pause", "点时间开始/暂停" },
     [S_REMOTE_VOLUME_UP] = { "VOL+",                    "音量 +" },
     [S_REMOTE_VOLUME_DOWN] = { "VOL-",                  "音量 -" },
+    [S_REMOTE_LEFT] = { "left", "左键" },
+    [S_REMOTE_RIGHT] = { "right", "右键" },
+    [S_REMOTE_PAD_HINT] = { "slide to move / tap to click", "滑动移动 · 轻点点击" },
+    [S_REMOTE_WHEEL] = { "scroll", "滚动" },
+    [S_REMOTE_SYSTEM_PLAYBACK] = { "computer music", "电脑音乐" },
+    [S_REMOTE_WAIT_INFO] = { "waiting for song details", "等待电脑同步曲目信息" },
+    [S_REMOTE_HOLD_VOLUME] = { "hold music for volume", "长按音乐调音量" },
+    [S_REMOTE_CLOSE] = { "close", "关闭" },
     /* dice modes / coin */
     [S_COIN]          = { "coin",                       "硬币" },
     [S_HEADS]         = { "heads",                      "正" },
@@ -119,6 +127,9 @@ static const char *const APP_ZH[][2] = {
     { "Zodiac",    "星座运势" },
     { "Merit",     "木鱼" },
     { "Pixels",    "方块" },
+    { "Garden",    "生态箱" },
+    { "Focus",     "专注" },
+    { "Capsules",  "声音胶囊" },
 };
 
 const char *tr(str_id_t id) {

@@ -44,25 +44,30 @@ jobs:
             GeekTool-IDF/sdkconfig
             GeekTool-IDF/dependencies.lock
 
-      - name: Check startup and play with release LVGL
+      - name: Check firmware UI and storage with release LVGL
         run: |
           # Existing LVGL compatibility calls remain supported in 9.6;
           # suppress only their deprecation warnings in this host fixture.
           cmake -S GeekTool-IDF/tests/host -B "$RUNNER_TEMP/startup-host" \
             -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
-          cmake --build "$RUNNER_TEMP/startup-host" --parallel 4 --target \
-            startup_tests startup_network_tests lock_startup_tests \
-            identity_ui_tests display_frame_gate_tests startup_flow_tests \
-            play_tests pixel_tests performance_tests watchface_tests watchface_image_tests \
-            settings_level_tests system_ui_tests buttons_tests
-          ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure \
-            -R 'startup_|identity_geometry|fluid_modes|pixels_|performance_regressions|watchface_|settings_controls|system_memory|system_font|physical_button'
+          cmake --build "$RUNNER_TEMP/startup-host" --parallel 4
+          ctest --test-dir "$RUNNER_TEMP/startup-host" --output-on-failure
+          cmake -S GeekTool-IDF/tests/companion_apps -B "$RUNNER_TEMP/companion-host" \
+            -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_FLAGS=-Wno-deprecated-declarations
+          cmake --build "$RUNNER_TEMP/companion-host" --parallel 4
+          ctest --test-dir "$RUNNER_TEMP/companion-host" --output-on-failure
+          cc -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -pthread \
+            -I GeekTool-IDF/tests/remote_media/stubs -I GeekTool-IDF/main \
+            GeekTool-IDF/tests/remote_media/remote_media_tests.c -o "$RUNNER_TEMP/remote-media-tests"
+          ASAN_OPTIONS=detect_leaks=0 "$RUNNER_TEMP/remote-media-tests"
+          python3 -m unittest discover -s GeekTool-IDF/tools/ota_mirror -p 'test_*.py'
 
       - name: Publish firmware to Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: GeekTool-IDF/build/GeekTool.bin
+          body_path: GeekTool-IDF/RELEASE_NOTES.md
           fail_on_unmatched_files: true   # bin 没生成就让工作流红掉,别发空 Release
           prerelease: ${{ contains(github.ref_name, '-beta') }}   # beta tag 标为预发布
 

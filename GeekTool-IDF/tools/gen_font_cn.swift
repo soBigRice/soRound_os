@@ -25,7 +25,7 @@ for f in srcFiles {
 // System's private labels share this fallback, but comments are not product copy.
 // Keep the added character set scoped to its actual string literals.
 let literals = try NSRegularExpression(pattern:#""(?:\\.|[^"\\])*""#)
-for filename in ["main/app_sys.c", "main/app_fluid.c", "main/app_maze.c", "main/maze_levels.c", "main/app_pixels.c"] {
+for filename in ["main/app_sys.c", "main/app_fluid.c", "main/app_maze.c", "main/maze_levels.c", "main/app_pixels.c", "main/app_garden.c", "main/app_focus.c", "main/app_capsules.c", "main/app_mouse.c"] {
     let text = try String(contentsOfFile:filename,encoding:.utf8)
     for match in literals.matches(in:text,range:NSRange(text.startIndex..<text.endIndex,in:text)) {
         for ch in text[Range(match.range,in:text)!] where isFallbackCharacter(ch.unicodeScalars.first!.value) {

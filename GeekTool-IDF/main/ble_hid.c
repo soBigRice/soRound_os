@@ -5,6 +5,8 @@
 // 报文:ID1 鼠标 4 字节、ID2 键盘 8 字节、ID3 媒体 2 字节 notify。
 #include "ble_hid.h"
 #include "ble_core.h"
+#include "ble_media.h"
+#include "remote_media.h"
 #include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "power.h"
@@ -244,6 +246,7 @@ static int gap_event(struct ble_gap_event *ev, void *arg) {
             s_conn = ev->connect.conn_handle;
             s_encrypted = false;
             portEXIT_CRITICAL(&s_mux);
+            ble_media_hid_link(s_conn,false);
             // HID 要低延迟连接间隔(7.5-15ms);多数主机会接受
             struct ble_gap_upd_params up = { .itvl_min = 6, .itvl_max = 12, .latency = 0,
                                              .supervision_timeout = 200 };
@@ -262,6 +265,7 @@ static int gap_event(struct ble_gap_event *ev, void *arg) {
             reset_input_locked();
         }
         portEXIT_CRITICAL(&s_mux);
+        ble_media_hid_link(s_conn,s_encrypted);
         start_advertising();
         return 0;
     case BLE_GAP_EVENT_ENC_CHANGE:
@@ -269,6 +273,7 @@ static int gap_event(struct ble_gap_event *ev, void *arg) {
         if (ev->enc_change.conn_handle == s_conn) s_encrypted = (ev->enc_change.status == 0);
         if (!s_encrypted) cancel_taps_locked();
         portEXIT_CRITICAL(&s_mux);
+        ble_media_hid_link(s_conn,s_encrypted);
         ESP_LOGI(TAG, "encrypted=%d", s_encrypted);
         return 0;
     case BLE_GAP_EVENT_SUBSCRIBE:
@@ -349,6 +354,7 @@ void ble_hid_stop(void) {
     s_encrypted = false;
     reset_input_locked();
     portEXIT_CRITICAL(&s_mux);
+    ble_media_hid_link(BLE_HS_CONN_HANDLE_NONE,false);
     int rc = ble_gap_adv_stop();
     if (rc != 0 && rc != BLE_HS_EALREADY) ESP_LOGW(TAG, "adv_stop rc=%d", rc);
     if (conn != BLE_HS_CONN_HANDLE_NONE) {
@@ -433,6 +439,7 @@ void ble_hid_release_all(void) {
 }
 
 void ble_hid_tick(void) {
+    remote_media_tick();
     int64_t now = esp_timer_get_time();
     portENTER_CRITICAL(&s_mux);
     bool releasing = s_release_mask != 0;
@@ -450,7 +457,10 @@ void ble_hid_tick(void) {
             }
         }
         portEXIT_CRITICAL(&s_mux);
-        if (disconnect != BLE_HS_CONN_HANDLE_NONE) ble_gap_terminate(disconnect, BLE_ERR_REM_USER_CONN_TERM);
+        if (disconnect != BLE_HS_CONN_HANDLE_NONE) {
+            ble_media_hid_link(BLE_HS_CONN_HANDLE_NONE,false);
+            ble_gap_terminate(disconnect, BLE_ERR_REM_USER_CONN_TERM);
+        }
         return;
     }
     uint16_t usage = releasing || s_press_sent ? 0 : s_taps[s_head].usage;
@@ -488,6 +498,7 @@ void ble_hid_tick(void) {
     portEXIT_CRITICAL(&s_mux);
     // 无法交付释放报文时断开,让主机清除按住状态;不把旧动作带进下一次连接。
     if (timed_out) {
+        ble_media_hid_link(BLE_HS_CONN_HANDLE_NONE,false);
         ESP_LOGW(TAG, "report send timed out; disconnect to release input");
         ble_gap_terminate(conn, BLE_ERR_REM_USER_CONN_TERM);
     }

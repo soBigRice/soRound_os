@@ -4,6 +4,10 @@
 #include "ble_hid.h"
 #include "glyph.h"
 #include "esp_timer.h"
+#include "esp_heap_caps.h"
+#include "remote_media.h"
+#include "src/misc/cache/instance/lv_image_cache.h"
+#include "remote_icons.inc"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -25,9 +29,72 @@ static uint32_t s_press_tick, s_send_tick;
 static int64_t s_feedback_until, s_elapsed_us, s_timer_since;
 static bool s_timer_running;
 static unsigned s_shown_seconds;
+static lv_obj_t *g_media_layer, *g_cover, *g_overlay, *g_media_hint, *g_play_symbol, *g_volume_panel;
+static uint8_t *s_cover_pixels, *s_overlay_pixels;
+static lv_image_dsc_t s_cover_image, s_overlay_image;
+static uint32_t s_cover_revision, s_overlay_revision, s_rotation_at;
+static int32_t s_rotation;
+static bool s_volume_open;
 
 static void update_connection(void);
 static void build_mode(void);
+
+static void free_media_view(void) {
+    // LVGL 必须先丢掉图像对象与缓存，再释放 UI 持有的 PSRAM 副本。
+    // Delete image objects/cache before releasing the UI-owned PSRAM copies.
+    if (g_media_layer) lv_obj_delete(g_media_layer);
+    g_media_layer = g_cover = g_overlay = g_media_hint = g_play_symbol = g_volume_panel = NULL;
+    lv_image_cache_drop(&s_cover_image); lv_image_cache_drop(&s_overlay_image);
+    heap_caps_free(s_cover_pixels); heap_caps_free(s_overlay_pixels);
+    s_cover_pixels = s_overlay_pixels = NULL;
+    s_cover_revision = s_overlay_revision = 0; s_rotation = 0; s_volume_open = false;
+}
+
+static void update_media_view(void) {
+    if (s_mode != HID_MEDIA || !g_cover) return;
+    remote_media_snapshot_t state;
+    remote_media_get_snapshot(&state);
+    bool artwork = false, overlay = false;
+    if (state.connected && state.has_artwork) {
+        if (!s_cover_pixels) s_cover_pixels = heap_caps_malloc(REMOTE_MEDIA_ARTWORK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (s_cover_pixels && s_cover_revision != state.artwork_revision &&
+            remote_media_copy_artwork(s_cover_pixels, REMOTE_MEDIA_ARTWORK_BYTES, state.artwork_revision)) {
+            lv_image_cache_drop(&s_cover_image);
+            s_cover_image = (lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,
+                .w=466,.h=466,.stride=932},.data=s_cover_pixels,.data_size=REMOTE_MEDIA_ARTWORK_BYTES};
+            lv_image_set_src(g_cover, &s_cover_image); s_cover_revision = state.artwork_revision;
+        }
+        artwork = s_cover_pixels && s_cover_revision == state.artwork_revision;
+    }
+    if (state.connected && state.has_overlay) {
+        if (!s_overlay_pixels) s_overlay_pixels = heap_caps_malloc(REMOTE_MEDIA_OVERLAY_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+        if (s_overlay_pixels && s_overlay_revision != state.overlay_revision &&
+            remote_media_copy_overlay(s_overlay_pixels, REMOTE_MEDIA_OVERLAY_BYTES, state.overlay_revision)) {
+            lv_image_cache_drop(&s_overlay_image);
+            s_overlay_image = (lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_A8,
+                .w=350,.h=180,.stride=350},.data=s_overlay_pixels,.data_size=REMOTE_MEDIA_OVERLAY_BYTES};
+            lv_image_set_src(g_overlay, &s_overlay_image); s_overlay_revision = state.overlay_revision;
+        }
+        overlay = s_overlay_pixels && s_overlay_revision == state.overlay_revision;
+    }
+    ui_obj_set_hidden(g_cover, !artwork); ui_obj_set_hidden(g_overlay, !overlay);
+    ui_obj_set_hidden(g_media_hint, overlay);
+    // 只依据主机回传状态选择图标；HID 单向模式始终显示播放/暂停复合符号。
+    // Only host feedback selects play versus pause; one-way HID keeps a toggle symbol.
+    lv_label_set_text(g_play_symbol, state.connected ? (state.playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY) : LV_SYMBOL_PLAY " " LV_SYMBOL_PAUSE);
+    uint32_t now = lv_tick_get();
+    if (s_visible && artwork && state.playing && lv_tick_elaps(s_rotation_at) >= 100) {
+        s_rotation = (s_rotation + 3) % 3600;
+        lv_image_set_rotation(g_cover, s_rotation); s_rotation_at = now;
+    } else if (!s_visible || !artwork || !state.playing) s_rotation_at = now;
+}
+
+static void volume_event(lv_event_t *e) {
+    (void)e;
+    if (s_mode != HID_MEDIA || !g_volume_panel) return;
+    s_volume_open = !s_volume_open;
+    ui_obj_set_hidden(g_volume_panel, !s_volume_open);
+}
 
 static uint8_t mouse_buttons(void) { return s_btns | (s_drag ? 1 : 0); }
 static bool send_now(uint8_t buttons, int8_t dx, int8_t dy, int8_t wheel) {
@@ -175,10 +242,11 @@ static void mode_event(lv_event_t *e) {
 }
 
 static void build_mode(void) {
+    free_media_view();
     g_pad = g_drag = g_time = NULL;
     if (g_body) lv_obj_delete(g_body);
     g_body = lv_obj_create(g_parent); lv_obj_remove_style_all(g_body);
-    lv_obj_set_pos(g_body, 0, 126); lv_obj_set_size(g_body, 466, 244);
+    lv_obj_set_pos(g_body, 0, 126); lv_obj_set_size(g_body, 466, 254);
     ui_obj_set_scrollable(g_body, false);
     ui_obj_set_clickable(g_body, false);
     s_control_count = 0;
@@ -194,20 +262,40 @@ static void build_mode(void) {
         ui_obj_set_clickable(g_pad, true);
         lv_obj_add_event_cb(g_pad, pad_event, LV_EVENT_ALL, NULL);
         g_controls[s_control_count++] = g_pad;
+        lv_obj_set_height(g_pad, 174);
         for (int y = 0; y < 3; y++) for (int x = 0; x < 3; x++)
-            glyph_dot(g_pad, 213 + x * 20, 60 + y * 20, 2, COL_TXT2);
-        lv_obj_t *wheel = button(g_body, 372, 16, 38, 162);
+            glyph_dot(g_pad, 221 + x * 12, 44 + y * 12, 2, 0x929294);
+        lv_obj_t *hint = label(g_pad, tr(S_REMOTE_PAD_HINT), UI_FONT_M);
+        lv_obj_set_style_text_color(hint, lv_color_hex(0x929294), 0);
+        lv_obj_set_width(hint, 310); lv_obj_set_style_text_align(hint, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(hint, LV_ALIGN_TOP_MID, -12, 92);
+        lv_obj_t *wheel = button(g_body, 372, 12, 42, 152);
+        lv_obj_set_style_radius(wheel, LV_RADIUS_CIRCLE, 0);
         lv_obj_add_event_cb(wheel, wheel_event, LV_EVENT_ALL, NULL);
-        for (int i = 0; i < 3; i++) glyph_dot(wheel, 19, 42 + i * 38, 2, COL_TXT2);
+        for (int i = 0; i < 3; i++) glyph_dot(wheel, 21, 28 + i * 48, 2, 0x929294);
         g_controls[s_control_count++] = wheel;
         for (int i = 0; i < 2; i++) {
-            lv_obj_t *b = button(g_body, i ? 294 : 86, 186, 86, 48);
-            lv_obj_center(label(b, i ? "R" : "L", UI_FONT_M));
+            lv_obj_t *b = button(g_body, i ? 298 : 92, 174, 76, 76);
+            lv_obj_set_style_radius(b, LV_RADIUS_CIRCLE, 0);
+            lv_obj_set_style_border_width(b, 1, 0);
+            lv_obj_set_style_border_color(b, lv_color_hex(0x353a40), 0);
+            lv_obj_t *icon = lv_image_create(b); lv_image_set_src(icon, &remote_mouse_icon);
+            lv_obj_set_style_image_recolor(icon, lv_color_hex(COL_TXT), 0);
+            lv_obj_set_style_image_recolor_opa(icon, LV_OPA_COVER, 0);
+            lv_obj_align(icon, LV_ALIGN_CENTER, 0, -12);
+            lv_obj_t *name = label(b, tr(i ? S_REMOTE_RIGHT : S_REMOTE_LEFT), UI_FONT_SYM);
+            lv_obj_align(name, LV_ALIGN_CENTER, 0, 23);
             lv_obj_add_event_cb(b, mouse_button_event, LV_EVENT_ALL, (void *)(uintptr_t)(i ? 2 : 1));
             g_controls[s_control_count++] = b;
         }
-        g_drag = button(g_body, 190, 186, 86, 48);
-        lv_obj_center(label(g_drag, tr(S_REMOTE_DRAG), UI_FONT_M));
+        g_drag = button(g_body, 195, 174, 76, 76);
+        lv_obj_set_style_radius(g_drag, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_border_width(g_drag, 1, 0);
+        lv_obj_set_style_border_color(g_drag, lv_color_hex(0x353a40), 0);
+        lv_obj_t *lock = lv_image_create(g_drag); lv_image_set_src(lock, &remote_lock_icon);
+        lv_obj_set_style_image_recolor(lock, lv_color_hex(COL_TXT), 0);
+        lv_obj_set_style_image_recolor_opa(lock, LV_OPA_COVER, 0); lv_obj_align(lock, LV_ALIGN_CENTER, 0, -12);
+        lv_obj_t *name = label(g_drag, tr(S_REMOTE_DRAG), UI_FONT_SYM); lv_obj_align(name, LV_ALIGN_CENTER, 0, 23);
         lv_obj_add_event_cb(g_drag, drag_event, LV_EVENT_CLICKED, NULL);
         g_controls[s_control_count++] = g_drag;
     } else if (s_mode == HID_KEYBOARD) {
@@ -226,15 +314,60 @@ static void build_mode(void) {
         lv_obj_center(label(reset, tr(S_RESET), UI_FONT_M));
         lv_obj_add_event_cb(reset, timer_reset, LV_EVENT_CLICKED, NULL);
     } else {
-        action(74, 58, 94, 82, LV_SYMBOL_PREV, tr(S_REMOTE_PREV_TRACK), HID_MEDIA_PREVIOUS);
-        action(179, 26, 108, 126, LV_SYMBOL_PLAY " " LV_SYMBOL_PAUSE, tr(S_REMOTE_PLAY_PAUSE), HID_MEDIA_PLAY_PAUSE);
-        action(298, 58, 94, 82, LV_SYMBOL_NEXT, tr(S_REMOTE_NEXT_TRACK), HID_MEDIA_NEXT);
-        action(86, 186, 86, 48, NULL, tr(S_REMOTE_VOLUME_DOWN), HID_MEDIA_VOLUME_DOWN);
-        action(190, 186, 86, 48, NULL, tr(S_REMOTE_MUTE), HID_MEDIA_MUTE);
-        action(294, 186, 86, 48, NULL, tr(S_REMOTE_VOLUME_UP), HID_MEDIA_VOLUME_UP);
+        g_media_layer = lv_obj_create(g_parent); lv_obj_remove_style_all(g_media_layer);
+        lv_obj_set_size(g_media_layer, 466, 466); lv_obj_set_pos(g_media_layer, 0, 0);
+        ui_obj_set_scrollable(g_media_layer, false); ui_obj_set_clickable(g_media_layer, false);
+        lv_obj_set_style_radius(g_media_layer, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_clip_corner(g_media_layer, true, 0); lv_obj_move_background(g_media_layer);
+        g_cover = lv_image_create(g_media_layer); lv_obj_set_pos(g_cover, 0, 0);
+        lv_image_set_pivot(g_cover, 233, 233); lv_obj_set_style_image_opa(g_cover, 160, 0);
+        ui_obj_set_hidden(g_cover, true);
+        g_overlay = lv_image_create(g_media_layer); lv_obj_set_pos(g_overlay, 58, 130);
+        lv_obj_set_style_image_recolor(g_overlay, lv_color_hex(COL_TXT), 0);
+        lv_obj_set_style_image_recolor_opa(g_overlay, LV_OPA_COVER, 0); ui_obj_set_hidden(g_overlay, true);
+        g_media_hint = label(g_body, tr(S_REMOTE_SYSTEM_PLAYBACK), UI_FONT_SYM);
+        lv_obj_set_height(g_media_hint, 110);
+        lv_obj_set_width(g_media_hint, 310); lv_obj_set_style_text_align(g_media_hint, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(g_media_hint, LV_ALIGN_TOP_MID, 0, 44);
+        lv_obj_t *waiting = label(g_media_hint, tr(S_REMOTE_WAIT_INFO), UI_FONT_M);
+        lv_obj_set_style_text_color(waiting, lv_color_hex(0x929294), 0);
+        lv_obj_set_width(waiting, 310); lv_obj_set_style_text_align(waiting, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_align(waiting, LV_ALIGN_TOP_MID, 0, 42);
+        // 主界面只保留三键；原音量和静音通过长按「音乐」进入，不删现有功能。
+        // Keep three primary controls; long-press Music reveals existing volume/mute.
+        action(120, 190, 60, 60, LV_SYMBOL_PREV, NULL, HID_MEDIA_PREVIOUS);
+        lv_obj_t *toggle = action(197, 182, 72, 72, LV_SYMBOL_PLAY " " LV_SYMBOL_PAUSE, NULL, HID_MEDIA_PLAY_PAUSE);
+        g_play_symbol = lv_obj_get_child(toggle, 0);
+        action(286, 190, 60, 60, LV_SYMBOL_NEXT, NULL, HID_MEDIA_NEXT);
+        for (int i=0;i<3;i++) {
+            lv_obj_set_style_radius(g_controls[i], LV_RADIUS_CIRCLE, 0);
+            lv_obj_set_style_border_width(g_controls[i], 1, 0);
+            lv_obj_set_style_border_color(g_controls[i], lv_color_hex(0x40464d), 0);
+        }
+        g_volume_panel = lv_obj_create(g_body); lv_obj_remove_style_all(g_volume_panel);
+        lv_obj_set_pos(g_volume_panel, 54, 70); lv_obj_set_size(g_volume_panel, 358, 110);
+        lv_obj_set_style_bg_color(g_volume_panel, lv_color_hex(0x111418), 0);
+        lv_obj_set_style_bg_opa(g_volume_panel, LV_OPA_COVER, 0); lv_obj_set_style_radius(g_volume_panel, 24, 0);
+        ui_obj_set_scrollable(g_volume_panel, false);
+        const uint16_t uses[]={HID_MEDIA_VOLUME_DOWN,HID_MEDIA_MUTE,HID_MEDIA_VOLUME_UP};
+        const str_id_t names[]={S_REMOTE_VOLUME_DOWN,S_REMOTE_MUTE,S_REMOTE_VOLUME_UP};
+        for (int i=0;i<3;i++) {
+            lv_obj_t *b=action(18+i*108,36,102,46,NULL,tr(names[i]),uses[i]);
+            lv_obj_set_parent(b,g_volume_panel);
+        }
+        lv_obj_t *close=label(g_volume_panel, tr(S_REMOTE_HOLD_VOLUME), UI_FONT_M);
+        lv_obj_set_style_text_color(close,lv_color_hex(0x929294),0); lv_obj_align(close,LV_ALIGN_TOP_MID,0,8);
+        ui_obj_set_hidden(g_volume_panel,true);
+        s_rotation_at=lv_tick_get(); update_media_view();
     }
     s_ready = !ble_hid_ready(s_mode); // 强制同步新一组控件的 enabled 状态。
     s_status = -1; update_connection();
+    launcher_set_title(tr(s_mode == HID_MEDIA ? S_REMOTE_MEDIA : s_mode == HID_KEYBOARD ? S_REMOTE_SLIDES : S_REMOTE_TITLE));
+}
+
+static bool mouse_back(void) {
+    if (!s_volume_open) return false;
+    s_volume_open = false; ui_obj_set_hidden(g_volume_panel, true); return true;
 }
 
 static void update_connection(void) {
@@ -261,15 +394,17 @@ static void mouse_enter(lv_obj_t *parent) {
     g_parent = parent; s_mode = HID_MOUSE; s_visible = true;
     s_elapsed_us = s_timer_since = s_feedback_until = 0; s_timer_running = false;
     s_btns = 0; s_drag = false; s_ax = s_ay = s_wacc = 0;
+    remote_media_set_visible(true);
     g_status = label(parent, tr(S_STARTING), UI_FONT_M);
     lv_obj_set_width(g_status, 324); lv_obj_set_style_text_align(g_status, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(g_status, LV_ALIGN_TOP_MID, 0, 88);
     const str_id_t names[] = { S_REMOTE_MOUSE, S_REMOTE_SLIDES, S_REMOTE_MEDIA };
     for (int i = 0; i < HID_REPORT_COUNT; i++) {
-        g_modes[i] = button(parent, 110 + i * 84, 376, 78, 40);
+        g_modes[i] = button(parent, 120 + i * 78, 382, 70, 42);
         // unscii_16 英文字符也是 16px 宽;窄模式按钮使用现有比例字体及中文 fallback。
         lv_obj_center(label(g_modes[i], tr(names[i]), UI_FONT_SYM));
         lv_obj_add_event_cb(g_modes[i], mode_event, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
+        if (i == HID_MEDIA) lv_obj_add_event_cb(g_modes[i], volume_event, LV_EVENT_LONG_PRESSED, NULL);
     }
     s_started = ble_hid_start(); build_mode();
 }
@@ -279,6 +414,7 @@ static void mouse_tick(void) {
     ble_hid_tick();
     if (!s_visible || !g_status) return;
     update_connection();
+    update_media_view();
     if (g_time) {
         int64_t elapsed = s_elapsed_us + (s_timer_running ? esp_timer_get_time() - s_timer_since : 0);
         unsigned seconds = (unsigned)(elapsed / 1000000);
@@ -293,16 +429,18 @@ static void mouse_tick(void) {
 
 static void mouse_visibility(bool visible) {
     s_visible = visible;
+    remote_media_set_visible(visible);
     if (!visible) clear_input();
 }
 
 static void mouse_exit(void) {
     clear_input(); ble_hid_stop();
+    remote_media_set_visible(false); free_media_view();
     g_parent = g_body = g_status = g_pad = g_drag = g_time = NULL;
     s_started = s_ready = s_timer_running = false;
 }
 
 const app_t app_mouse = {
     .name = "mouse", .color = COL_TXT, .enter = mouse_enter, .tick = mouse_tick, .exit = mouse_exit,
-    .tick_period_ms = 20, .visibility = mouse_visibility, .tick_in_background = true,
+    .back = mouse_back, .tick_period_ms = 20, .visibility = mouse_visibility, .tick_in_background = true,
 };

@@ -7,6 +7,7 @@
 #include "settings.h"
 #include "power.h"
 #include "merit_sound.h"
+#include "capsule_wav.h"
 #include "driver/i2s_std.h"
 #include "esp_codec_dev.h"
 #include "esp_codec_dev_defaults.h"
@@ -33,10 +34,19 @@ static uint32_t s_generation, s_play_generation;
 static int s_req,s_playing_req;
 static uint8_t s_volume, s_applied_volume = UINT8_MAX;
 static bool s_io_failed;
+static bool s_client,s_starting;
+static audio_scene_t s_scene;
+static char s_wav_path[CAPSULE_PATH_BYTES];
+static audio_wav_state_t s_wav_state;
+static uint32_t s_noise=0x9e3779b9u;
+
+static void wav_publish(audio_wav_state_t state) {
+    portENTER_CRITICAL(&s_mux); s_wav_state=state; portEXIT_CRITICAL(&s_mux);
+}
 
 static bool cancelled(void) {
     portENTER_CRITICAL(&s_mux);
-    bool cancel = !s_wanted || s_generation != s_play_generation;
+    bool cancel = !s_wanted || s_generation != s_play_generation || (s_playing_req==4 && !s_scene);
     portEXIT_CRITICAL(&s_mux);
     return cancel || s_io_failed;
 }
@@ -174,6 +184,46 @@ static void write_knock(void) {
     }
 }
 
+// 短块合成保证取消有界；不是实录自然声。 / Short synthesized blocks bound cancellation; these are not field recordings.
+static void write_scene(void) {
+    float low=0,phase=0;unsigned at=0;
+    while(!cancelled() && !settings_silent()) {
+        portENTER_CRITICAL(&s_mux);audio_scene_t scene=s_scene;bool pending=s_req!=0;portEXIT_CRITICAL(&s_mux);
+        if(pending || !scene)return;
+        apply_volume();if(s_io_failed)return;
+        for(unsigned i=0;i<CHUNK;++i,++at) {
+            s_noise^=s_noise<<13;s_noise^=s_noise>>17;s_noise^=s_noise<<5;
+            float noise=(int32_t)s_noise/2147483648.0f;
+            low+=.055f*(noise-low);float v;
+            if(scene==AUDIO_SCENE_OCEAN) {
+                phase+=6.2831853f/(RATE*8.0f);if(phase>6.2831853f)phase-=6.2831853f;
+                v=low*(.2f+.6f*(.5f+.5f*sinf(phase)));
+            } else if(scene==AUDIO_SCENE_FIRE) {
+                float crack=(s_noise&0xfff)<5 ? noise*.28f : 0;
+                v=low*.35f+crack;
+            } else v=noise*.055f+low*.30f;
+            // 起始淡入防爆音。 / Fade in to avoid an abrupt attack.
+            float fade=at<RATE/10 ? at/(RATE/10.0f) : 1.0f;
+            s_buf[i]=(int16_t)(v*fade*26000.0f);
+        }
+        if(esp_codec_dev_write(s_dev,s_buf,sizeof s_buf)!=ESP_CODEC_DEV_OK){s_io_failed=true;return;}
+    }
+}
+static void write_wav(void) {
+    char path[CAPSULE_PATH_BYTES];portENTER_CRITICAL(&s_mux);memcpy(path,s_wav_path,sizeof path);portEXIT_CRITICAL(&s_mux);
+    FILE *f=capsule_path_valid(path)?fopen(path,"rb"):NULL;uint32_t remaining=0;
+    if(!f || !capsule_wav_open(f,&remaining)) {if(f)fclose(f);wav_publish(AUDIO_WAV_FAILED);return;}
+    wav_publish(AUDIO_WAV_PLAYING);
+    while(remaining && !cancelled()) {
+        size_t bytes=remaining<sizeof s_buf?remaining:sizeof s_buf;
+        if(fread(s_buf,1,bytes,f)!=bytes){s_io_failed=true;break;}
+        apply_volume();if(s_io_failed)break;
+        if(esp_codec_dev_write(s_dev,s_buf,(int)bytes)!=ESP_CODEC_DEV_OK){s_io_failed=true;break;}
+        remaining-=(uint32_t)bytes;
+    }
+    fclose(f);wav_publish(s_io_failed?AUDIO_WAV_FAILED:remaining?AUDIO_WAV_CANCELLED:AUDIO_WAV_DONE);
+}
+
 static void output_worker(void *arg) {
     (void)arg;
     bool owns_bus = false;
@@ -198,6 +248,10 @@ static void output_worker(void *arg) {
             owns_bus = true;
             hardware_init();
             if (!s_dev) {
+                portENTER_CRITICAL(&s_mux);
+                if(s_req==5){s_req=0;s_wav_state=AUDIO_WAV_FAILED;}
+                if(!s_client && !s_scene)s_wanted=false;
+                portEXIT_CRITICAL(&s_mux);
                 failed_generation = generation;
                 hardware_deinit(); audio_bus_release(); owns_bus = false;
                 continue;
@@ -208,6 +262,7 @@ static void output_worker(void *arg) {
         portENTER_CRITICAL(&s_mux);
         int req = s_req;
         s_req = 0;
+        if(!req && s_scene && !settings_silent()) req=4;
         s_busy = req != 0;
         s_playing_req=req;
         s_play_generation = s_generation;
@@ -221,11 +276,14 @@ static void output_worker(void *arg) {
                     write_silence(150);
                 }
             } else if(req==3)write_knock();
+            else if(req==4)write_scene();
+            else if(req==5)write_wav();
             else write_tone(1175, 80, 0.5f);
-        }
+        } else if(req==5)wav_publish(AUDIO_WAV_CANCELLED);
         portENTER_CRITICAL(&s_mux);
         s_busy = false;
         s_playing_req=0;
+        if(!s_client && !s_scene && !s_req)s_wanted=false;
         portEXIT_CRITICAL(&s_mux);
         if (s_io_failed) {
             hardware_deinit(); audio_bus_release(); owns_bus = false; failed_generation = generation;
@@ -235,21 +293,31 @@ static void output_worker(void *arg) {
     }
 }
 
-void audio_out_init(void) {
+static bool ensure_worker(void) {
     uint8_t volume = settings_volume();
     portENTER_CRITICAL(&s_mux);
     if (!s_wanted) s_generation++;
     s_wanted = true; s_volume = volume;
+    bool create=!s_worker && !s_starting;if(create)s_starting=true;
     portEXIT_CRITICAL(&s_mux);
-    if (!s_worker && xTaskCreate(output_worker, "aout", 4096, NULL, 5, &s_worker) != pdPASS) {
-        portENTER_CRITICAL(&s_mux); s_wanted = false; portEXIT_CRITICAL(&s_mux);
-        ESP_LOGE(TAG, "output task allocation failed"); return;
+    if (create && xTaskCreate(output_worker, "aout", 4096, NULL, 5, &s_worker) != pdPASS) {
+        portENTER_CRITICAL(&s_mux); s_wanted = false;s_starting=false;s_scene=0;
+        if(s_req==5)s_wav_state=AUDIO_WAV_FAILED;
+        s_req=0;portEXIT_CRITICAL(&s_mux);
+        ESP_LOGE(TAG, "output task allocation failed"); return false;
     }
+    if(create){portENTER_CRITICAL(&s_mux);s_starting=false;portEXIT_CRITICAL(&s_mux);}
     notify_worker();
+    return true;
+}
+void audio_out_init(void) {
+    portENTER_CRITICAL(&s_mux);s_client=true;portEXIT_CRITICAL(&s_mux);
+    (void)ensure_worker();
 }
 void audio_out_deinit(void) {
     portENTER_CRITICAL(&s_mux);
-    s_wanted = false; s_req = 0; s_generation++;
+    s_client = false; s_scene=0; s_wanted = false; s_req = 0; s_generation++;
+    if(s_wav_state==AUDIO_WAV_QUEUED)s_wav_state=AUDIO_WAV_CANCELLED;
     portEXIT_CRITICAL(&s_mux);
     notify_worker();
 }
@@ -263,9 +331,59 @@ static void play(int req) {
     if (settings_silent()) return;
     portENTER_CRITICAL(&s_mux);
     if (s_wanted && ((!s_busy && !s_req) || (req==3 && s_busy && s_playing_req==3))) s_req = req;
+    else if(s_wanted && req==2 && (s_playing_req==4 || s_playing_req==5 || s_req==5)) {
+        s_generation++;s_req=2;
+        if(s_wav_state==AUDIO_WAV_QUEUED)s_wav_state=AUDIO_WAV_CANCELLED;
+    }
     portEXIT_CRITICAL(&s_mux);
     notify_worker();
 }
 void audio_out_alarm(void) { play(2); }
 void audio_out_blip(void) { play(1); }
 void audio_out_knock(void) { play(3); }
+
+bool audio_out_scene_start(audio_scene_t scene) {
+    if(scene<AUDIO_SCENE_RAIN || scene>AUDIO_SCENE_FIRE || settings_silent())return false;
+    portENTER_CRITICAL(&s_mux);s_scene=scene;portEXIT_CRITICAL(&s_mux);
+    if(!ensure_worker()){portENTER_CRITICAL(&s_mux);s_scene=0;portEXIT_CRITICAL(&s_mux);return false;}
+    notify_worker();return true;
+}
+void audio_out_scene_stop(void) {
+    portENTER_CRITICAL(&s_mux);s_scene=0;
+    // 闹铃与其他客户端不受音景退出影响。 / Stopping ambience must not stop an alarm or another client.
+    if(!s_client && s_playing_req!=2 && s_req!=2 && s_playing_req!=5 && s_req!=5)s_wanted=false;
+    portEXIT_CRITICAL(&s_mux);notify_worker();
+}
+bool audio_out_scene_active(void) {
+    portENTER_CRITICAL(&s_mux);bool active=s_scene!=0;portEXIT_CRITICAL(&s_mux);return active;
+}
+bool audio_out_alarm_once(void) {
+    if(settings_silent())return false;
+    portENTER_CRITICAL(&s_mux);
+    if(s_playing_req!=2){
+        if(s_req==5)s_wav_state=AUDIO_WAV_CANCELLED;
+        s_generation++;s_req=2;
+    }
+    portEXIT_CRITICAL(&s_mux);
+    if(!ensure_worker())return false;
+    notify_worker();return true;
+}
+bool audio_out_wav_start(const char *path) {
+    if(!capsule_path_valid(path) || settings_silent())return false;
+    portENTER_CRITICAL(&s_mux);bool busy=s_busy || s_req || s_scene;
+    if(!busy){memcpy(s_wav_path,path,strlen(path)+1);s_wav_state=AUDIO_WAV_QUEUED;s_req=5;}
+    portEXIT_CRITICAL(&s_mux);
+    if(busy)return false;
+    if(!ensure_worker()){portENTER_CRITICAL(&s_mux);s_req=0;s_wav_state=AUDIO_WAV_FAILED;portEXIT_CRITICAL(&s_mux);return false;}
+    notify_worker();return true;
+}
+void audio_out_wav_stop(void) {
+    portENTER_CRITICAL(&s_mux);
+    if(s_req==5){s_req=0;s_wav_state=AUDIO_WAV_CANCELLED;}
+    if(s_playing_req==5)s_generation++;
+    if(!s_client && !s_scene && s_req!=2 && s_playing_req!=2)s_wanted=false;
+    portEXIT_CRITICAL(&s_mux);notify_worker();
+}
+audio_wav_state_t audio_out_wav_state(void) {
+    portENTER_CRITICAL(&s_mux);audio_wav_state_t state=s_wav_state;portEXIT_CRITICAL(&s_mux);return state;
+}

@@ -1,0 +1,106 @@
+{
+  "direction": "A",
+  "size": 148,
+  "icons": [
+    {
+      "id": "wifi",
+      "kind": "LAUNCHER_WIFI",
+      "sha256": "bb95b6755328f1fb7f49f27538f4868088d176105b1b2d37179854bcd0c25eca"
+    },
+    {
+      "id": "scan",
+      "kind": "LAUNCHER_SCAN",
+      "sha256": "88f3a1d0a3619631c3414b9009e07ebd712d1cd9e796f58bbf2a5d9bde310df8"
+    },
+    {
+      "id": "system",
+      "kind": "LAUNCHER_SYSTEM",
+      "sha256": "0ccceff0b25b278554821e6316c6305eebeb259cd0a76624baf00b83dddf2c51"
+    },
+    {
+      "id": "weather",
+      "kind": "LAUNCHER_WEATHER",
+      "sha256": "b22d6267117ad29972702765fff04efb4fac1dc41bbbff66f482d89a737af460"
+    },
+    {
+      "id": "calendar",
+      "kind": "LAUNCHER_CALENDAR",
+      "sha256": "5cb865309fc98b4e52648de1115519aa3b4f5ae3b7a6ed640e90515883791ee3"
+    },
+    {
+      "id": "countdown",
+      "kind": "LAUNCHER_COUNTDOWN",
+      "sha256": "145ce49351a4061d82f7fab17d9952e6f7bb9fe91c1e48c9fbae73daf9ec189a"
+    },
+    {
+      "id": "stopwatch",
+      "kind": "LAUNCHER_STOPWATCH",
+      "sha256": "1508b5fdf0116cc9ae6388f2111141f5cb6afbd573eb2433cc4d4754ee0e114f"
+    },
+    {
+      "id": "settings",
+      "kind": "LAUNCHER_SETTINGS",
+      "sha256": "bcca9bae33378e52ac413f862906c8d85fba22ed3b1c9ef30989add616f96679"
+    },
+    {
+      "id": "ota",
+      "kind": "LAUNCHER_OTA",
+      "sha256": "d4d793fb3a85a1ba9ece394621edc01ed10972d06578aaf4bfa2075714d01c37"
+    },
+    {
+      "id": "audio",
+      "kind": "LAUNCHER_AUDIO",
+      "sha256": "2475b02befef24d4250915823daedaa1ca5a75bf4c03fb5efa43f6da8ff50d5b"
+    },
+    {
+      "id": "level",
+      "kind": "LAUNCHER_LEVEL",
+      "sha256": "c5ba4085c5201b081816a93d8e009c1c01849c416a491bd2174ec0eb69a1aca1"
+    },
+    {
+      "id": "maze",
+      "kind": "LAUNCHER_MAZE",
+      "sha256": "cdb95f8db94b9c309e3aa9838ec31dc68c66bada105340cd29d38bf306228667"
+    },
+    {
+      "id": "fluid",
+      "kind": "LAUNCHER_FLUID",
+      "sha256": "ce83477360f405c70f8b55e55f7452c93d0ca3748fe5693f57b16d11b49a7c6f"
+    },
+    {
+      "id": "dice",
+      "kind": "LAUNCHER_DICE",
+      "sha256": "d574fe4977220a652c4243ce4f87b9f78471223eaf66677916acb60714df166a"
+    },
+    {
+      "id": "remote",
+      "kind": "LAUNCHER_REMOTE",
+      "sha256": "6a976d1b0248029e5d0e5b9a3b3705e716d751ccf62ca4d22b5529d060df79ad"
+    },
+    {
+      "id": "twin",
+      "kind": "LAUNCHER_TWIN",
+      "sha256": "6879a474aa77e045d63d3d7b4a0de3ed72fe839dc1c132a73886447f8e56f907"
+    },
+    {
+      "id": "answers",
+      "kind": "LAUNCHER_ANSWERS",
+      "sha256": "3c0e04da3bd78532d07ae62282ff4e48708aa11c6343d6d8a9c0e67b4d8ca7f3"
+    },
+    {
+      "id": "zodiac",
+      "kind": "LAUNCHER_ZODIAC",
+      "sha256": "36c492fccfb0b67f21fb041c401dcbb4fbd13290b409155561d51d984b9ee34b"
+    },
+    {
+      "id": "merit",
+      "kind": "LAUNCHER_MERIT",
+      "sha256": "05eccf867a7978e8ffeb7262e24c1aed70309e1741634b1839aa4f12502b1c4d"
+    },
+    {
+      "id": "pixels",
+      "kind": "LAUNCHER_PIXELS",
+      "sha256": "7b49ae0fa3e349b4015c9b9873aee2c915ec0ca67872a5f8d8d75c60dee08f0f"
+    }
+  ]
+}

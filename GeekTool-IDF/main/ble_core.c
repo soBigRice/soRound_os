@@ -12,6 +12,7 @@ static const char *TAG = "ble_core";
 
 extern const struct ble_gatt_svc_def BLE_TWIN_SVCS[];   // ble_twin.c
 extern const struct ble_gatt_svc_def BLE_HID_SVCS[];    // ble_hid.c
+extern const struct ble_gatt_svc_def BLE_MEDIA_SVCS[];  // ble_media.c
 void ble_store_config_init(void);                       // NimBLE 绑定存储(NVS_PERSIST 开启后落盘)
 
 static bool     s_inited, s_synced;
@@ -54,7 +55,8 @@ bool ble_core_start(void (*sync_cb)(uint8_t)) {
     ble_hs_cfg.reset_cb = on_reset;
 
     if (ble_gatts_count_cfg(BLE_TWIN_SVCS) != 0 || ble_gatts_add_svcs(BLE_TWIN_SVCS) != 0 ||
-        ble_gatts_count_cfg(BLE_HID_SVCS)  != 0 || ble_gatts_add_svcs(BLE_HID_SVCS)  != 0) {
+        ble_gatts_count_cfg(BLE_HID_SVCS)  != 0 || ble_gatts_add_svcs(BLE_HID_SVCS)  != 0 ||
+        ble_gatts_count_cfg(BLE_MEDIA_SVCS)!= 0 || ble_gatts_add_svcs(BLE_MEDIA_SVCS)!=0) {
         ESP_LOGE(TAG, "gatt register failed");
         nimble_port_deinit();
         return false;
