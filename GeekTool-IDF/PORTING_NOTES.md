@@ -2274,16 +2274,27 @@ ELF完整SHA256 `e7c64152844f8c07830f883230505e7fb02aaf861a88edc6374ff5cc6cfe42b
 最终状态：weather7已装入新ota_1，seq30 VALID；原ota_0 seq29 VALID，旧槽/新槽启动与文件迁移均已核验。用户确认无圆弧天气“好多了，都正常的”，不继续追加未经要求的优化。最终候选4161824B，8MiB槽余4226784B；完整Flash备份与最终候选/符号保留私有。只读最终审计再次确认新表/应用/FAT、原boot/PHY/两份原4MiB区域和本次审计期间NVS保护，恢复正常应用运行后关闭USB，无活动测试/采样任务。weather7相关11项回归有效，包含真实RGB565_SWAPPED路径与6项启动/回滚门禁；初始资源/容量优化已有39项本地主机与14项镜像上限测试证据，发布LVGL9.6全量的既有弃用告警限制仍如前述。网络OTA未执行，不将USB选槽启动说成网络升级通过。仅本任务源码、测试和说明纳入本地提交，并行木鱼图标修改保持原工作区状态；不推送、发布或修改公网镜像。
 
 
-## 2026-10-19 beta.34 合并发布进行中
+## 2026-10-19 v1.7-beta.34 实心图标与随身工具
 
-用户在“重新设计全部图标”明确要求“和正在进行的任务一起发版吧”，授权图标与“构思大空间设计方案”同轮统一提交、推送及发布。本轮按既有beta通道准备v1.7-beta.34，正式通道保持v1.7；未授权设备烧录或分区迁移。源码、验证及待验收边界以[功能地图](./COMPANION_APPS.md)、[图标实现](./LAUNCHER_ICONS.md)与[发布说明](./RELEASE_NOTES.md)为准。
+用户在“重新设计全部图标”明确要求“和正在进行的任务一起发版吧”，授权图标与“构思大空间设计方案”同轮统一提交、推送及发布。本轮已按既有beta通道发布v1.7-beta.34，正式通道保持v1.7；未执行设备烧录或分区迁移。源码、验证及待验收边界以[功能地图](./COMPANION_APPS.md)、[图标实现](./LAUNCHER_ICONS.md)与[发布说明](./RELEASE_NOTES.md)为准。
 
 已整合：原20项和新增生态箱/专注/声音胶囊共23项A实心图标，遥控台与Mac本地桥接、三项新App、录音独立分区及存储保护；同轮全量host47项、garden/focus2项、媒体ASAN/UBSAN和OTA镜像14项通过，原生像素为23×3状态。旧分区测试中“storage占到Flash末尾”的断言已根据已批准录音布局替换为三个独立区域精确地址、长度、连续性和总容量检查。
 
 线上镜像服务器原程序仍为4MiB限制，与源码已有8MiB槽不符。本轮通过既有1Panel会话，仅将 `/opt/geektool-ota/sync_firmware.py` 的MAX_IMAGE_SIZE从0x400000调整为0x800000；备份为同目录 `sync_firmware.py.pre-beta34-20261019`，其余校验、来源和发布规则未改。更新后脚本SHA256为 `5e2156fff91df50c6aa973629a52fda6f6df2dd5d8851278e40ed86652ba01b4`，语法检查通过；手动执行既有同步service成功、timer active，日志确认stable v1.7与beta.33均unchanged。正式镜像4149792B、SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`，作为发布前保护基线。
 
-下一步：等待功能任务收尾、冻结当前源码，刷新受影响测试；显式暂存本轮相关路径，提交并推送精确提交，运行手动CI。手动CI通过后才创建beta.34标签，验证标签CI、GitHub资产、R2与国内整包/Range及正式包保护，最后更新中英文发布状态与网站快照。临时构建和下载位于本机专用临时目录，发布结束后清理；源码历史里的旧木鱼候选等未纳入整合的初始文件保留，不夹带提交。
+准确源码与标签为`f44723013573cc4806bf8438e6b989d1c6647aac / v1.7-beta.34`。功能整合提交`40b28ce`，原生合览`62e778b`，GCC夹具兼容性`889c26d / f447230`；显式暂存相关路径，初始旧木鱼候选目录、生成器及资源保持原状，不夹带提交。
 
 首轮手动CI39262783061的固件编译成功，但新增全量host gate暴露旧HID夹具的GCC误导缩进告警。本地GCC15全目标继续编译后定位到同类旧网络/音频/UI夹具和声音胶囊计数的有符号比较；仅补明确代码块及已知非负语言索引的无符号转换，保留原断言和Werror。Clang通过不代表GCC门禁通过，下次扩大CI目标前先核对两类编译器。原生PNG比较使用的Pillow固定为本地已验证12.2.0，CI在临时venv中安装；[PyPI官方元数据](https://pypi.org/project/pillow/12.2.0/)核对其Python>=3.10与MIT-CMU许可证（2026-10-19）。该依赖仅用于主机图片检查，不进入固件。
 
 同轮GCC运行阶段还定位到遥控台夹具未声明LVGL绘制缓冲对齐：线程采样停在`lv_display_set_buffers`的对齐断言。夹具改用`_Alignas(LV_DRAW_BUF_ALIGN)`，不修改产品布局或绘制逻辑；最终GCC15本地47/47通过（19.81秒），发布ctest增加90秒单项超时，避免断言停机长期占用运行器。
+
+[最终手动CI39264759864](https://github.com/soBigRice/soRound_os/actions/runs/39264759864)和[标签CI39265622020](https://github.com/soBigRice/soRound_os/actions/runs/39265622020)均成功，前者不发布通道。两轮均以ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300 2.2.0完成固件构建及47项主机、2项生态箱/专注、媒体ASan/UBSan、14项镜像回归；途中39264604930在补齐独立媒体夹具的GCC检查后主动取消，避免已知失败的重复构建。另有本地GCC15专项2项与媒体检查通过，Mac自测及3项离线录音镜像检查沿用功能任务的有效结果。
+
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34)于2026-10-19T14:10:49Z发布，为非draft的prerelease。应用镜像5,068,512B，8MiB代码槽余3,320,096B（约40%）；GitHub资产声明SHA256：
+`b5084909a134c389fcb62c9a98fba0f82c63c5b21d59b0c73b1d2fca5e8677c9`。
+
+R2与国内beta完整下载均5068512B，ESP32-S3、GeekTool/v1.7-beta.34描述符、段边界、XOR和内嵌SHA校验通过，完整SHA与上述GitHub资产声明一致。两处强ETag配合`If-Match / bytes=1024-2047`均返回206、`Content-Range: bytes 1024-2047/5068512`及准确1024字节切片，Cache-Control为`no-store, max-age=0`。本机GitHub CDN整包下载90秒超时，续传遇到SSL连接超时，未将部分文件当成完整下载证据；GitHub侧以资产API的SHA256声明为核对依据。
+
+发布后两处正式完整包仍4149792B/v1.7，SHA256与发布前保护基线完全相同。国内服务器22:11:31日志确认beta已发布v1.7-beta.34、stable unchanged v1.7、service成功结束，timer active；本次终端连接随后退出并关闭。已核验发布bin存于`build/releases/v1.7-beta.34/`，小型分发回执位于`build/flash-records/beta34-release-20261019/`；CI准确bin/ELF/map/config/依赖锁另由Actions保留7天。
+
+中英文README和`site/releases.json`已同步正式v1.7/内测beta.34；官网部署核验在本轮文档推送后继续。未访问串口或执行分区写入。真实AMOLED大小/居中与触摸、BLE曲目/封面同步、录音播放/掉电、帧耗时及升级重启仍待设备验收；歌词目前仅支持显式绑定本地LRC。

@@ -8,7 +8,13 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**October 9, 2026 (China time): [v1.7-beta.33](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33) is published to the beta channel.**
+**October 19, 2026: [v1.7-beta.34](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34) is published to the beta channel.**
+All 23 launcher entries use solid direction-A icons. Garden, the Focus record player and Voice Capsules join the updated remote and manual Mac media bridge.
+Two 8 MiB app slots are required. Recording also needs its independent storage partition; normal OTA does not migrate or format storage.
+Release CI passed. The GitHub asset digest matches complete R2 and domestic OTA downloads; conditional Range checks passed on both. Stable remains v1.7.
+The image is 5,068,512 bytes. Physical display, BLE, audio and device upgrades remain unverified; see the [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [verification record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-19-v17-beta34-实心图标与随身工具).
+
+**Previously: [v1.7-beta.33](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33) was published on October 9, 2026 (China time).**
 Pixels adds a colorful interactive field: drag blocks apart, shake to remix, cycle three
 palettes and regroup. The interface supports Chinese and English. Enable beta updates on
 the device OTA page; stable remains v1.7. All 20 release CI checks passed. Exact CI, R2 and
@@ -26,7 +32,7 @@ The 4,185,936-byte image requires two 4 MiB OTA slots. Physical touch, IMU feel 
 acceptance remain pending; see the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡).
 
 **October 8, 2026: [v1.7 stable](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) is published.**
-Both channels served v1.7 at that release; the beta channel now serves beta.33 above.
+Both channels served v1.7 at that release; the beta channel now serves beta.34 above.
 The stable v1.7 production code is the same as beta.31. Beta.30 remains withdrawn.
 Scrolling Settings, separate adjustment pages,
 centered watch-face previews, the ring-and-red-dot identity and About screen are included.
@@ -35,14 +41,14 @@ the revealed watch-face frame must pass before a new OTA image is confirmed. Cor
 roll back when a recovery image exists. Network-check failures allow offline startup;
 network recovery for Weather, Answers, Zodiac and OTA is retained.
 
-Use `GeekTool-IDF/` for current development. All 34 local regressions and nine startup
-checks in the stable release CI passed. The release-dependency candidate's watch face,
-unlock and Settings were accepted on the device. The device is currently disconnected;
-the final stable image's physical OTA, software restart and first-boot acceptance remain
-pending. The original beta.30 white-screen trigger has not been reproduced.
+Use `GeekTool-IDF/` for current development, including beta.34. At the v1.7 stable release,
+all 34 local regressions and nine startup CI checks passed; its release-dependency candidate's watch face,
+unlock and Settings were accepted on the device. This release did not access a device;
+CI does not replace physical OTA, software restart or first-boot acceptance.
+The original beta.30 white-screen trigger has not been reproduced.
 
-**Upgrade requirement: two 4 MiB OTA slots.** v1.6.1 uses 3 MiB slots and cannot directly
-OTA-install this 4,149,792-byte image. Older layouts need a USB partition and resource
+**Stable v1.7 upgrade requirement: two 4 MiB OTA slots.** v1.6.1 uses 3 MiB slots and cannot directly
+OTA-install the 4,149,792-byte v1.7 image. Older layouts need a USB partition and resource
 migration first; see the [migration record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移).
 The application binary does not replace a complete first installation. See the
 [v1.7 release verification](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-正式发布),
@@ -94,7 +100,7 @@ screen or PWR key, with an explicit fallback label when requests fail.
   [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is included in beta.33; physical-device acceptance remains pending.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.
-- The October 19, 2026 local candidate adds Garden, the Focus record player and WAV Voice Capsules, plus three music controls and a manual Mac bridge for track information. It requires two 8 MiB app slots; recording also requires a separately approved storage migration. A normal OTA update does not migrate the recording volume. See the [implementation and verification map](./GeekTool-IDF/COMPANION_APPS.md).
+- Beta.34 adds Garden, the Focus record player and WAV Voice Capsules, plus three music controls and a manual Mac bridge for track information. It requires two 8 MiB app slots; recording also requires a separately approved storage migration. A normal OTA update does not migrate the recording volume. See the [implementation and verification map](./GeekTool-IDF/COMPANION_APPS.md).
 - Dual OTA partitions, boot rollback protection, version checks and Cloudflare R2 distribution.
 - A React / Three.js GeekTwin companion that displays orientation and battery data through
   Web Bluetooth. Its 3D scene loads separately; failed connection attempts clean up the GATT session.
@@ -151,7 +157,7 @@ Direct implementation references:
 | Original particles + color dye fluid modes and twelve fixed maze levels; device acceptance pending | [Play implementation](./GeekTool-IDF/PLAY_UI.md) |
 | Coin drawing, animation, pause and exit | [Coin implementation](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画) |
 | Memory statistics and System info pages | [System UI](./GeekTool-IDF/SYSTEM_UI.md) |
-| Nineteen geometric launcher icons | [Launcher icons](./GeekTool-IDF/LAUNCHER_ICONS.md) |
+| Twenty-three solid launcher icons (direction A) | [Launcher icons](./GeekTool-IDF/LAUNCHER_ICONS.md) |
 | Bilingual online answers, fallback and physical keys | [Book of Answers](./GeekTool-IDF/ANSWERS_UI.md) |
 | Daily horoscopes, scrolling, Wooden Fish sound and counter | [Horoscope / Wooden Fish](./GeekTool-IDF/ZODIAC_MERIT_UI.md) |
 | Settings navigation, Wi-Fi and password entry | [Settings / location](./GeekTool-IDF/SETTINGS_LOCATION_DESIGN.md) |
@@ -163,6 +169,8 @@ Direct implementation references:
 | BOOT / PWR behavior | [Physical button mapping](./GeekTool-IDF/PORTING_NOTES.md#2026-10-02-实体按键功能对调) |
 | HID reports and input release | [Bluetooth remote](./GeekTool-IDF/PORTING_NOTES.md#遥控台扩展鼠标--演示--媒体) |
 | Weather icons, day / night and rendering | [Weather UI](./GeekTool-IDF/WEATHER_UI.md) |
+
+The current Flash layout has two 8 MiB app slots, a 7.875 MiB read-only resource area, a 4 KiB recording migration marker and a separate recording volume using the remaining space. Existing device partitions do not change with normal OTA; see [Voice Capsules](./GeekTool-IDF/CAPSULES.md) for backup and initialization requirements.
 
 ## System relationships
 

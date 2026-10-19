@@ -1,4 +1,10 @@
 {
-  "stable": { "tag": "v1.7", "url": "https://github.com/soBigRice/soRound_os/releases/tag/v1.7" },
-  "beta": { "tag": "v1.7-beta.33", "url": "https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33" }
+  "stable": {
+    "tag": "v1.7",
+    "url": "https://github.com/soBigRice/soRound_os/releases/tag/v1.7"
+  },
+  "beta": {
+    "tag": "v1.7-beta.34",
+    "url": "https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34"
+  }
 }

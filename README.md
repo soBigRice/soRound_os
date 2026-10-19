@@ -9,7 +9,13 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**2026-10-09：[v1.7-beta.33](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33) 已发布至内测通道。**
+**2026-10-19：[v1.7-beta.34](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34) 已联合发布至内测通道。**
+23个启动器入口统一为A套实心图标，新增生态箱、专注唱片机和声音胶囊，更新遥控台与手动Mac本地媒体桥接。
+需要双8MiB应用槽；录音还需独立存储分区，普通OTA不迁移分区，也不会自动格式化。
+发布CI通过；GitHub资产摘要与R2、国内OTA完整包一致，两处条件Range核验通过，正式通道保持v1.7。
+镜像5,068,512B；真实圆屏观感、BLE、音频与设备升级仍待验证，见[本版说明](GeekTool-IDF/RELEASE_NOTES.md)与[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-19-v17-beta34-实心图标与随身工具)。
+
+**此前：[v1.7-beta.33](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.33) 于2026-10-09发布至内测通道。**
 新增「方块」彩色像素互动：拖动拨开、摇动重排、三套配色与一键重聚，含中英文界面。
 设备OTA页面开启内测后检查更新；正式通道保持v1.7。发布CI的20项回归通过，准确CI包与R2/国内OTA完整包、摘要及条件Range核验一致。
 镜像4,191,952B，双4MiB槽剩2,352B；真机触摸、摇动手感、功耗及OTA重启仍待验收，见[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-09-v17-beta33-方块像素场)。
@@ -20,16 +26,16 @@ BLE 数字孪生以及双分区云 OTA。
 新内测应用镜像4,185,936B，需要双4MiB OTA槽；真机触摸、IMU手感与升级重启仍待验收，见[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)。
 
 **2026-10-08：[v1.7 正式版](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) 已发布。**
-当时正式与内测OTA通道同时更新至v1.7；内测现已更新为上述beta.33。v1.7生产代码与beta.31一致；beta.30保持撤回。
+当时正式与内测OTA通道同时更新至v1.7；内测现已更新为上述beta.34。v1.7生产代码与beta.31一致；beta.30保持撤回。
 设置首页滚动、七个独立设置项、居中表盘预览、圆环红点Logo和关于本机已纳入正式版。
 启动动画至少4秒；完成公共初始化、核心检查与表盘实际刷新后才确认新OTA固件有效，核心失败且可回退时回滚。
 联网检查失败记录并提示，允许离线启动；天气、答案之书、星座与OTA保留联网恢复修正。
 
-当前仓库 `main` 包含 `v1.7-beta.33` 新功能及 `v1.7` 正式实现，主线开发请使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
-本地34组回归和正式发布CI的9组启动检查通过；正式依赖候选的表盘、解锁、设置已由用户确认。
-设备当前未连接，正式发布包的真实OTA升级、软件重启和首启验收仍待继续，原beta.30白屏触发点尚未复现。
+当前仓库 `main` 包含 `v1.7-beta.34` 新功能及 `v1.7` 正式实现，主线开发请使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
+v1.7正式发布时，本地34组回归和发布CI的9组启动检查通过；当时正式依赖候选的表盘、解锁、设置已由用户确认。
+本轮未访问设备，不能以本版CI替代真实OTA升级、软件重启和首启验收，原beta.30白屏触发点尚未复现。
 
-**升级要求：双4MiB OTA槽。** v1.6.1采用双3MiB布局，不能直接OTA安装本版4,149,792B应用镜像；
+**v1.7稳定版升级要求：双4MiB OTA槽。** v1.6.1采用双3MiB布局，不能直接OTA安装v1.7的4,149,792B应用镜像；
 旧布局需先USB迁移分区及配套资源，见 [分区迁移说明](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移)。
 Release的应用bin不代替首次完整烧录。完整包与断点下载验证见 [v1.7发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-正式发布)。
 调用链见 [启动自检](GeekTool-IDF/STARTUP.md)、[联网恢复](GeekTool-IDF/NETWORKING.md) 和 [设置布局](GeekTool-IDF/artwork/settings-detail/README.md)。
@@ -68,7 +74,7 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
   [方块像素场](GeekTool-IDF/PIXELS_UI.md)已包含在beta.33中，真机体验待验收。
 - AXP2101 电源与电量管理，QMI8658 IMU，ES7210 麦克风输入和 ES8311 音频输出。
 - Wi-Fi 自动重连、SNTP 校时、Open-Meteo 天气数据。
-- 2026-10-19本地候选新增生态箱成长、专注唱片机和WAV声音胶囊，遥控台采用三键音乐与独立Mac本地歌曲信息桥接。需要双8MiB代码槽；录音还需经另行授权的独立分区迁移，不能把普通OTA当成已完成存储迁移。实现、验证和真机待验收边界见[功能地图](GeekTool-IDF/COMPANION_APPS.md)。
+- beta.34新增生态箱成长、专注唱片机和WAV声音胶囊，遥控台采用三键音乐与独立Mac本地歌曲信息桥接。需要双8MiB代码槽；录音还需经另行授权的独立分区迁移，不能把普通OTA当成已完成存储迁移。实现、验证和真机待验收边界见[功能地图](GeekTool-IDF/COMPANION_APPS.md)。
 - 双 OTA 分区、启动回滚保护、版本比对和 Cloudflare R2 固件分发。
 - React + Three.js Web 校准器，通过 Web Bluetooth 显示设备姿态与电量；3D 场景独立异步加载，
   蓝牙连接中途失败时会主动清理残留 GATT 会话。
@@ -122,9 +128,10 @@ TYPE / ORBIT / SHIFT与新增HAND共二十一款锁屏表盘、真实缩略图�
 [资源分配记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-13-beta33-rampsram-分配候选优化)。
 天气的 DMA 交替搬运、PSRAM 图片缓存和软件对照见
 [天气优化候选](./GeekTool-IDF/WEATHER_DETAILS_DESIGN.md#2026-10-13-传输流水线与图片缓存候选)；
-当前源码采用双8MiB OTA / 15.875MiB文件区，用户已授权一次USB迁移。旧设备的实际分区不会随普通OTA扩大；
-迁移状态、文件备份及恢复要求见[容量规划记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-13-天气优化与32mib容量规划)。
-启动器20个几何图标、原生圆屏预览及切换绘制逻辑见
+当前源码采用双8MiB OTA、7.875MiB只读资源区、4KiB录音迁移标记和剩余独立录音区；
+旧设备的实际分区不会随普通OTA改变。此前扩容记录见[容量规划](./GeekTool-IDF/PORTING_NOTES.md#2026-10-13-天气优化与32mib容量规划)，
+录音分区须另行确认迁移，备份与初始化要求见[声音胶囊](./GeekTool-IDF/CAPSULES.md)。
+启动器23个A套实心图标、原生圆屏预览及切换绘制逻辑见
 [启动器图标](./GeekTool-IDF/LAUNCHER_ICONS.md)。
 答案之书的联网中英文答案、断网备用、实体键翻页与生命周期见
 [答案之书](./GeekTool-IDF/ANSWERS_UI.md)。
