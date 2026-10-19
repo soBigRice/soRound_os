@@ -177,6 +177,18 @@ int main(int argc,char **argv) {
     before=hid_advertisements; click(g_modes[HID_KEYBOARD]); click(g_modes[HID_MEDIA]); assert(hid_advertisements==before);
     assert(s_control_count==6 && ui_obj_is_hidden(g_volume_panel));
     for(int i=0;i<3;i++) assert(!ui_obj_is_hidden(g_controls[i]));
+    lv_obj_update_layout(page);
+    // 三个透明触点位于屏幕中线，播放触点必须最大且正居中。
+    // Center transparent controls on the screen, with the largest play target in the middle.
+    for(int i=0;i<3;i++) {
+        lv_area_t bounds; lv_obj_get_coords(g_controls[i],&bounds);
+        assert(bounds.y1 + lv_obj_get_height(g_controls[i])/2 == 233);
+        assert(lv_obj_get_style_bg_opa(g_controls[i],LV_PART_MAIN)==LV_OPA_TRANSP);
+        assert(lv_obj_get_style_border_width(g_controls[i],LV_PART_MAIN)==0);
+    }
+    lv_area_t play_bounds; lv_obj_get_coords(g_controls[1],&play_bounds);
+    assert(play_bounds.x1+lv_obj_get_width(g_controls[1])/2==233);
+    assert(lv_obj_get_width(g_controls[1])>=112 && lv_obj_get_width(g_controls[1])>lv_obj_get_width(g_controls[0]));
     lv_obj_send_event(g_modes[HID_MEDIA],LV_EVENT_LONG_PRESSED,NULL);
     assert(s_volume_open && !ui_obj_is_hidden(g_volume_panel));
     for(int i=0;i<6;i++) { int n=hid_packet_count; click(g_controls[i]); step(); step(); assert(hid_packet_count==n+2); }
@@ -198,12 +210,17 @@ int main(int argc,char **argv) {
     media_fixture=(remote_media_snapshot_t){.revision=1,.artwork_revision=1,.overlay_revision=1,
         .connected=true,.playing=true,.has_artwork=true,.has_overlay=true,.lyrics_available=true};
     step(); assert(s_cover_pixels && s_overlay_pixels && !ui_obj_is_hidden(g_cover) && !ui_obj_is_hidden(g_overlay));
+    assert(!ui_obj_is_hidden(g_track) && s_overlay_image.header.h==130 && s_track_image.header.h==50);
+    assert(s_track_image.data==s_overlay_pixels+350*130);
+    assert(lv_obj_get_y(g_overlay)==278 && lv_obj_get_y(g_track)==113);
     int angle=s_rotation; host_time_us+=200000; mouse_tick(); assert(s_rotation>angle);
     assert(lv_image_get_rotation(g_overlay)==0);
     snapshot(directory,"remote-media-lyrics-fixture");
+    media_fixture.lyrics_available=false; step();
+    assert(ui_obj_is_hidden(g_track) && lv_obj_get_y(g_overlay)==82);
     media_fixture.playing=false; angle=s_rotation; host_time_us+=1000000; mouse_tick(); assert(s_rotation==angle);
     media_fixture.has_artwork=false; media_fixture.has_overlay=false; step();
-    assert(ui_obj_is_hidden(g_cover) && ui_obj_is_hidden(g_overlay) && !ui_obj_is_hidden(g_media_hint));
+    assert(ui_obj_is_hidden(g_cover) && ui_obj_is_hidden(g_overlay) && ui_obj_is_hidden(g_track) && !ui_obj_is_hidden(g_media_hint));
     snapshot(directory,"remote-media-no-artwork");
     mouse_visibility(false); assert(!media_fixture_visible); mouse_visibility(true); step();
     assert(!media_fixture.connected && ui_obj_is_hidden(g_cover));

@@ -9,6 +9,10 @@ import ImageIO
 let serviceUUID = CBUUID(string: "73520001-6e93-4fd8-bf40-2b54f4aa4f47")
 let rxUUID = CBUUID(string: "73520002-6e93-4fd8-bf40-2b54f4aa4f47")
 let statusUUID = CBUUID(string: "73520003-6e93-4fd8-bf40-2b54f4aa4f47")
+let peripheralDiscoveryServices: [(String, CBUUID)] = [
+    ("media", serviceUUID), ("battery", CBUUID(string: "180F")),
+    ("device_info", CBUUID(string: "180A")), ("hid", CBUUID(string: "1812"))
+]
 let artworkBytes = 466 * 466 * 2
 let overlayBytes = 350 * 180
 
@@ -136,11 +140,45 @@ func renderArtwork(_ source: Data) -> Data? {
     return output
 }
 
+enum ArtworkUpdate {
+    case keep
+    case replace(source: Data, pixels: Data)
+    case clear
+}
+func prepareArtwork(_ info: [String: Any], previous: Data?) -> ArtworkUpdate {
+    // 元数据的进度更新不代表封面被撤回。/ A metadata progress update does not withdraw artwork.
+    guard let encoded = info["artworkData"] as? String,
+          let source = Data(base64Encoded: encoded) else { return .clear }
+    if source == previous { return .keep }
+    guard let pixels = renderArtwork(source) else { return .clear }
+    return .replace(source: source, pixels: pixels)
+}
+
 final class LayerTransfer {
     let kind: UInt32, generation: UInt32, data: Data, crc: UInt32
     var offset = 0, begun = false
+    var startedAt: Date?
     init(kind: UInt32, generation: UInt32, data: Data) {
         self.kind = kind; self.generation = generation; self.data = data; self.crc = crc32(data)
+    }
+}
+
+struct PeripheralCandidate { let identifier: UUID; let name: String? }
+func selectKnownPeripheralIDs(_ candidates: [PeripheralCandidate], requested: UUID?) -> [UUID] {
+    var seen = Set<UUID>()
+    return candidates.compactMap { candidate in
+        let matches = requested.map { candidate.identifier == $0 }
+            ?? (candidate.name?.caseInsensitiveCompare("soRound") == .orderedSame)
+        guard matches, seen.insert(candidate.identifier).inserted else { return nil }
+        return candidate.identifier
+    }
+}
+
+struct MediaWriteDiagnostic {
+    let opcode: UInt8, packetBytes: Int, offset: UInt32
+    let withResponseMaximum: Int, withoutResponseMaximum: Int
+    var summary: String {
+        "opcode=\(opcode) offset=\(offset) packet_bytes=\(packetBytes) with_response_max=\(withResponseMaximum) without_response_max=\(withoutResponseMaximum)"
     }
 }
 
@@ -154,6 +192,7 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private var cover: LayerTransfer?, overlay: LayerTransfer?
     private var inFlight = false, lastLayer: UInt32 = 1, generation: UInt32 = 0
     private var writeFinished: (() -> Void)?, writeStarted = Date.distantPast
+    private var writeDiagnostic: MediaWriteDiagnostic?
     private var identity = "", title = "", artist = "", lastArtwork: Data?
     private var playing = false, duration = 0.0, elapsed = 0.0, timestamp = Date.distantPast
     private var lastLyric = Int.min, connected = false, stopped = false
@@ -233,14 +272,16 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             if connected { controls = [packet(6, generation: 0)] }; pendingMeta = nil; cover = nil; overlay = nil
             pump(); return
         }
-        if let encoded = sourceInfo["artworkData"] as? String,
-           let bytes = Data(base64Encoded: encoded), bytes != lastArtwork {
-            lastArtwork = bytes
-            if let pixels = renderArtwork(bytes) { cover = LayerTransfer(kind: 1, generation: generation, data: pixels) }
-            else if connected { controls.append(packet(5, generation: generation, offset: 1)) }
-        } else if lastArtwork != nil || changed {
+        switch prepareArtwork(sourceInfo, previous: lastArtwork) {
+        case .keep:
+            break
+        case let .replace(source, pixels):
+            lastArtwork = source
+            cover = LayerTransfer(kind: 1, generation: generation, data: pixels)
+        case .clear:
+            let needsClear = lastArtwork != nil || cover != nil || changed
             lastArtwork = nil; cover = nil
-            if connected { controls.append(packet(5, generation: generation, offset: 1)) }
+            if connected && needsClear { controls.append(packet(5, generation: generation, offset: 1)) }
         }
         refreshOverlay(force: changed)
         pendingMeta = metaPacket(); pump()
@@ -267,7 +308,7 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
     private func heartbeat() {
         if !connected && Date() > scanDeadline { log("No ready soRound media service. Open Remote on the device, pair HID, then restart this tool."); stop(); exit(3) }
         if inFlight && Date().timeIntervalSince(writeStarted) > 5 {
-            log("BLE write timed out; stopping without replaying an old transfer."); stop(); exit(3)
+            log("BLE write timed out; \(writeDiagnostic?.summary ?? "packet_context_unavailable"); stopping without replaying an old transfer."); stop(); exit(3)
         }
         guard connected, !identity.isEmpty else { return }
         pendingMeta = metaPacket(); refreshOverlay(force: false); pump()
@@ -277,9 +318,15 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             if central.state == .unauthorized { log("Bluetooth permission is required for the local device connection."); stop(); exit(3) }
             return
         }
-        let known: [CBPeripheral]
-        if let requestedDevice { known = central.retrievePeripherals(withIdentifiers: [requestedDevice]) }
-        else { known = central.retrieveConnectedPeripherals(withServices: [CBUUID(string: "1812")]).filter { $0.name == "soRound" } }
+        let retrieved: [CBPeripheral]
+        if let requestedDevice { retrieved = central.retrievePeripherals(withIdentifiers: [requestedDevice]) }
+        else {
+            // macOS 的已连接 HID 外设可能仅通过 Battery/DeviceInfo 查询可见。
+            // A system-connected HID peripheral can be visible through Battery/DeviceInfo queries only.
+            retrieved = peripheralDiscoveryServices.flatMap { central.retrieveConnectedPeripherals(withServices: [$0.1]) }
+        }
+        let identifiers = selectKnownPeripheralIDs(retrieved.map { PeripheralCandidate(identifier: $0.identifier, name: $0.name) }, requested: requestedDevice)
+        let known = identifiers.compactMap { id in retrieved.first { $0.identifier == id } }
         if known.count > 1 { log("More than one soRound connected. Select one using --device <Bluetooth UUID>."); stop(); exit(3) }
         if let first = known.first { connect(first) }
         else { central.scanForPeripherals(withServices: [CBUUID(string: "1812")], options: nil); log("Looking for the local soRound HID device…") }
@@ -338,7 +385,7 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
                 if !transfer.begun {
                     var checksum = Data(); append32(transfer.crc, to: &checksum)
                     next = packet(2, generation: transfer.generation, offset: transfer.kind, value: UInt32(transfer.data.count), payload: checksum)
-                    completion = { transfer.begun = true }
+                    completion = { transfer.begun = true; transfer.startedAt = Date() }
                 } else if transfer.offset < transfer.data.count {
                     let limit = min(512, peripheral.maximumWriteValueLength(for: .withResponse)) - 16
                     guard limit > 0 else { log("BLE MTU too small."); stop(); exit(3) }
@@ -350,6 +397,11 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
                     next = packet(4, generation: transfer.generation, offset: transfer.kind)
                     completion = { [weak self, weak transfer] in
                         guard let self, let transfer else { return }
+                        if self.cover === transfer || self.overlay === transfer {
+                            let seconds = Date().timeIntervalSince(transfer.startedAt ?? Date())
+                            let layer = transfer.kind == 1 ? "artwork" : "overlay"
+                            log("Media layer \(layer) committed: \(transfer.data.count) bytes, \(String(format: "%.2f", seconds)) seconds.")
+                        }
                         if self.cover === transfer { self.cover = nil }
                         if self.overlay === transfer { self.overlay = nil }
                     }
@@ -357,13 +409,23 @@ final class MediaBridge: NSObject, CBCentralManagerDelegate, CBPeripheralDelegat
             }
         }
         guard let next else { return }
+        // 仅保留传输边界，不记录歌曲、图像、设备标识或包负载。
+        // Keep transport bounds only, never songs, images, device IDs or packet payloads.
+        writeDiagnostic = MediaWriteDiagnostic(opcode: next[3], packetBytes: next.count, offset: read32(next, 8),
+                                               withResponseMaximum: peripheral.maximumWriteValueLength(for: .withResponse),
+                                               withoutResponseMaximum: peripheral.maximumWriteValueLength(for: .withoutResponse))
         inFlight = true; writeFinished = completion; writeStarted = Date()
         peripheral.writeValue(next, for: receiveCharacteristic, type: .withResponse)
     }
     func peripheral(_ peripheral: CBPeripheral, didWriteValueFor characteristic: CBCharacteristic, error: Error?) {
         guard characteristic.uuid == rxUUID else { return }
         inFlight = false
-        if let error { log("Device rejected media packet: \(error.localizedDescription). No automatic replay."); stop(); exit(3) }
+        let context = writeDiagnostic; writeDiagnostic = nil
+        if let error {
+            let failure = error as NSError
+            log("Device rejected media packet: domain=\(failure.domain) code=\(failure.code) \(context?.summary ?? "packet_context_unavailable"). No automatic replay.")
+            stop(); exit(3)
+        }
         let completion = writeFinished; writeFinished = nil; completion?(); pump()
     }
     func stop() {
@@ -402,6 +464,36 @@ func selfTest(fixtures: String?) {
     let converted = renderArtwork(png as Data)!
     precondition(converted.count == artworkBytes && converted[0] == 0 && converted[1] == 0xf8)
     precondition(renderArtwork(Data([1, 2, 3])) == nil)
+    let imageBytes = png as Data
+    let imageMetadata: [String: Any] = ["artworkData": imageBytes.base64EncodedString(), "elapsedTime": 42.0]
+    for progress in [1.0, 42.0, 43.0] {
+        var update = imageMetadata; update["elapsedTime"] = progress
+        guard case .keep = prepareArtwork(update, previous: imageBytes) else {
+            log("Mac self-test failed: an unchanged artwork on a progress update must neither clear nor retransmit."); exit(1)
+        }
+    }
+    guard case let .replace(source, pixels) = prepareArtwork(imageMetadata, previous: nil),
+          source == imageBytes, pixels == converted else {
+        log("Mac self-test failed: a new track must publish its artwork even when the album image matches the previous track."); exit(1)
+    }
+    for metadata: [String: Any] in [[:], ["artworkData": "invalid-base64!"], ["artworkData": Data([1, 2, 3]).base64EncodedString()]] {
+        guard case .clear = prepareArtwork(metadata, previous: imageBytes) else {
+            log("Mac self-test failed: absent or invalid artwork must clear the previous image."); exit(1)
+        }
+    }
+    let firstID = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    let secondID = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
+    let candidates = [PeripheralCandidate(identifier: firstID, name: "soRound"),
+                      PeripheralCandidate(identifier: firstID, name: "soRound"),
+                      PeripheralCandidate(identifier: secondID, name: "Another device")]
+    precondition(selectKnownPeripheralIDs(candidates, requested: nil) == [firstID])
+    precondition(selectKnownPeripheralIDs(candidates, requested: secondID) == [secondID])
+    precondition(selectKnownPeripheralIDs([PeripheralCandidate(identifier: firstID, name: nil)], requested: firstID) == [firstID])
+    precondition(selectKnownPeripheralIDs([PeripheralCandidate(identifier: secondID, name: "soRound")], requested: firstID).isEmpty)
+    precondition(selectKnownPeripheralIDs(candidates + [PeripheralCandidate(identifier: secondID, name: "soRound")], requested: nil).count == 2)
+    let diagnostic = MediaWriteDiagnostic(opcode: 3, packetBytes: 512, offset: 496,
+                                          withResponseMaximum: 512, withoutResponseMaximum: 244)
+    precondition(diagnostic.summary == "opcode=3 offset=496 packet_bytes=512 with_response_max=512 without_response_max=244")
     if let fixtures {
         let directory = URL(fileURLWithPath: fixtures)
         try! FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -419,13 +511,41 @@ func selfTest(fixtures: String?) {
     print("Mac self-test: packet encoding, CRC32, local LRC parsing/binding inputs, CoreText A8 and full RGB565 ImageIO rendering passed")
 }
 
+final class BluetoothInventory: NSObject, CBCentralManagerDelegate {
+    private var central: CBCentralManager!
+    func start() {
+        // 仅查询系统已连接外设；不扫描、不连接、不输出设备标识。/ Query connected peripherals only; no scan, connection or device IDs.
+        central = CBCentralManager(delegate: self, queue: .main)
+        Timer.scheduledTimer(withTimeInterval: 12, repeats: false) { _ in
+            log("Bluetooth inventory timed out awaiting poweredOn; no connections attempted."); exit(3)
+        }
+    }
+    func centralManagerDidUpdateState(_ central: CBCentralManager) {
+        if central.state == .unauthorized { log("Bluetooth inventory not authorized; no connections attempted."); exit(3) }
+        guard central.state == .poweredOn else { return }
+        var report: [String: Any] = [:], matches = Set<UUID>()
+        for (label, service) in peripheralDiscoveryServices {
+            let peripherals = central.retrieveConnectedPeripherals(withServices: [service])
+            let known = peripherals.filter { $0.name?.caseInsensitiveCompare("soRound") == .orderedSame }
+            matches.formUnion(known.map(\.identifier))
+            report[label] = ["connected_count": peripherals.count, "soround_name_matches": known.count]
+        }
+        report["unique_soround_matches"] = matches.count
+        let encoded = try! JSONSerialization.data(withJSONObject: report, options: [.sortedKeys])
+        print(String(data: encoded, encoding: .utf8)!); exit(0)
+    }
+}
+
 let args = Array(CommandLine.arguments.dropFirst())
 if args.contains("--self-test") {
     let fixtureIndex = args.firstIndex(of: "--fixtures")
     selfTest(fixtures: fixtureIndex.flatMap { $0 + 1 < args.count ? args[$0 + 1] : nil }); exit(0)
 }
+if args == ["--diagnose-bluetooth"] {
+    let inventory = BluetoothInventory(); inventory.start(); RunLoop.main.run(); exit(0)
+}
 if args.contains("--help") {
-    print("soRoundMedia [--device UUID] [--lrc /absolute/song.lrc --lrc-title 'Exact song title']\nManual local-only reader; no playback commands, cloud calls, login item or auto-reconnect.\n--self-test runs synthetic protocol/CoreText checks without Bluetooth or media access.")
+    print("soRoundMedia [--device UUID] [--lrc /absolute/song.lrc --lrc-title 'Exact song title']\nManual local-only reader; no playback commands, cloud calls, login item or auto-reconnect.\n--self-test runs synthetic protocol/CoreText checks without Bluetooth or media access.\n--diagnose-bluetooth only counts already connected devices by service; no scan or connection.")
     exit(0)
 }
 func argument(_ name: String) -> String? {

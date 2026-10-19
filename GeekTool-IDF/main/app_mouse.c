@@ -29,9 +29,9 @@ static uint32_t s_press_tick, s_send_tick;
 static int64_t s_feedback_until, s_elapsed_us, s_timer_since;
 static bool s_timer_running;
 static unsigned s_shown_seconds;
-static lv_obj_t *g_media_layer, *g_cover, *g_overlay, *g_media_hint, *g_play_symbol, *g_volume_panel;
+static lv_obj_t *g_media_layer, *g_cover, *g_overlay, *g_track, *g_media_hint, *g_play_symbol, *g_volume_panel;
 static uint8_t *s_cover_pixels, *s_overlay_pixels;
-static lv_image_dsc_t s_cover_image, s_overlay_image;
+static lv_image_dsc_t s_cover_image, s_overlay_image, s_track_image;
 static uint32_t s_cover_revision, s_overlay_revision, s_rotation_at;
 static int32_t s_rotation;
 static bool s_volume_open;
@@ -43,8 +43,8 @@ static void free_media_view(void) {
     // LVGL 必须先丢掉图像对象与缓存，再释放 UI 持有的 PSRAM 副本。
     // Delete image objects/cache before releasing the UI-owned PSRAM copies.
     if (g_media_layer) lv_obj_delete(g_media_layer);
-    g_media_layer = g_cover = g_overlay = g_media_hint = g_play_symbol = g_volume_panel = NULL;
-    lv_image_cache_drop(&s_cover_image); lv_image_cache_drop(&s_overlay_image);
+    g_media_layer = g_cover = g_overlay = g_track = g_media_hint = g_play_symbol = g_volume_panel = NULL;
+    lv_image_cache_drop(&s_cover_image); lv_image_cache_drop(&s_overlay_image); lv_image_cache_drop(&s_track_image);
     heap_caps_free(s_cover_pixels); heap_caps_free(s_overlay_pixels);
     s_cover_pixels = s_overlay_pixels = NULL;
     s_cover_revision = s_overlay_revision = 0; s_rotation = 0; s_volume_open = false;
@@ -70,18 +70,28 @@ static void update_media_view(void) {
         if (!s_overlay_pixels) s_overlay_pixels = heap_caps_malloc(REMOTE_MEDIA_OVERLAY_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
         if (s_overlay_pixels && s_overlay_revision != state.overlay_revision &&
             remote_media_copy_overlay(s_overlay_pixels, REMOTE_MEDIA_OVERLAY_BYTES, state.overlay_revision)) {
-            lv_image_cache_drop(&s_overlay_image);
+            lv_image_cache_drop(&s_overlay_image); lv_image_cache_drop(&s_track_image);
+            // 同一文字纹理分成两段，给屏幕正中的播放键留出空间，协议与缓冲大小不变。
+            // Split the existing texture around the centered controls without changing its wire format.
             s_overlay_image = (lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_A8,
-                .w=350,.h=180,.stride=350},.data=s_overlay_pixels,.data_size=REMOTE_MEDIA_OVERLAY_BYTES};
-            lv_image_set_src(g_overlay, &s_overlay_image); s_overlay_revision = state.overlay_revision;
+                .w=350,.h=130,.stride=350},.data=s_overlay_pixels,.data_size=350*130};
+            s_track_image = (lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_A8,
+                .w=350,.h=50,.stride=350},.data=s_overlay_pixels+350*130,.data_size=350*50};
+            lv_image_set_src(g_overlay, &s_overlay_image); lv_image_set_src(g_track, &s_track_image);
+            s_overlay_revision = state.overlay_revision;
         }
         overlay = s_overlay_pixels && s_overlay_revision == state.overlay_revision;
     }
     ui_obj_set_hidden(g_cover, !artwork); ui_obj_set_hidden(g_overlay, !overlay);
+    ui_obj_set_hidden(g_track, !overlay || !state.lyrics_available);
+    // 歌词放在控件下方；无歌词时原纹理的前段是曲名，放回控件上方。
+    // Lyrics sit below the controls; without lyrics the leading region holds the track title above them.
+    lv_obj_set_pos(g_overlay, 58, state.lyrics_available ? 278 : 82);
+    lv_image_set_scale(g_overlay, state.lyrics_available ? 224 : 256);
     ui_obj_set_hidden(g_media_hint, overlay);
-    // 只依据主机回传状态选择图标；HID 单向模式始终显示播放/暂停复合符号。
-    // Only host feedback selects play versus pause; one-way HID keeps a toggle symbol.
-    lv_label_set_text(g_play_symbol, state.connected ? (state.playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY) : LV_SYMBOL_PLAY " " LV_SYMBOL_PAUSE);
+    // 只有主机确认正在播放才显示暂停；未同步时播放图标仍是切换入口，不猜测点击结果。
+    // Only confirmed playback shows pause; an unsynced play icon remains a toggle without guessing its result.
+    lv_label_set_text(g_play_symbol, state.connected && state.playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
     uint32_t now = lv_tick_get();
     if (s_visible && artwork && state.playing && lv_tick_elaps(s_rotation_at) >= 100) {
         s_rotation = (s_rotation + 3) % 3600;
@@ -323,26 +333,31 @@ static void build_mode(void) {
         lv_image_set_pivot(g_cover, 233, 233); lv_obj_set_style_image_opa(g_cover, 160, 0);
         ui_obj_set_hidden(g_cover, true);
         g_overlay = lv_image_create(g_media_layer); lv_obj_set_pos(g_overlay, 58, 130);
+        lv_image_set_pivot(g_overlay, 175, 0);
         lv_obj_set_style_image_recolor(g_overlay, lv_color_hex(COL_TXT), 0);
         lv_obj_set_style_image_recolor_opa(g_overlay, LV_OPA_COVER, 0); ui_obj_set_hidden(g_overlay, true);
+        g_track = lv_image_create(g_media_layer); lv_obj_set_pos(g_track, 58, 113);
+        lv_obj_set_style_image_recolor(g_track, lv_color_hex(COL_TXT), 0);
+        lv_obj_set_style_image_recolor_opa(g_track, LV_OPA_COVER, 0); ui_obj_set_hidden(g_track, true);
         g_media_hint = label(g_body, tr(S_REMOTE_SYSTEM_PLAYBACK), UI_FONT_SYM);
-        lv_obj_set_height(g_media_hint, 110);
+        lv_obj_set_height(g_media_hint, 82);
         lv_obj_set_width(g_media_hint, 310); lv_obj_set_style_text_align(g_media_hint, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_align(g_media_hint, LV_ALIGN_TOP_MID, 0, 44);
+        lv_obj_align(g_media_hint, LV_ALIGN_TOP_MID, 0, 168);
         lv_obj_t *waiting = label(g_media_hint, tr(S_REMOTE_WAIT_INFO), UI_FONT_M);
         lv_obj_set_style_text_color(waiting, lv_color_hex(0x929294), 0);
         lv_obj_set_width(waiting, 310); lv_obj_set_style_text_align(waiting, LV_TEXT_ALIGN_CENTER, 0);
         lv_obj_align(waiting, LV_ALIGN_TOP_MID, 0, 42);
         // 主界面只保留三键；原音量和静音通过长按「音乐」进入，不删现有功能。
         // Keep three primary controls; long-press Music reveals existing volume/mute.
-        action(120, 190, 60, 60, LV_SYMBOL_PREV, NULL, HID_MEDIA_PREVIOUS);
-        lv_obj_t *toggle = action(197, 182, 72, 72, LV_SYMBOL_PLAY " " LV_SYMBOL_PAUSE, NULL, HID_MEDIA_PLAY_PAUSE);
+        action(83, 67, 80, 80, LV_SYMBOL_PREV, NULL, HID_MEDIA_PREVIOUS);
+        lv_obj_t *toggle = action(177, 51, 112, 112, LV_SYMBOL_PLAY, NULL, HID_MEDIA_PLAY_PAUSE);
         g_play_symbol = lv_obj_get_child(toggle, 0);
-        action(286, 190, 60, 60, LV_SYMBOL_NEXT, NULL, HID_MEDIA_NEXT);
+        lv_obj_set_style_text_font(g_play_symbol, &lv_font_montserrat_40, 0);
+        action(303, 67, 80, 80, LV_SYMBOL_NEXT, NULL, HID_MEDIA_NEXT);
         for (int i=0;i<3;i++) {
             lv_obj_set_style_radius(g_controls[i], LV_RADIUS_CIRCLE, 0);
-            lv_obj_set_style_border_width(g_controls[i], 1, 0);
-            lv_obj_set_style_border_color(g_controls[i], lv_color_hex(0x40464d), 0);
+            lv_obj_set_style_bg_opa(g_controls[i], LV_OPA_TRANSP, 0);
+            lv_obj_set_style_bg_opa(g_controls[i], LV_OPA_10, LV_STATE_PRESSED);
         }
         g_volume_panel = lv_obj_create(g_body); lv_obj_remove_style_all(g_volume_panel);
         lv_obj_set_pos(g_volume_panel, 54, 70); lv_obj_set_size(g_volume_panel, 358, 110);

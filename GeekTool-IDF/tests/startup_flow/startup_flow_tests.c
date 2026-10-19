@@ -13,7 +13,10 @@
 #include "img_store.h"
 #include "tools_ui.h"
 #include "esp_heap_caps.h"
+#include "font_companion.h"
+#include "src/misc/lv_text_private.h"
 #include <stdio.h>
+LV_FONT_DECLARE(font_location_24);
 static int64_t now;
 static bool held,wifi,home_dma,ui_lock_failure;
 static unsigned lock_calls;
@@ -27,7 +30,11 @@ _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffers[2][466*40];
 static void fixture_enter(lv_obj_t *parent){(void)parent;}
 #define APP(n) const app_t app_##n={.name=#n,.enter=fixture_enter}
 APP(wifi);APP(i2c);APP(sys);APP(weather);APP(calendar);APP(countdown);APP(stopwatch);APP(settings);APP(ota);APP(audio);APP(level);APP(maze);APP(fluid);APP(dice);APP(mouse);APP(twin);APP(answers);APP(zodiac);APP(merit);APP(pixels);
-APP(garden);APP(focus);APP(capsules);
+// 名称必须与生产注册一致，否则中文映射不会覆盖新增应用。
+// Match production names so the fixture exercises localized new-app labels.
+const app_t app_garden={.name="Garden",.enter=fixture_enter};
+const app_t app_focus={.name="Focus",.enter=fixture_enter};
+const app_t app_capsules={.name="Capsules",.enter=fixture_enter};
 #undef APP
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
     unsigned w=(unsigned)lv_area_get_width(a);
@@ -138,6 +145,72 @@ bool img_store_loading(void){return false;}
 const lv_image_dsc_t *img_store_face_image_for(int theme){assert(theme>=0 && theme<3);return NULL;}
 bool img_store_face_loading(int theme){assert(theme>=0 && theme<3);return false;}
 void app_main(void);
+static lv_indev_state_t pointer_state;
+static lv_point_t pointer_point;
+static void read_pointer(lv_indev_t *indev,lv_indev_data_t *data) {
+    (void)indev;data->point=pointer_point;data->state=pointer_state;
+}
+static lv_obj_t *find_label(lv_obj_t *root,const char *text) {
+    if(lv_obj_check_type(root,&lv_label_class) && !strcmp(lv_label_get_text(root),text))
+        return root;
+    for(uint32_t i=0;i<lv_obj_get_child_count(root);++i) {
+        lv_obj_t *found=find_label(lv_obj_get_child(root,i),text);
+        if(found)return found;
+    }
+    return NULL;
+}
+static void require_glyphs(lv_obj_t *label) {
+    assert(label);const char *text=lv_label_get_text(label);
+    const lv_font_t *font=lv_obj_get_style_text_font(label,0);uint32_t at=0;
+    while(text[at]) {
+        uint32_t cp=lv_text_encoded_next(text,&at);lv_font_glyph_dsc_t dsc;
+        if(!lv_font_get_glyph_dsc(font,&dsc,cp,0)||dsc.is_placeholder) {
+            fprintf(stderr,"launcher missing U+%04x: %s\n",(unsigned)cp,text);assert(false);
+        }
+    }
+}
+static void capture_launcher_name(const char *dir,const char *app) {
+    if(!dir)return;
+    lv_obj_invalidate(lv_screen_active());
+    lv_refr_now(display);
+    char path[1024];snprintf(path,sizeof path,"%s/launcher-%s-%s.ppm",dir,app,language?"zh":"en");
+    FILE *file=fopen(path,"wb");assert(file);fprintf(file,"P6\n466 466\n255\n");
+    for(unsigned i=0;i<466*466;++i) {
+        uint16_t p=pixels[i];uint8_t rgb[]={((p>>11)&31)*255/31,((p>>5)&63)*255/63,(p&31)*255/31};
+        fwrite(rgb,1,sizeof rgb,file);
+    }
+    assert(fclose(file)==0);
+}
+static void check_launcher_names(const char *dir) {
+    lock_set(false);lv_obj_t *home=lv_screen_active();lv_obj_update_layout(home);
+    lv_obj_t *name=lv_obj_get_child(home,1),*next=lv_obj_get_child(home,3),*icon=lv_obj_get_child(home,0);
+    assert(lv_obj_check_type(name,&lv_label_class));
+    lv_indev_t *pointer=lv_indev_create();lv_indev_set_type(pointer,LV_INDEV_TYPE_POINTER);
+    lv_indev_set_display(pointer,display);lv_indev_set_read_cb(pointer,read_pointer);
+    for(unsigned pass=0;pass<2;++pass) {
+        language=(uint8_t)(1-pass);
+        for(int index=0;index<APP_COUNT;++index) {
+            assert(!strcmp(lv_label_get_text(name),tr_app_name(APPS[index]->name)));require_glyphs(name);
+            assert(lv_obj_get_style_text_font(name,0)==(index>=20?&font_companion_24:&font_location_24));
+            if(index>=20) {
+                capture_launcher_name(dir,APPS[index]->name);
+                lv_obj_update_layout(home);lv_area_t area;lv_obj_get_coords(icon,&area);
+                pointer_point=(lv_point_t){(area.x1+area.x2)/2,(area.y1+area.y2)/2};
+                pointer_state=LV_INDEV_STATE_PRESSED;lv_indev_read(pointer);
+                pointer_state=LV_INDEV_STATE_RELEASED;lv_indev_read(pointer);
+                assert(lv_screen_active()!=home);
+                lv_obj_t *title=find_label(lv_layer_top(),tr_app_name(APPS[index]->name));require_glyphs(title);
+                assert(lv_obj_get_style_text_font(title,0)==&font_companion_24);
+                go_home();assert(lv_screen_active()==home);require_glyphs(name);
+            }
+            // 用真实按钮/动画推进到下一项，覆盖中点换字和末尾回绕。
+            // Drive the real button and animation, covering midpoint updates and wrap-around.
+            lv_obj_send_event(next,LV_EVENT_CLICKED,NULL);
+            for(unsigned step=0;step<15;++step)vTaskDelay(20);
+        }
+    }
+    lv_indev_delete(pointer);puts("Real launcher bilingual names, animated swaps, new-app titles and return glyphs passed");
+}
 int main(int argc,char **argv) {
     face=argc>1?(uint8_t)atoi(argv[1]):0;language=argc>2?(uint8_t)atoi(argv[2]):0;
     home_dma=argc<4 || strcmp(argv[3],"stall");
@@ -146,5 +219,7 @@ int main(int argc,char **argv) {
         APPS[21]==&app_focus && APPS[22]==&app_capsules && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
+    if(argc>3 && !strcmp(argv[3],"launcher"))
+        check_launcher_names(argc>4?argv[4]:NULL);
     lv_deinit();puts("Full startup flow and revealed watchface frame/OTA gate passed");return 0;
 }

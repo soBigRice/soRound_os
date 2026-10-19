@@ -1,6 +1,6 @@
 # soRound 本地媒体桥接 / Local media bridge
 
-2026-10-19：本地实现与协议测试完成；未烧录、未验证真实 BLE 封面吞吐。Mac 27.0.1 上对私有接口执行一次只读 `get` 返回成功但当前无 Now Playing 数据，不能据此宣称所有播放器已兼容。
+2026-10-19：本地构建与协议测试通过；真实系统流已读到曲目信息及延迟到达的 60638 字节封面。真实 BLE 已发现媒体服务并通过加密 STATUS 读取，但后续媒体写入出现 ATT 响应错误，尚无封面或文字层 COMMIT 确认；不能宣称完整图层已送达或所有播放器已兼容。本轮未访问串口、Flash 或修改设备持久数据。
 
 ## 运行 / Run
 
@@ -13,9 +13,12 @@
 # 本地 UTF-8 LRC 必须显式绑定系统曲名；切到其他标题时不使用它。
 # A local UTF-8 LRC must explicitly match the system song title.
 ./mac-companion/run.command --lrc /absolute/song.lrc --lrc-title 'Exact song title'
+# 只读比较当前系统连接的服务可见性：不扫描、不连接、不读取曲目。
+# Compare connected-service visibility only: no scan, connection or song access.
+./mac-companion/run.command --diagnose-bluetooth
 ```
 
-先在设备打开遥控台，在 Mac 蓝牙设置配对 `soRound`。桥接首次使用需要蓝牙权限。`run.command` 保持前台，Ctrl-C 停止；不要把 App 包加入登录项。没有同名唯一设备或无法访问加密服务时停止并提供诊断，不自动重连，不自动删配对。若系统缓存旧服务、提示找不到 media GATT，先核对固件版本再由用户手动重新配对。
+先在设备打开遥控台，在 Mac 蓝牙设置配对 `soRound`。桥接首次使用需要蓝牙权限。`run.command` 保持前台，Ctrl-C 停止；不要把 App 包加入登录项。自动选择合并 media、Battery、DeviceInfo、HID 四类系统已连接外设，按标识去重后只接受唯一的 `soRound`；`--device` 继续按显式标识选择。已连接查询无匹配时才使用原 HID 广播扫描。没有唯一目标或无法访问加密服务时停止并提供诊断，不自动重连，不自动删配对。若提示找不到 media GATT，先区分系统已连接设备检索、服务发现与固件版本，不能直接推断必须删配对。
 
 三键控制继续由设备标准 BLE HID 完成。工具不发送媒体控制命令，不模拟系统按键，不申请辅助功能权限，不读取麦克风，不访问网络，不搜索歌词，不自动启动。曲目元数据和本地渲染图只经加密 BLE 发给当前 HID 会话；不写歌曲日志或持久封面缓存。BLE 读取速度、封面传输耗时和不同播放器公开字段仍需实测。
 
@@ -57,6 +60,12 @@ STATUS 为 20 字节：`"SR" | version=1 | connected:u8 | generation:u32 | artwo
 ```
 
 协议测试编译真实 `remote_media.c` / `ble_media.c`，替换硬件 API；ASan+UBSan 覆盖加密和连接隔离、包边界、偏移、两图层交错、CRC、原子复制、旧代次、无封面/断连清空、超时与分配失败。Mac 自测覆盖共享 CRC golden vector、包编码、LRC 时间戳、CoreText 中文遮罩、ImageIO PNG 到完整 RGB565 的已知颜色转换及无效输入。`--self-test --fixtures /absolute/dir` 可输出明确合成的渐变封面与中文遮罩供原生 UI 检查；不访问真实媒体或蓝牙。
+
+2026-10-19 封面更新回归：`MediaBridge.applySource()` 通过纯决策函数 `prepareArtwork()` 区分保持、替换、清除。此前把“封面字节与缓存相同”放进宽泛的清除分支，进度更新会取消仍在发送的封面或清掉已显示封面。现同图进度更新保持原传输且不重传；真正缺图、无效 Base64 或无效图片清除旧图；换曲先清缓存代次，即便新曲复用同一专辑封面也重新发送。自测先确认旧分支失败，再验证上述场景；该检查不替代真实 BLE 吞吐验收。
+
+2026-10-19 真实链路诊断：系统列表显示 `soRound` 已连接，但 CoreBluetooth 的 HID(1812) 与 media 查询均为 0；Battery(180F) 和 DeviceInfo(180A) 各取得同一个 `soRound`。仅用 HID 查询会误入扫描，而已连接设备不再广播。现按上方四类服务合并去重；自测覆盖去重、唯一性、显式 `--device` 和空名称。修改后真实连接已到加密媒体服务 ready，但随后报 `Peer failed to respond to ATT value indication` 并有界退出，未收到任何完整图层提交 ACK。当前不能根据该错误断言是 MTU 长写或设备阻塞；本轮原始日志没有错误域码、失败包 opcode/offset 与实际 ATT 写入上限，不能补写推测数值。桥接及 Perl 子进程已停止；没有清配对或写设备存储。
+
+下一次最小诊断（需用户再次确认真实连接）：先运行 `./mac-companion/run.command --diagnose-bluetooth` 检查服务计数，再仅启动一次 `./mac-companion/run.command`。写入错误或原有 5 秒无响应路径现会附带 opcode、offset、包长、NSError 域/码（仅有系统错误时）与 CoreBluetooth 两种写入方式的最大长度，不记录 payload、曲名或设备标识。图层完整提交才打印字节数与耗时；ready 只代表服务和加密 STATUS 读取成立。此日志补充未改变分片方式、协议或超时，也未再次运行真实 BLE。采到下一份错误后先据上下文判断，再决定是否需要改分片；不要先删配对或改设备存储。
 
 真实设备仍需检查：首次蓝牙授权、既有 HID 同连接读写、434312 字节封面的耗时、音乐切换取消、歌词持续换行是否完成、电脑播放器分别是否提供封面/进度、暂停/继续旋转、退出与重新进入。未连接硬件前不能标记这些通过。
 

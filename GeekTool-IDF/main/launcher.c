@@ -102,10 +102,18 @@ static void draw_icon(int i) {
 }
 
 /* ---- 切换当前居中 app:换几何图标 + 名字 ---- */
+static void set_app_name(int i) {
+    const app_t *app=APPS[i];
+    bool companion=app==&app_garden || app==&app_focus || app==&app_capsules;
+    // 新应用名称使用其完整字库；直接切换与动画中点共用同一绑定。
+    // Bind new names to their complete font on both direct and animated switches.
+    lv_obj_set_style_text_font(g_name,companion?&font_companion_24:&font_location_24,0);
+    lv_label_set_text(g_name,tr_app_name(app->name));
+}
 static void apply_app(int i) {
     cur = i;
     draw_icon(i);
-    lv_label_set_text(g_name, tr_app_name(APPS[i]->name));
+    set_app_name(i);
 }
 
 /* ---- 小面积切换动画:中心图标+名字 半程滑出淡出 → 中点换内容 → 反向滑入淡入。
@@ -127,7 +135,7 @@ static void swap_exec(void *var, int32_t v) {        // v: 0..256
             lv_obj_add_flag(g_iconart, LV_OBJ_FLAG_HIDDEN);
             lv_obj_remove_flag(g_nextart, LV_OBJ_FLAG_HIDDEN);
             lv_obj_t *old = g_iconart; g_iconart = g_nextart; g_nextart = old;
-            lv_label_set_text(g_name, tr_app_name(APPS[cur]->name));
+            set_app_name(cur);
             swapped = true;
         }
         int32_t w = v - 128;                         // 0..128

@@ -111,6 +111,7 @@ add_test(NAME startup_hand_mark_flow COMMAND startup_flow_tests 15 1)
 add_test(NAME startup_hand_dots_flow COMMAND startup_flow_tests 20 0)
 add_test(NAME startup_home_dma_failure_rolls_back COMMAND startup_flow_tests 0 0 stall)
 add_test(NAME startup_ui_lock_failure_rolls_back COMMAND startup_flow_tests 0 0 lock-stall)
+add_test(NAME launcher_bilingual_app_name_glyphs COMMAND startup_flow_tests 0 1 launcher)
 add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
