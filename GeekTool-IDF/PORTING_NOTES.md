@@ -2297,4 +2297,6 @@ R2与国内beta完整下载均5068512B，ESP32-S3、GeekTool/v1.7-beta.34描述�
 
 发布后两处正式完整包仍4149792B/v1.7，SHA256与发布前保护基线完全相同。国内服务器22:11:31日志确认beta已发布v1.7-beta.34、stable unchanged v1.7、service成功结束，timer active；本次终端连接随后退出并关闭。已核验发布bin存于`build/releases/v1.7-beta.34/`，小型分发回执位于`build/flash-records/beta34-release-20261019/`；CI准确bin/ELF/map/config/依赖锁另由Actions保留7天。
 
-中英文README和`site/releases.json`已同步正式v1.7/内测beta.34；官网部署核验在本轮文档推送后继续。未访问串口或执行分区写入。真实AMOLED大小/居中与触摸、BLE曲目/封面同步、录音播放/掉电、帧耗时及升级重启仍待设备验收；歌词目前仅支持显式绑定本地LRC。
+中英文README和`site/releases.json`已同步正式v1.7/内测beta.34；[Pages CI39267411900](https://github.com/soBigRice/soRound_os/actions/runs/39267411900)成功，部署源码为`0f0a795cea419e468584a510222a0046d73cb80d`。公开中英文首页均HTTP200，完整HTML与本地静态构建逐字节相同，正式v1.7/内测beta.34入口核对通过；回执同目录`website.json`。临时编译目录、部分下载、测试字节码和静态网站测试输出均已清理，仅保留正式发布bin与小型核验回执，无活动测试/采样/下载进程。
+
+未访问串口或执行分区写入。真实AMOLED大小/居中与触摸、BLE曲目/封面同步、录音播放/掉电、帧耗时及升级重启仍待设备验收；歌词目前仅支持显式绑定本地LRC。
