@@ -9,18 +9,21 @@ int64_t test_time_us=1000000;
 bool test_alloc_fail, test_encrypted;
 unsigned test_allocations;
 int ble_gap_conn_find(uint16_t conn,struct ble_gap_conn_desc *desc) {
-    if (conn!=1) return -1; desc->sec_state.encrypted=test_encrypted; return 0;
+    if (conn!=1) { return -1; }
+    desc->sec_state.encrypted=test_encrypted; return 0;
 }
 int os_mbuf_append(struct os_mbuf *om,const void *data,size_t size) {
     if (size>sizeof om->data-om->len) return -1;
     memcpy(om->data+om->len,data,size); om->len+=size; return 0;
 }
 int ble_hs_mbuf_to_flat(struct os_mbuf *om,void *dst,uint16_t capacity,uint16_t *length) {
-    if (om->len>capacity) return -1; memcpy(dst,om->data,om->len); *length=(uint16_t)om->len; return 0;
+    if (om->len>capacity) { return -1; }
+    memcpy(dst,om->data,om->len); *length=(uint16_t)om->len; return 0;
 }
 static size_t encode(uint8_t *p,uint8_t op,uint32_t generation,uint32_t offset,uint32_t value,const void *bytes,size_t count) {
     p[0]='S'; p[1]='R'; p[2]=1; p[3]=op; write32(p+4,generation); write32(p+8,offset); write32(p+12,value);
-    if (count) memcpy(p+16,bytes,count); return 16+count;
+    if (count) { memcpy(p+16,bytes,count); }
+    return 16+count;
 }
 static bool send(uint16_t conn,uint8_t op,uint32_t gen,uint32_t offset,uint32_t value,const void *data,size_t n) {
     uint8_t p[512]; size_t count=encode(p,op,gen,offset,value,data,n); return remote_media_receive(conn,p,count);
