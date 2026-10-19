@@ -2301,10 +2301,23 @@ R2与国内beta完整下载均5068512B，ESP32-S3、GeekTool/v1.7-beta.34描述�
 
 未访问串口或执行分区写入。真实AMOLED大小/居中与触摸、BLE曲目/封面同步、录音播放/掉电、帧耗时及升级重启仍待设备验收；歌词目前仅支持显式绑定本地LRC。
 
-## 2026-10-19 v1.7-beta.35 启动器字库与音乐控件
+## 2026-10-20 v1.7-beta.35 启动器字库与音乐控件
 
 用户明确要求“蓝牙控制不行吗？发版本”，授权发布本轮字库、音乐布局和Mac桥接修复。标准BLE HID三键保留，与封面/文字回传分开；后者真实ATT写失败、零图层提交ACK仍是已知限制，不作为已修好能力宣传。用户此前选择“暂不写设备”，本轮发版不访问USB、烧录或迁移录音分区。
 
 变更与根因见[功能地图](./COMPANION_APPS.md)、[Mac桥接](../mac-companion/README.md)，升级与已知限制见[本版说明](./RELEASE_NOTES.md)。发布前两处正式完整包均4149792B，SHA256仍为`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
 
-进行中：本地全量GCC主机检查后，显式提交本轮文件、推送main，先运行不改OTA通道的手动CI；通过后才打beta.35标签。随后核对标签CI、GitHub资产摘要、R2与国内完整包/Range、正式包保护、中英文官网入口；测试与下载临时目录结束时清理。
+修复源码为`f9c6bf4d8b59672f15db1f240dfda65a21c911f7`，显式提交21项相关文件，原有旧木鱼候选未纳入。本地GCC15/LVGL9.5全48项、媒体ASan/UBSan、14项OTA镜像及Mac离线构建/自测通过。[手动候选39280665781](https://github.com/soBigRice/soRound_os/actions/runs/39280665781)最终success；发布依赖为ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300 2.2.0，构建、48项主机、2项生态箱/专注、媒体检查和14项镜像门禁全部通过。
+
+GitHub在2026-10-19T15:49Z公布[Actions/Pages故障](https://www.githubstatus.com/)。状态接口曾长时间显示queued、无运行器和0步骤，但随后日志证实手动构建在15:52Z、回归在15:53Z已完成；因此故障期不能把队列显示直接等同于实际未执行，应交叉核对日志、产物与状态。没有跳过实际门禁或重复触发同一个任务。
+
+`github.com:443`的Git查询在本机连接超时，改用官方Git数据库API发布同一个本地annotated tag对象（SHA `95d80845e96c966ac844ae2732e9c399eab14d69`），没有改工作流或签名/权限。标签精确指向上述源码，正常触发push标签流水线[39284415656](https://github.com/soBigRice/soRound_os/actions/runs/39284415656)。该任务的聚合状态在实际产物生成后仍延迟显示queued，未将它误报为已完成；Release和分发单独以实际结果核验。
+
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35)于2026-10-19T16:25:16Z（北京时间10月20日00:25）发布，为非draft的prerelease。应用镜像5,068,848B，8MiB槽余3,319,760B（约40%）；GitHub资产API声明SHA256：
+`1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1`。
+
+R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一致；生产镜像校验器验证ESP32-S3/GeekTool身份、段边界、XOR与内嵌SHA通过。两处强ETag配合`If-Match / bytes=1024-2047`均返回准确206切片，`no-store`有效。两处正式完整包仍为4149792B/v1.7且与发布前SHA一致。因本机GitHub直连传输故障，GitHub侧使用官方资产摘要声明，没有声称完成GitHub整包下载。
+
+准确发布bin与SHA保留于`build/releases/v1.7-beta.35/`；小型测试、tag与分发回执在`build/flash-records/beta35-release-20261019/`，CI的bin/ELF/map/config/依赖锁由既有Actions产物保留7天。中英文README和`site/releases.json`已准备同步内测beta.35，静态网站双语本地校验通过；官网上线回读待本段后续补充。
+
+本轮没有设备USB/串口、烧录或分区迁移，也未继续修补或真实重试ATT链路。蓝牙三键仍为标准HID；封面/文字的ATT超时、歌词仅本地LRC、录音分区未初始化等限制均在发布说明中保留。发布与代码自动验证不代替真机验收。

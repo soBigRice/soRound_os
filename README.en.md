@@ -8,10 +8,11 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**October 19, 2026: the v1.7-beta.35 fix candidate is under verification.**
+**[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35) is published to the beta channel.**
 Fixes missing glyphs in new launcher names and centers transparent music controls around a larger play button, retaining standard BLE HID commands.
 The Mac bridge fixes accidental artwork clearing and missed connected devices. Actual artwork transfer still fails at ATT; lyrics currently require a local LRC file.
-Recording storage still needs separate initialization; this application OTA does not migrate it. See the [release notes](./GeekTool-IDF/RELEASE_NOTES.md).
+Recording storage still needs separate initialization; this application OTA does not migrate it. The manual CI build and all gates passed. Complete R2 and domestic downloads of the 5,068,848-byte image match GitHub's asset digest, conditional Range checks passed, and stable remains v1.7.
+GitHub's incident can delay aggregate tag-run status. Publication and package verification are recorded separately; see the [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [verification record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-20-v17-beta35-启动器字库与音乐控件).
 
 **Previously: [v1.7-beta.34](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34) was published to the beta channel.**
 All 23 launcher entries use solid direction-A icons. Garden, the Focus record player and Voice Capsules join the updated remote and manual Mac media bridge.

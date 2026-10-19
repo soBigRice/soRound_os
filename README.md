@@ -9,10 +9,11 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**2026-10-19：v1.7-beta.35 修复候选正在验证。**
+**[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35) 已发布至内测通道。**
 修复新App启动器名称方块字，音乐三键改为正中放大的透明播放键与左右切歌键，保留标准BLE HID控制。
 Mac桥接修复封面误清和已连接设备漏检；实际封面传输仍有ATT失败，歌词目前仅支持本地LRC。
-录音分区仍需另行初始化，本次应用OTA不会迁移存储，见[本版说明](GeekTool-IDF/RELEASE_NOTES.md)。
+录音分区仍需另行初始化，本次应用OTA不会迁移存储。手动CI构建和全部门禁通过；5,068,848B发布包在R2、国内完整下载与GitHub资产摘要一致，两处条件Range核验通过，正式通道仍为v1.7。
+GitHub故障期间标签运行状态可能延迟回写，发布与包校验分开记录，见[本版说明](GeekTool-IDF/RELEASE_NOTES.md)与[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-20-v17-beta35-启动器字库与音乐控件)。
 
 **此前：[v1.7-beta.34](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34) 已联合发布至内测通道。**
 23个启动器入口统一为A套实心图标，新增生态箱、专注唱片机和声音胶囊，更新遥控台与手动Mac本地媒体桥接。

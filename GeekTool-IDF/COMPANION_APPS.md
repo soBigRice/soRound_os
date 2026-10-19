@@ -1,6 +1,6 @@
 # 生态箱、专注、声音胶囊与遥控台
 
-核对日期：2026-10-19。用户已选遥控台第3版，并批准三个新App、手动Mac本地桥接、独立录音分区；**设备备份、烧录和分区迁移仍需另行确认**。beta.34已经发布；下述启动器缺字修复和居中三键为后续本地修改，尚未发布或更新设备。
+核对日期：2026-10-20。用户已选遥控台第3版，并批准三个新App、手动Mac本地桥接、独立录音分区；**设备备份、烧录和分区迁移仍需另行确认**。启动器缺字修复和居中三键已发布为beta.35；本轮没有更新设备。
 
 ## 模块地图
 
@@ -21,7 +21,7 @@
 
 回归 `tests/host::launcher_bilingual_app_name_glyphs` 从真实 `app_main()` 启动，经真实箭头事件/动画与指针入页，验证两种语言、23项名称字形、三新App标题和返回后名称字体。fixture 的三个新App名称保留生产大小写，确保真正命中中文映射。新增用例在修复前复现 `launcher missing U+6001: 生态箱`，修复后与六项既有启动流程均通过；实际启动器截图保留在 `artwork/companion-apps/native/launcher-font-fix/`。
 
-核对的本地运行版本为 LVGL 9.5.0；官方 [v9.6.0 字库定义](https://github.com/lvgl/lvgl/blob/v9.6.0/include/lvgl/font/lv_font_fmt_txt.h)与[查表实现](https://github.com/lvgl/lvgl/blob/v9.6.0/src/font/fmt_txt/lv_font_fmt_txt.c)仍支持当前静态4bpp/cmap数据，缺字同样返回未找到。当前修复没有重生字体或依赖版本变更；完整9.6源码包下载在本次网络条件下超时，未声称完成9.6运行构建。本条为未发布的本地修复，设备显示仍待后续授权更新验证。
+核对的本地运行版本为 LVGL 9.5.0；官方 [v9.6.0 字库定义](https://github.com/lvgl/lvgl/blob/v9.6.0/include/lvgl/font/lv_font_fmt_txt.h)与[查表实现](https://github.com/lvgl/lvgl/blob/v9.6.0/src/font/fmt_txt/lv_font_fmt_txt.c)仍支持当前静态4bpp/cmap数据，缺字同样返回未找到。修复没有重生字体或依赖版本变更；本地9.6源码下载曾超时，因此当时只报告9.5验证。后续beta.35手动CI使用LVGL9.6.0~1完成构建与全48项回归，包含真实启动器名称检查。设备显示仍待用户更新验证。
 
 ## 遥控台第3版
 
@@ -41,13 +41,13 @@
 
 Apple Watch Now Playing是Apple设备间的系统能力，官方说明不构成通用配件接口保证；公开BLE AMS面向iOS，曲目字段只有artist/album/title/duration，没有封面或歌词，也不是已验证的Mac替代方案。因此保留现有手动Mac本地桥接，先验证真实曲目/封面链路，不引入联网歌词、换硬件或假数据。[Apple Watch](https://support.apple.com/guide/watch/now-playing-apd4ea5db227/watchos)、[AMS范围](https://developer.apple.com/library/archive/documentation/CoreBluetooth/Reference/AppleMediaService_Reference/Introduction/Introduction.html)、[AMS字段](https://developer.apple.com/library/archive/documentation/CoreBluetooth/Reference/AppleMediaService_Reference/Appendix/Appendix.html)。核对日期2026-10-19。
 
-### 本轮验证与续接（未发布）
+### 本轮修复与验证（beta.35）
 
 - 本地ESP-IDF 6.0.1 / LVGL 9.5固件构建通过，9项HID、遥控UI、真实启动器名称与启动/回滚定向测试通过；新增两处C测试的GCC15严格检查通过。源码与Mac自测通过不代表已安装新固件。
 - 用户授权手动Mac桥接实测，真实Now Playing流随后给出60638字节封面；起初单次`get`无封面不能当作永久缺图。未读取到歌词字段，当前仍仅支持显式绑定的本地LRC。
 - 真实已连接soRound在CoreBluetooth的HID/media服务查询中不可见，Battery/DeviceInfo查询各返回同一设备。Mac端修正为合并去重、仅唯一匹配设备自动连接，保留`--device`与未连接时HID扫描；未改固件广播或配对。
 - 修正后已到自定义服务发现和加密STATUS读取ready，但写入报`Peer failed to respond to ATT value indication`，没有封面或文字层的COMMIT ACK。传输仍未闭环，不能宣称屏幕已显示、真实吞吐通过或判断一定是MTU问题。按本轮两次行为修复上限停止追加修改；下一步先记录失败opcode/长度、错误域码与两种写入长度上限，再区分长写与设备响应问题。细节与诊断入口归[Mac桥接说明](../mac-companion/README.md)。
-- 用户随后明确选择“暂不写设备，先保留修复”，本轮未读取USB设备、未烧录或迁移。固件与分区仍是设备原状态；声音胶囊未配置的后续迁移审查见[CAPSULES.md](CAPSULES.md)。本轮没有提交、推送或发布；手动桥接及其子进程已停止，临时测试与下载文件已清理。
+- 用户先选择“暂不写设备，先保留修复”，随后另行明确要求发版本，修复源码`f9c6bf4`已发布为beta.35。本轮仍未读取USB设备、未烧录或迁移；设备固件与分区维持原状态，录音迁移审查见[CAPSULES.md](CAPSULES.md)。手动桥接及其子进程已停止，临时测试与下载文件结束时清理；发布包校验见下方记录。
 
 原生截图`artwork/remote/native/`来自真实App与LVGL；HID连接、封面和歌词是明确的测试输入。`remote-media-lyrics-fixture.png`使用合成渐变及CoreText测试文字，**不是电脑正在播放的歌曲，也不是真机截图**。Lucide遥控页30px图标的原SVG/ISC许可位于`artwork/remote/icons/`，转换入口`tools/gen_remote_icons.py`。
 
@@ -64,3 +64,5 @@ Apple Watch Now Playing是Apple设备间的系统能力，官方说明不构成�
 候选使用双8MiB代码槽；旧4MiB槽无法安装约5MB镜像。新录音布局保持只读表盘资源与独立可写卷，旧FAT必须在完整备份真实文件后重建，**不能截断或直接对现有raw FAT尝试RW挂载**。尚未迁移的设备不具备录音保存条件，明确报“存储未配置”。
 
 已与A套启动器图标统一发布为[v1.7-beta.34](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.34)，源码`f447230`，标签CI39265622020通过发布依赖构建、47项主机回归、2项生态箱/专注、媒体ASan/UBSan与14项镜像测试。完整分发与存储兼容性见[发布记录](./PORTING_NOTES.md#2026-10-19-v17-beta34-实心图标与随身工具)。本地编译、主机渲染与协议测试均不替代真实BLE、触摸、音频、掉电恢复、帧耗时或用户审美验收。
+
+字库和三键修复后续发布为[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35)。手动CI39280665781全部通过；GitHub故障期间标签流水线39284415656的整体状态延迟，实际Release已生成，R2/国内完整包、条件Range与稳定包保护已独立核验。准确边界见[beta.35记录](./PORTING_NOTES.md#2026-10-20-v17-beta35-启动器字库与音乐控件)。
