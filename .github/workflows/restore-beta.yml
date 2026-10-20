@@ -1,4 +1,4 @@
-name: Restore beta.29 after beta.30 withdrawal
+name: Restore beta.35 after beta.36 withdrawal
 
 # Operational rollback uses the archived bytes, never rebuilds a historical tag.
 on:
@@ -15,8 +15,8 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release download v1.7-beta.29 --repo soBigRice/soRound_os --pattern GeekTool.bin
-          echo '1ccc3b68727008995e9f7a47efe925e37648e5af717277c4e6f55809c505fb91  GeekTool.bin' | sha256sum --check --strict
+          gh release download v1.7-beta.35 --repo soBigRice/soRound_os --pattern GeekTool.bin
+          echo '1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1  GeekTool.bin' | sha256sum --check --strict
       - name: Restore beta object only
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
