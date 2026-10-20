@@ -101,8 +101,26 @@ OTA的 `esp_http_client_get_and_clear_last_tls_error` 返回值是ESP-TLS传输�
 - [SNTP实现](https://github.com/espressif/esp-idf/blob/v6.0.1/components/lwip/apps/sntp/sntp.c)：首次init与后续线程安全restart；不重建整个无线服务。
 
 
-## 2026-10-20 星座再次“获取失败”（待设备同次请求证据）
+## 2026-10-20 星座再次“获取失败”：设备复测与诊断边界
 
-用户反馈最新固件白羊座获取失败，同一设备天气和答案之书正常。当天按设备默认User-Agent/TLS1.2真实请求全部12星座，均HTTP200，当前真实`zodiac_data_parse`及10月20日日期检查全部通过；这不能证明设备同次请求成功。共享网络与星座行为代码自10月7日未改，不能据此排除运行时内存/时序问题。UI把网络、解析、业务码、日期失败合并为“获取失败”，既有固定10月5日夹具也不能证明今日服务与设备链路。此次尚无失败请求日志，设备日期未核对，不应猜测为服务停机或再次改超时。
+用户反馈最新固件白羊座获取失败，同一设备天气和答案之书正常。当天按设备默认User-Agent/TLS1.2真实请求全部12星座，均HTTP200，当前真实`zodiac_data_parse`及10月20日日期检查全部通过；这不能证明设备同次请求成功。共享网络与星座行为代码自10月7日未改，不能据此排除运行时内存/时序问题。UI把网络、解析、业务码、日期失败合并为“获取失败”，既有固定10月5日夹具也不能证明今日服务与设备链路。当时尚无失败请求日志，失败时设备日期未核对，不应猜测为服务停机或再次改超时。
 
-排查因新表盘导致连续panic而暂停，先按用户授权恢复到旧beta.34，星座问题仍开放。后续只需抓同一次zodiac阶段/HTTP/transport/TLS/errno/字节数、实际设备日期及解析结果；没有批准新设备写入时不为采日志直接刷诊断固件。已有主机网络门禁不可代替这些设备证据。
+排查先因新表盘连续panic暂停并按授权恢复旧槽；用户随后明确允许直接烧录本轮验证候选。`probe1`在真实设备创建完整`app_zodiac`页面后发起白羊请求：设备时间`2026-10-20T22:16:19`、Wi-Fi就绪，HTTP200、1525B，页面最终`ready=1 / waiting=0`，请求日`20261020`与响应`10月20日`一致。这证明该次实际页面链路成功；原用户失败时的同次日志仍缺失，历史根因未复现，不能据一次正常将其归因于服务、日期、内存或宣称已修复。证据在忽略的`build/flash-records/beta37-validation-20261020/probe1-device.log`。
+
+`probe2`在设备完成287.6秒自动轮测：首次及九款表盘、设置预览、AOD跨分钟后的四次重进，共五次真实白羊页面请求均HTTP200、1525B，`ready=1 / waiting=0`，请求日`20261020`与响应`10月20日`一致，未见失败。证据为同目录`probe2-device.log`、`probe2-monitor.json`。历史失败仍未复现；这些成功不证明其原因已查明。随后补2KiB绘制栈余量的`probe3`已按真实启动器App进入/返回链再次完成五次请求，均HTTP200/1525B、日期一致、`ready=1 / waiting=0`，包括39次设置预览、九款AOD及sleep/wake后的请求。其完整观察约283秒到DONE，回执为`probe3-summary.json`。原历史失败仍未复现，不据成功样本声称其根因已解决。
+
+本轮仅补星座worker诊断，未修改提供方、UTF-8/星座/当天日期验证、6秒I/O与8秒共享预算、重试条件或界面。`zodiac_fetch_failure(token, &failure)`只在当前generation且`ZODIAC_FAILED`时返回`zodiac_failure_t`；详情包含`reason / http_status / requested_day / response_date`。新请求清空旧详情，取消或过期token不返回旧诊断。原UI在失败poll后会立即取消，因此采样方要在取消前读取；worker日志已在状态发布前保留同次证据，不需改变取消契约。
+
+| 星座诊断原因 | 当前映射 |
+| --- | --- |
+| `ZODIAC_ERROR_MEMORY` | 响应/结果分配失败、worker创建失败，或HTTP客户端SDK实际返回`ESP_ERR_NO_MEM`。`NET_HTTP_OFFLINE / CANCELED`阶段优先处理，不采用尚未分配客户端时的初始`NO_MEM`占位错误。 |
+| `ZODIAC_ERROR_RESPONSE` | `NET_HTTP_SIZE`、`NET_HTTP_INCOMPLETE`或业务/星座/UTF-8/字段解析未通过。 |
+| `ZODIAC_ERROR_DATE` | 已解析内容与有效设备请求日不符。 |
+| `ZODIAC_ERROR_TIMEOUT` | 共享传输预算阶段`NET_HTTP_TIMEOUT`。 |
+| `ZODIAC_ERROR_TLS / HTTP / CONNECTION` | 非零TLS code/flags、HTTP状态阶段，或其余连接/响应头/读取失败；分配及完整性错误优先按上两项区分。 |
+
+成功日志包含公开星座key、请求日、返回日、HTTP与字节数；失败另记原因、共享HTTP阶段、SDK错误及TLS code/flags。DNS/TCP errno、transport错误与堆信息仍由`network_http_get`在cleanup前采集、cleanup后输出。日志不含密码、设备身份或完整响应正文。
+
+`zodiac_network_tests`沿用真实worker及SDK fake，新增原因、请求日/响应日、取消失效和过期token断言；针对客户端初始化内存不足、已知/未知长度超长及传输不完整分别校验`MEMORY / RESPONSE`。另覆盖`begin`通过后、worker执行前掉线：客户端未初始化，应记`CONNECTION`，不能被初始`NO_MEM`误诊为内存不足。新增映射断言在旧诊断候选失败，修正后通过；恢复原界面后的星座UI/网络两项通过。未将这些fake结果写成设备故障根因。
+
+可选的错误详情UI未交付：三行32px日期错误为134px，超出现有127px正文窗口；移入24px标题的尝试又触发该字库子集缺`U+671F`（“期”）。按两轮停止规则已完整撤回该UI提案及其新增断言，保留原有界面/测试和worker诊断。没有补字库、缩小字号或改动现有内容来掩盖失败；当前错误页仍可能统一显示“获取失败”，不能宣称新的分类错误文案已上线。

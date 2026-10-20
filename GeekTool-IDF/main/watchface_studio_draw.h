@@ -8,6 +8,13 @@
 // 新系列只共享绘制原语，旧21款的绘制路径保持原样。 / Share primitives only for STUDIO; leave the original 21 renderers intact.
 typedef struct {lv_layer_t *layer;int x,y,size;bool preview;} wfs_draw_t;
 typedef struct {float x,y;} wfs_point_t;
+typedef struct {
+    float px[96],py[96],xs[96];
+    uint16_t coverage[466];
+} wfs_draw_scratch_t;
+// 工作区只在唯一taskLVGL线程的非重入STUDIO绘制中借用；同步软件后端不会回调STUDIO。
+// Borrow this workspace only during non-reentrant STUDIO drawing on taskLVGL; the synchronous software backend never calls STUDIO.
+extern wfs_draw_scratch_t g_wfs_draw_scratch;
 #include "watchface_studio_fonts.h"
 static inline void wfs_bar_opa(const wfs_draw_t*,float,float,float,float,float,uint32_t,float);
 static inline void wfs_line_opa(const wfs_draw_t*,float,float,float,float,float,uint32_t,float);
@@ -85,17 +92,19 @@ static inline void wfs_aod(const wfs_draw_t *d,const watchface_data_t *data,cons
 static inline void wfs_poly_opa(const wfs_draw_t *d,const wfs_point_t *points,int count,uint32_t color,float opacity){
     // 仅466px正屏/233px预览：有界行缓冲和四次边缘采样，不申请全屏画布。 / Bound scratch space to the 466/233px surfaces; four edge samples, no full-frame canvas.
     if(count<3||count>96||d->size<1||d->size>466)return;
-    float px[96],py[96],top=466,bottom=0,scale=d->size/466.0f;
+    float *px=g_wfs_draw_scratch.px,*py=g_wfs_draw_scratch.py;
+    float top=466,bottom=0,scale=d->size/466.0f;
     for(int i=0;i<count;i++){px[i]=points[i].x*scale-.5f;py[i]=points[i].y*scale-.5f;top=fminf(top,py[i]);bottom=fmaxf(bottom,py[i]);}
     lv_draw_rect_dsc_t rect;lv_draw_rect_dsc_init(&rect);rect.bg_color=lv_color_hex(color);
     float center=d->size*.5f-.5f,radius=232*scale;
     // 只扫描当前DMA分块可见行，像素和覆盖率不变。 / Rasterize only the current DMA tile without changing pixel coverage.
     int clip_top=LV_MAX(0,d->layer->_clip_area.y1-d->y),clip_bottom=LV_MIN(d->size-1,d->layer->_clip_area.y2-d->y);
     for(int y=LV_MAX(clip_top,(int)floorf(top));y<=LV_MIN(clip_bottom,(int)ceilf(bottom));y++){
-        uint16_t coverage[466]={0};
+        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage,0,sizeof g_wfs_draw_scratch.coverage);
         for(int sample=0;sample<4;sample++){
             float sy=y-.375f+sample*.25f,dy=sy-center;if(fabsf(dy)>=radius)continue;
-            float reach=sqrtf(radius*radius-dy*dy),lo=center-reach,hi=center+reach,xs[96];int n=0;
+            float reach=sqrtf(radius*radius-dy*dy),lo=center-reach,hi=center+reach;
+            float *xs=g_wfs_draw_scratch.xs;int n=0;
             for(int i=0,j=count-1;i<count;j=i++)if((py[i]>sy)!=(py[j]>sy))xs[n++]=px[i]+(sy-py[i])*(px[j]-px[i])/(py[j]-py[i]);
             for(int i=1;i<n;i++){float x=xs[i];int j=i;while(j>0&&xs[j-1]>x){xs[j]=xs[j-1];j--;}xs[j]=x;}
             for(int i=0;i+1<n;i+=2){
@@ -139,7 +148,7 @@ static inline void wfs_ring_opa(const wfs_draw_t *d,float x,float y,float radius
     lv_draw_rect_dsc_t rect;lv_draw_rect_dsc_init(&rect);rect.bg_color=lv_color_hex(color);
     int clip_top=LV_MAX(0,d->layer->_clip_area.y1-d->y),clip_bottom=LV_MIN(d->size-1,d->layer->_clip_area.y2-d->y);
     for(int row=LV_MAX(clip_top,(int)floorf(cy-outer));row<=LV_MIN(clip_bottom,(int)ceilf(cy+outer));row++){
-        uint16_t coverage[466]={0};
+        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage,0,sizeof g_wfs_draw_scratch.coverage);
         for(int sample=0;sample<4;sample++){
             float sy=row+.125f+sample*.25f,dy=sy-cy,clip_dy=sy-clip;if(fabsf(dy)>=outer||fabsf(clip_dy)>=clip_r)continue;
             float reach=sqrtf(outer*outer-dy*dy),clip_reach=sqrtf(clip_r*clip_r-clip_dy*clip_dy),lo=fmaxf(cx-reach,clip-clip_reach),hi=fminf(cx+reach,clip+clip_reach);

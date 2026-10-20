@@ -2352,8 +2352,44 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 
 beta.36 Release（ID418072033）已转draft并标记WITHDRAWN；Git标签保留取证。现有恢复工作流仅将归档beta.35原包上传beta对象，提交`6820eba`、[运行39428665067](https://github.com/soBigRice/soRound_os/actions/runs/39428665067)均已核实。R2及国内完整beta包均与归档5,068,848B / SHA256 `1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1`逐字节一致，条件Range206切片准确，正式v1.7 SHA仍为`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
 
-本地候选：`main/watchface_studio_draw.c`提供唯一2084B `g_wfs_draw_scratch`，`watchface_studio_draw.h`的`wfs_poly_opa`/`wfs_ring_opa`按唯一LVGL绘制线程的非重入契约复用，覆盖RADAR同类调用；实际Xtensa函数栈2368/1232B降为288/288B。保留全部采样、画质、路径和刷新率，不增任务栈或关闭看门狗。原header与候选在相同格式下分别比较，48行RGB565及40行双缓冲RGB565_SWAPPED各89/89帧逐字节一致，含旧21款、新9款和全部AOD；不把跨格式差异混算为此次修改。52项主机测试通过，含新增设备格式与完整设置层级检查。本地IDF6.0.1/LVGL9.5构建`v1.7-beta.36-recovery1`为5,183,824B，SHA256 `261369e48d2ea50e68627a37a887e7c27b0fc72ab29d0bc4b05f4dc2db923a05`；还未用发布LVGL9.6重建或实测目标栈水位。源码保持本地未提交，尚未写设备、未发布；不能把设备切回旧槽说成新表盘已修复。回执同私有恢复目录`candidate-*.json/log`。
+恢复初期本地候选`v1.7-beta.36-recovery1`采用共享scratch，不增任务栈或关闭看门狗；当时仅有IDF6.0.1/LVGL9.5构建及52项主机检查，尚未安装。应用为5,183,824B，SHA256 `261369e48d2ea50e68627a37a887e7c27b0fc72ab29d0bc4b05f4dc2db923a05`，回执在同私有恢复目录`candidate-*.json/log`。其后发布依赖重建与获授权的probe设备验证见下一节；不能把旧槽恢复说成新表盘修复验收。
 
 官网可用计数已恢复21，STUDIO禁用并明确撤回；源码`2f7cc88`的[Pages39429902992](https://github.com/soBigRice/soRound_os/actions/runs/39429902992)为completed/success。公开中英文完整HTML及CSS/JS均HTTP200、与本地构建逐字节一致，beta.35入口及禁用状态核对通过，见`website-withdrawal.json`。浏览器交互读取超时，本轮未宣称实际点击验收；生成的测试页面与主机像素/构建临时输出在核验后清理。
 
 现场接入纠正：首次只按`cu.usbmodem*`取到LG显示器控制口，未获得日志，ROM同步失败；实际ESP32端口出现后通过VID/PID确认才捕获崩溃。以后不得用端口名称前缀猜设备，所有读写先验证vendor/product且唯一匹配，再核对芯片/Flash/分区。恢复使用ROM慢读及仅低地址元数据写，没有为此装新stub或触及高位文件区。
+
+## 2026-10-20 beta.37组合修复与验证
+
+用户随后要求木鱼、新表盘、星座合测并正常发版，又明确“直接烧录”。本节记录已完成的新表盘候选与启动选择证据；当前为本地probe验证，尚未发布beta.37。应用烧录保留原有用户数据和文件区，不迁移分区、不写引导器；可手工选择的beta.35恢复槽继续保留。probe2已完成但设置预览栈余量不足，追加9216B余量保护后的probe3待实测，之后再补最终构建身份和发布状态。
+
+`watchface_studio_draw.c`提供唯一2084B BSS符号`g_wfs_draw_scratch`，将`px/py/xs`各96个float和466个uint16覆盖率元素移出深层绘制栈。poly/ring在单一`taskLVGL`、非重入契约下复用，逐行清零逻辑、像素采样、透明度、路径、刷新率均保持；不新增逐primitive堆分配，不修改旧21款，不关闭看门狗。scratch单变量验证阶段沿用7168B任务栈；后续依据实测追加的9216B余量保护单独记录在下文。RADAR的网格/刻度/扫线/余辉进入poly，背景/圆环/圆点进入ring，事故所涉路径全部覆盖。
+
+发布依赖ESP-IDF6.0.1、LVGL9.6.0~1的最初本地probe实际ELF核对：两个渲染编译单元的`wfs_poly_opa`均为288B（原2368B），`wfs_ring_opa`均为288B（原1232B）；全镜像仅一个2084B scratch符号。当时`display_init`实码拷贝的port配置第二个int仍为7168B，之后只改优先级5及core1亲和性。私有回执`build/flash-records/beta37-validation-20261020/studio-target-stack.json`记录该本地probe ELF SHA256 `aab59993fd0490eeffdfbc966ae7282638b0ced6c26b3147ad01cba119fb033a`，不是后续9216B候选或发布镜像身份。
+
+独立像素回归使用beta.36原header与共享scratch候选，复制冻结同一host测试对象及LVGL库后，分别重编renderer、链接两个独立程序。在相同格式内，48行RGB565及40行双缓冲RGB565_SWAPPED各89/89帧逐字节一致；每组含30款正常态、30款AOD以及九款固定日期正常/AOD参考，涵盖旧21款和新9款。两种格式本来存在的差异（例如旧`aod-03`）未混入本次修改回归。独立对象、库副本、可执行程序及四组临时像素已清理，只保留小型比较回执。这证明修改前后画面等价，不证明7168B任务栈上的真机稳态。
+
+probe1为本地带验证驱动的`v1.7-beta.37-probe`，应用SHA256 `27ce2a0564f9cff13a908977ae8e8b15a3ec9b895b8c8c84f230c972b9873f4b`，ELF SHA256 `a9ac0a207f099336bbae67743203a8ac2c522672e07c18a540adda56e9427d10`。安装前完整32MiB备份与分区校验完成；只替换ota_1应用和对应启动选择，物理MD5、原beta.35槽、NVS、分区表及文件区保护检查通过。安装选择读回为seq37/ota_0 VALID(2)、seq38/ota_1 NEW(0)，两CRC有效，没有预先把新应用标为VALID。
+
+probe1运行数分钟后的新鲜`probe2-otadata-before.bin`读回seq38已经VALID(2)，seq37仍VALID，两CRC均正确，实证NEW经实际运行后完成健康确认。观察器等待16秒再接USB，保存的完整启动日志前先出现残缺镜像行及`USB_UART_CHIP_RESET`；其后的`startup OTA action=0`属于已确认后的再次启动，不能反推现场引导器不支持确认，也没有捕获首次确认日志。现场前32KiB引导区与2026-10-13完整备份逐字节一致，SHA256 `1cf6541427bfd82884129a295a893f80a87bc200bb349d909fdbb86cb624b201`；未为此刷新本地新编的引导器。
+
+本轮没有注入首启失败或执行失败自动回滚测试；NEW→VALID实证不能扩大为本轮回滚成功。公开版本仍为beta.35，beta.36保持撤回。完整Flash、NVS、原始网络日志及设备私有恢复资料只保存在忽略的`build/flash-records/`，不进入Git或公开发布包。
+
+### probe2结果与生产栈余量
+
+probe2已完成287.6秒轮测并到达DONE，无fault：全屏21–29、设置预览20→21–29→0→29→21、RADAR连续70秒、AOD跨分钟及木鱼画面阶段。7168B任务栈下，全屏阶段最低可用栈1000B；经过实际设置层级233px预览后，历史最低降至424B。这轮证明对应路径运行未出现已监测异常，但424B生产余量不足，不能将其作为最终生产验收。
+
+同轮白羊请求5次均HTTP200、响应1525B、`ready=1/waiting=0`，日期分别为接口`20261020`和显示`10月20日`。这是该现场请求链的结果，不扩展为所有星座/日期/失败恢复场景已经验收；其他联网与木鱼检查由对应模块记录。
+
+依据该实测，最终候选在`display.c`显式设`port_cfg.task_stack=9216`，比原7168B多2048B内部RAM；这是scratch修复后的独立生产余量保护，不以加栈反向证明原事故首次坏写原因。IDF本端`StackType_t`为uint8，参数按字节分配，新增成本是2KiB；协处理器保存区仍在该任务栈内，不再从HWM重复扣除。画质、频率、scratch、优先级5、core1亲和性与看门狗保持。9216B下的最低可用栈须重新实测，不能把424+2048写成设备结果。
+
+### probe3：最终9216B配置实机通过
+
+本地`v1.7-beta.37-probe3`应用5,220,784B、SHA256 `6c572ffd4bc0217f6fdac662f067a1cad0e8cddd91dd85bcd07d08bab7e6327e`，ELF SHA256 `f4f4291cd42a721034b5096049c8f6f7326710507d5a9c0a48ae7a881606cd98`。其验证驱动只在隔离构建内，通过真实launcher `enter_app/go_home`链进入App，不随发布镜像交付。约283秒完整观察到DONE并关闭串口：RADAR连续70秒、九款全屏、39次设置预览（三轮20→21–29→0→29→21）、九款AOD、跨分钟、sleep/wake、木鱼连续视觉反馈均完成。心跳与DMA持续增长，没有监测到panic、损坏或5秒渲染停滞；真实`taskLVGL`历史最低可用栈2,952B，开机内部RAM最低73,451B。这是实测值，不使用理论相减替代。
+
+同轮实际白羊页面五次均HTTP200/1525B，`ready=1/waiting=0`，设备请求日20261020与返回10月20日一致。原历史“获取失败”未复现；没有据此发明服务、日期或内存根因。worker新增同次日志/失败分类及掉线误诊回归，现有提供方、严格校验、超时、重试和UI保持。木鱼设备驱动只启动视觉反馈，不增功德或播放声音；真实触摸、主观观感与扬声器音色仍待用户验收。另未执行网络OTA和失败自动回滚。
+
+最终生产源码与隔离构建所有已跟踪main文件逐字节相同，验证驱动/导出入口已移除，ELF无`device_probe`符号。本地生产候选为5,218,816B、SHA256 `408748cee54a610ee3709ac74c4940fd5b99a3d0c92fb4abc3a7372124c67937`，ELF SHA256 `818f99fc80e42a40b6b0ad3600feaed42d26177b70bbf1842cae1b1084e9daa0`；四个poly/ring符号均288B，唯一scratch仍2,084B，`display_init`实码确认9,216B。发布必须安装CI公开的精确原包，不能把本地probe或候选摘要当作发布包摘要。
+
+最终本地主机53项、生态箱/专注2项、媒体ASan/UBSan与镜像14项均通过。小型回执在忽略的`build/flash-records/beta37-validation-20261020/{probe3-summary,production-source-check,production-target-stack,local-production-build}.json`。CI发布、公开完整包/Range及精确发布包USB安装核验待完成；beta.36仍撤回，正式v1.7保持。
+
+防复发检查保留在直接调用链：新增/调整绘制helper时，核对最终目标ELF栈帧、完整对象递归与保存区，再用同格式像素对照、40行交换字节双缓冲及完整设置层级回归；实际诊断从独立看门狗取得`taskLVGL`句柄后读历史最低可用栈，IDF单位为字节。堆内存快照、host大栈测试及每函数数字均不能单独证明设备绘制栈安全。

@@ -189,8 +189,23 @@ static void render_watchdog(void *arg) {
     (void)arg;
     uint32_t last = 0;
     int stuck = 0;
+#ifdef ESP_PLATFORM
+    UBaseType_t lowest_stack=(UBaseType_t)-1;
+#endif
     for (;;) {
         vTaskDelay(pdMS_TO_TICKS(1000));
+#ifdef ESP_PLATFORM
+        // 在独立看门狗中测实际LVGL任务，避免把日志栈算进绘制路径；IDF的水位单位为字节。
+        // Sample the real LVGL task from this watchdog, outside the draw stack; IDF reports bytes.
+        TaskHandle_t ui_task=xTaskGetHandle("taskLVGL");
+        if(ui_task) {
+            UBaseType_t free_stack=uxTaskGetStackHighWaterMark(ui_task);
+            if(free_stack<lowest_stack) {
+                lowest_stack=free_stack;
+                ESP_LOGI("wdog","LVGL stack hwm_bytes=%u heartbeat=%lu",(unsigned)free_stack,(unsigned long)s_lvgl_hb);
+            }
+        }
+#endif
         if (s_lvgl_hb == last) {
             if (++stuck >= 5) {                  // 连续 5s 无心跳 → 渲染任务卡死,重启
                 ESP_LOGE("wdog", "LVGL task stalled >=5s -> restart");

@@ -221,6 +221,9 @@ lv_display_t *display_init(void) {
           省掉 flush 前对每个像素的 CPU 交换遍历(原来每帧多扫全缓冲一遍)。
           注:LVGL 内部源图(canvas/JPEG 解码 RGB565)由 blend_to_rgb565_swapped 后端转换,无需改动。 */
     lvgl_port_cfg_t port_cfg = ESP_LVGL_PORT_INIT_CONFIG();
+    // 实机设置预览在默认7168B栈仅余424B；扫描数组已移出栈，再留2048B应对深层绘制和端口保存区。
+    // Device previews left 424B on the default 7168B stack; scan arrays live off-stack, with 2048B extra for nested drawing and port save areas.
+    port_cfg.task_stack = 9216;
     port_cfg.task_priority = 5;
     port_cfg.task_affinity = 1;          // 钉到核 1(协议栈在核 0)
     ESP_ERROR_CHECK(lvgl_port_init(&port_cfg));

@@ -14,7 +14,7 @@ target_compile_options(performance_tests PRIVATE -Wall -Wextra -Wno-missing-fiel
 enable_testing()
 add_test(NAME performance_regressions COMMAND performance_tests)
 add_executable(play_tests play_tests.c ../../main/maze_levels.c ../../main/glyph.c
-               ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c
+               ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(play_tests PRIVATE stubs ../ota/stubs ../../main)
@@ -71,7 +71,7 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
-target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c
+target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
                ../../main/identity_ui.c ../../main/font_identity.c)
 add_executable(identity_ui_tests identity_ui_tests.c ../../main/identity_ui.c ../../main/font_identity.c)
 target_include_directories(identity_ui_tests PRIVATE ../../main)
@@ -100,7 +100,7 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/launcher.c ../../main/launcher_icons.c ../../main/lock.c ../../main/watchface.c
     ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
     ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
-    ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/tools_ui.c
+    ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c ../../main/tools_ui.c
     ../../main/font_tools.c ../../main/weather_artwork.c ../../main/companion_icons.c ../../main/font_companion.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
 target_link_libraries(startup_flow_tests PRIVATE lvgl m)
@@ -114,13 +114,17 @@ add_test(NAME startup_studio_last_flow COMMAND startup_flow_tests 29 0)
 add_test(NAME startup_home_dma_failure_rolls_back COMMAND startup_flow_tests 0 0 stall)
 add_test(NAME startup_ui_lock_failure_rolls_back COMMAND startup_flow_tests 0 0 lock-stall)
 add_test(NAME launcher_bilingual_app_name_glyphs COMMAND startup_flow_tests 0 1 launcher)
-add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c
+add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(watchface_tests PRIVATE ../watchfaces/stubs ../../main)
 target_link_libraries(watchface_tests PRIVATE lvgl m)
 target_compile_options(watchface_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME watchface_collection_and_power COMMAND watchface_tests)
+add_test(NAME watchface_device_format_and_tiles COMMAND watchface_tests)
+set_tests_properties(watchface_device_format_and_tiles PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")
+add_test(NAME settings_device_format_and_tiles COMMAND settings_level_tests)
+set_tests_properties(settings_device_format_and_tiles PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")
 add_executable(watchface_image_tests ../watchfaces/image_store_tests.c)
 target_compile_definitions(watchface_image_tests PRIVATE FACTORY_IMAGE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../../images/bg.jpg")
 target_include_directories(watchface_image_tests PRIVATE ../watchfaces/stubs ../../main)
@@ -214,6 +218,8 @@ foreach(tool merit zodiac)
   target_compile_definitions(${tool}_ui_tests PRIVATE ZODIAC_GLYPHS_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../lifestyle/horoscope_glyphs.txt" ZODIAC_FIXTURE_PATH="${CMAKE_CURRENT_SOURCE_DIR}/../lifestyle/horoscope_fixture.json")
   add_test(NAME ${tool}_controls_and_lifecycle COMMAND ${tool}_ui_tests)
 endforeach()
+add_test(NAME merit_device_format_and_tiles COMMAND merit_ui_tests)
+set_tests_properties(merit_device_format_and_tiles PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")
 target_sources(merit_ui_tests PRIVATE ../lifestyle/merit_artwork_decode.c ../../main/merit_artwork.c
                ../../managed_components/espressif__esp_jpeg/tjpgd/tjpgd.c)
 target_include_directories(merit_ui_tests PRIVATE ../lifestyle/stubs ../watchfaces/stubs

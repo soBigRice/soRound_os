@@ -61,7 +61,8 @@ int xTaskCreate(void (*task)(void *),const char *name,unsigned stack,void *arg,u
 void vTaskDelete(void *p){assert(!p);++deletes;}
 static void run(void){assert(queued);void (*task)(void *)=queued;queued=NULL;task(NULL);assert(!handles);}
 static uint32_t request(void){uint32_t token;assert(zodiac_fetch_begin(0,&token)==ZODIAC_LOADING);return token;}
-static void failure(void){uint32_t token=request();run();assert(zodiac_fetch_poll(token,NULL)==ZODIAC_FAILED);}
+static uint32_t failure(void){uint32_t token=request();run();assert(zodiac_fetch_poll(token,NULL)==ZODIAC_FAILED);return token;}
+static void reason(uint32_t token,zodiac_error_t expected){zodiac_failure_t detail;assert(zodiac_fetch_failure(token,&detail));assert(detail.reason==expected);}
 int main(void){
     FILE *f=fopen(ZODIAC_FIXTURE_PATH,"rb");assert(f);size_t n=fread(fixture,1,sizeof fixture-1,f);fclose(f);fixture[n]=0;
     zodiac_data_t out={0};uint32_t token;
@@ -74,31 +75,39 @@ int main(void){
     for(unsigned i=0;i<sizeof bad/sizeof bad[0];++i)assert(!zodiac_data_parse(bad[i],strlen(bad[i]),0,&out));
     online=false;assert(zodiac_fetch_begin(0,&token)==ZODIAC_OFFLINE&&!queued);online=true;
     ip_ready=false;assert(zodiac_fetch_begin(0,&token)==ZODIAC_OFFLINE&&!queued);ip_ready=true;
+    // begin通过后、worker执行前掉线，不能把尚未分配客户端的默认错误当内存不足。
+    // An offline preflight after begin must not inherit the client's initial NO_MEM placeholder.
+    int offline_inits=init_calls;token=request();online=false;run();
+    assert(zodiac_fetch_poll(token,NULL)==ZODIAC_FAILED&&init_calls==offline_inits);
+    reason(token,ZODIAC_ERROR_CONNECTION);online=true;
     int count=init_calls;open_fail_count=1;token=request();run();
     assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY && init_calls==count+2);
     count=init_calls;status_fail_count=1;token=request();run();
     assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY && init_calls==count+2);
-    count=init_calls;open_fail=true;tls_flags=4;failure();assert(init_calls==count+1);tls_flags=0;open_fail=false;
-    count=init_calls;status=404;failure();assert(init_calls==count+1);status=200;
+    count=init_calls;open_fail=true;tls_flags=4;reason(failure(),ZODIAC_ERROR_TLS);assert(init_calls==count+1);tls_flags=0;open_fail=false;
+    count=init_calls;status=404;token=failure();reason(token,ZODIAC_ERROR_HTTP);assert(init_calls==count+1);status=200;
+    zodiac_failure_t detail;assert(zodiac_fetch_failure(token,&detail)&&detail.http_status==404);
     assert(zodiac_fetch_begin(12,&token)==ZODIAC_FAILED&&!queued);
-    create_fail=true;assert(zodiac_fetch_begin(0,&token)==ZODIAC_FAILED&&!queued);create_fail=false;
+    create_fail=true;assert(zodiac_fetch_begin(0,&token)==ZODIAC_FAILED&&!queued);reason(token,ZODIAC_ERROR_MEMORY);create_fail=false;
     token=request();assert(zodiac_fetch_begin(0,&token)==ZODIAC_BUSY);run();
     assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY&&!strcmp(out.date,"10月5日"));
-    init_fail=true;failure();init_fail=false;
+    init_fail=true;reason(failure(),ZODIAC_ERROR_MEMORY);init_fail=false;
     header_fail=true;failure();header_fail=false;
-    open_fail=true;failure();open_fail=false;
+    open_fail=true;reason(failure(),ZODIAC_ERROR_CONNECTION);open_fail=false;
     status=500;failure();status=200;
-    declared=ZODIAC_HTTP_BYTES;failure();declared=-1;failure();declared=-2;
+    declared=ZODIAC_HTTP_BYTES;reason(failure(),ZODIAC_ERROR_RESPONSE);declared=-1;failure();declared=-2;
     read_fail=true;failure();read_fail=false;
-    complete=false;failure();complete=true;
-    read_delay=9000000;failure();read_delay=0;
-    const char *valid=payload;payload="{\"code\":429,\"data\":{}}";failure();payload=valid;
-    char *date=strstr(fixture,"10月5日");assert(date);date[5]='4';failure();date[5]='5';
+    complete=false;reason(failure(),ZODIAC_ERROR_RESPONSE);complete=true;
+    read_delay=9000000;reason(failure(),ZODIAC_ERROR_TIMEOUT);read_delay=0;
+    const char *valid=payload;payload="{\"code\":429,\"data\":{}}";reason(failure(),ZODIAC_ERROR_RESPONSE);payload=valid;
+    char *date=strstr(fixture,"10月5日");assert(date);date[5]='4';token=failure();reason(token,ZODIAC_ERROR_DATE);
+    assert(zodiac_fetch_failure(token,&detail)&&detail.requested_day==20261005&&!strcmp(detail.response_date,"10月4日"));date[5]='5';
+    zodiac_fetch_cancel();assert(!zodiac_fetch_failure(token,&detail));
     declared=0;token=request();run();assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY);declared=-2;
-    token=request();zodiac_fetch_cancel();run();assert(zodiac_fetch_poll(token,NULL)==ZODIAC_IDLE);
+    token=request();assert(!zodiac_fetch_failure(token,&detail));zodiac_fetch_cancel();run();assert(zodiac_fetch_poll(token,NULL)==ZODIAC_IDLE);assert(!zodiac_fetch_failure(token,&detail));
     token=request();cancel_on_read=true;run();assert(zodiac_fetch_poll(token,NULL)==ZODIAC_IDLE);
     char oversized[ZODIAC_HTTP_BYTES+20];memset(oversized,'x',sizeof oversized-1);oversized[sizeof oversized-1]=0;
-    payload=oversized;declared=0;failure();payload=valid;declared=-2;
+    payload=oversized;declared=0;reason(failure(),ZODIAC_ERROR_RESPONSE);payload=valid;declared=-2;
     token=request();run();assert(zodiac_fetch_poll(token,&out)==ZODIAC_READY);
     assert(!handles&&!queued&&opens==closes&&cleanups>opens&&deletes>=16);
     puts("zodiac network: actual API fixture, requested sign/day checks, TLS, bounded JSON/UTF8, HTTP/connection/deadline/offline/busy failures, cancellation, stale results and cleanup passed");

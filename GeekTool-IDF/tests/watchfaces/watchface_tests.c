@@ -38,9 +38,14 @@ bool img_store_face_loading(int theme){(void)theme;return loading;}
 #undef time
 static uint16_t pixels[466*466];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466*48];
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t second_buffer[466*40];
+static bool device_format;
 static unsigned flushed;
 static lv_display_t *display;
-static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes){int w=lv_area_get_width(a);for(int y=a->y1;y<=a->y2;++y){memcpy(pixels+y*466+a->x1,bytes,(size_t)w*2);bytes+=w*2;flushed+=(unsigned)w;}lv_display_flush_ready(d);}
+static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes){int w=lv_area_get_width(a);for(int y=a->y1;y<=a->y2;++y){
+    if(device_format)for(int x=0;x<w;x++)pixels[y*466+a->x1+x]=(uint16_t)((bytes[x*2]<<8)|bytes[x*2+1]);
+    else memcpy(pixels+y*466+a->x1,bytes,(size_t)w*2);
+    bytes+=w*2;flushed+=(unsigned)w;}lv_display_flush_ready(d);}
 static uint64_t capture(const char *folder,const char *name){
     lv_obj_update_layout(lv_layer_top());lv_refr_now(display);uint64_t hash=1469598103934665603ULL;
     for(unsigned i=0;i<466*466;++i){hash^=pixels[i];hash*=1099511628211ULL;}
@@ -151,12 +156,16 @@ static void catalogue_contract(void){
 int main(int argc,char **argv){
     if(argc==2&&strcmp(argv[1],"--font-digests")==0){lv_init();font_bitmap_digests(true);lv_deinit();return 0;}
     const char *folder=argc>1?argv[1]:NULL;
+    device_format=getenv("SOROUND_TEST_DEVICE_FORMAT")!=NULL;
     setenv("TZ","UTC",1);tzset();struct tm t={.tm_year=126,.tm_mon=9,.tm_mday=5,.tm_hour=10,.tm_min=8,.tm_sec=21};now=mktime(&t);
     ip_ready=false;snapshot(true);assert(!s_data.wifi && !s_data.ip[0]);ip_ready=true;snapshot(true);assert(s_data.wifi);
     for(int i=0;i<3;++i){images[i]=(lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,.w=466,.h=466,.stride=932},.data_size=sizeof image_pixels[i],.data=(uint8_t *)image_pixels[i]};
         if(argc>2){char path[1024];snprintf(path,sizeof path,"%s/%s.rgb565",argv[2],watchface_theme_name(i));FILE *f=fopen(path,"rb");assert(f);assert(fread(image_pixels[i],1,sizeof image_pixels[i],f)==sizeof image_pixels[i]);assert(fclose(f)==0);}}
-    lv_init();font_bitmap_digests(false);i18n_init();display=lv_display_create(466,466);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
-    lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
+    lv_init();font_bitmap_digests(false);i18n_init();display=lv_display_create(466,466);
+    // 同时覆盖真机40行双缓冲与交换字节后端；输出统一回RGB565以直接比较像素。
+    // Exercise the device's 40-row double buffers and swapped backend; normalize captured pixels for exact comparisons.
+    lv_display_set_color_format(display,device_format?LV_COLOR_FORMAT_RGB565_SWAPPED:LV_COLOR_FORMAT_RGB565);
+    lv_display_set_buffers(display,buffer,device_format?second_buffer:NULL,device_format?466*40*2:sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_black(),0);
     catalogue_contract();studio_font_contract();watchface_init();assert(watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
     uint64_t hashes[30];

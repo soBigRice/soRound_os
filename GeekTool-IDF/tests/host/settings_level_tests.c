@@ -58,6 +58,8 @@ bool imu_read_tilt_z(float *x,float *y,float *z) {*x=tx;*y=ty;*z=az;return senso
 #include "../../main/app_level.c"
 #define W 466
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[W*W];
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t second_buffer[W*40];
+static bool device_format;
 static uint16_t pixels[W*W];
 static lv_display_t *display;
 static lv_indev_t *touch;
@@ -83,7 +85,11 @@ static void back_gesture(lv_event_t *event) {
 }
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *map) {
     int width=lv_area_get_width(a);
-    for(int y=a->y1;y<=a->y2;++y) {memcpy(pixels+y*W+a->x1,map,(size_t)width*2);map+=width*2;}
+    for(int y=a->y1;y<=a->y2;++y) {
+        if(device_format)for(int x=0;x<width;x++)pixels[y*W+a->x1+x]=(uint16_t)((map[x*2]<<8)|map[x*2+1]);
+        else memcpy(pixels+y*W+a->x1,map,(size_t)width*2);
+        map+=width*2;
+    }
     lv_display_flush_ready(d);
 }
 static void check_labels(lv_obj_t *o) {
@@ -154,9 +160,13 @@ static void check_full_text(lv_obj_t *obj) {
 }
 int main(int argc,char **argv) {
     const char *directory=argc>1?argv[1]:NULL;
+    device_format=getenv("SOROUND_TEST_DEVICE_FORMAT")!=NULL;
     if(argc>2) {FILE *f=fopen(argv[2],"rb");assert(f);assert(fread(image_pixels,1,sizeof image_pixels,f)==sizeof image_pixels);fclose(f);}
-    lv_init();i18n_init();display=lv_display_create(W,W);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
-    lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
+    lv_init();i18n_init();display=lv_display_create(W,W);
+    // 使用真实设置页层级检查40行双缓冲绘制，不把整帧主机缓冲等同于设备路径。
+    // Exercise the full settings hierarchy with 40-row double buffers instead of treating a host full-frame buffer as the device path.
+    lv_display_set_color_format(display,device_format?LV_COLOR_FORMAT_RGB565_SWAPPED:LV_COLOR_FORMAT_RGB565);
+    lv_display_set_buffers(display,buffer,device_format?second_buffer:NULL,device_format?W*40*2:sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_hex(0),0);
     heading=lv_label_create(lv_layer_top());lv_obj_set_style_text_font(heading,&font_location_24,0);
     lv_obj_set_style_text_color(heading,lv_color_hex(COL_TXT),0);lv_obj_align(heading,LV_ALIGN_TOP_MID,0,52);

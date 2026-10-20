@@ -19,6 +19,7 @@ static bool s_visible,s_dirty,s_muted,s_storage_ready;
 static uint32_t s_count,s_hit_at,s_saved_at,s_anim_at,s_elapsed;
 static lv_image_dsc_t s_art;
 #define HIT_MS 620
+#define ECHO_MS 360
 static const char *words(const char *en,const char *zh){return settings_lang()?zh:en;}
 static lv_obj_t *label(lv_obj_t *p,const char *value,int y,const lv_font_t *font,uint32_t color) {
     lv_obj_t *o=lv_label_create(p);lv_obj_set_style_text_font(o,font,0);
@@ -40,13 +41,25 @@ static void wood_draw(lv_event_t *e) {
     lv_obj_t *o=lv_event_get_target_obj(e);lv_layer_t *layer=lv_event_get_layer(e);
     lv_area_t a;lv_obj_get_coords(o,&a);int x=a.x1,y=a.y1;
     float hit=s_elapsed<260?expf(-s_elapsed/65.0f):0;
-    int bounce=(int)lroundf(3*hit);
     if(s_art.data) {
         lv_draw_image_dsc_t d;lv_draw_image_dsc_init(&d);d.base.obj=o;d.src=&s_art;
-        lv_area_t bounds={x+11,y+8+bounce,x+11+MERIT_ART_WIDTH-1,y+8+bounce+MERIT_ART_HEIGHT-1};
+        // 主体始终以原尺寸、不透明绘制；独立虚影不能移动或淡出主体。
+        // Keep the body fixed and opaque; animate a separate echo instead of moving or fading the body.
+        lv_area_t bounds={x+11,y+8,x+11+MERIT_ART_WIDTH-1,y+8+MERIT_ART_HEIGHT-1};
         lv_draw_image(layer,&d,&bounds);
+        if(s_elapsed<ECHO_MS) {
+            float progress=s_elapsed/(float)ECHO_MS,remaining=1-progress;
+            d.pivot=(lv_point_t){MERIT_ART_WIDTH/2,MERIT_ART_HEIGHT/2};
+            d.scale_x=d.scale_y=LV_SCALE_NONE+(int)lroundf(26*(1-remaining*remaining));
+            d.opa=(lv_opa_t)lroundf(64*remaining*remaining);
+            // JPEG黑底在加色混合中贡献为零，避免虚影的矩形底擦掉主体，也无需第二份解码图。
+            // Additive black contributes no light, so the JPEG matte cannot erase the body; reuse the decoded pixels.
+            d.blend_mode=LV_BLEND_MODE_ADDITIVE;
+            lv_draw_image(layer,&d,&bounds);
+        }
     }
-    // A tap starts at contact; the mallet then rebounds without recoloring the wood.
+    // 敲击从接触位置开始，木槌随后独立回弹。
+    // A tap starts at contact; the mallet then rebounds independently.
     int strike=(int)lroundf(23*hit);
     stroke(layer,o,x+196-strike/2,y+28+strike,x+268-strike/2,y+7+strike,9,0xb98a58);
     stroke(layer,o,x+197-strike/2,y+26+strike,x+268-strike/2,y+5+strike,3,0xe4c397);
