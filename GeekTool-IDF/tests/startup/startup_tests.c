@@ -9,6 +9,7 @@
 static int64_t now,image_until;
 static int64_t background_until;
 static uint8_t face;
+static int face_count=15;
 static bool background_started;
 static bool audio=true,wifi=true,psram=true,integrity=true,frames=true,frozen,partition_present=true,rollback_possible=true;
 static uint32_t allocation_failure;
@@ -29,7 +30,7 @@ void *heap_caps_malloc(size_t size,uint32_t caps){assert(size==512);if(caps&allo
 void heap_caps_free(void *memory){assert(memory && allocations>0);--allocations;free(memory);}
 bool img_store_loading(void){return now<image_until;}
 uint8_t settings_face(void){return face;}
-int watchface_count(void){return 15;}
+int watchface_count(void){return face_count;}
 const lv_image_dsc_t *img_store_face_image_for(int theme){assert(theme>=0 && theme<3);if(now>=image_until)background_started=true;return NULL;}
 bool img_store_face_loading(int theme){assert(theme>=0 && theme<3);return now<image_until || (background_started && now<background_until);}
 uint32_t launcher_heartbeat(void){return frozen && now>500000?25:(uint32_t)(now/20000);}
@@ -62,6 +63,15 @@ int main(void) {
         background_started=false;image_until=3900000;background_until=4400000;
         expect(STARTUP_OK);assert(background_started && now==4400000);
     }
+    // 旧图片款仍等待解码，HAND/STUDIO的同余ID必须绕过主题图片门禁。
+    // Preserve image decoding waits while excluding congruent HAND/STUDIO IDs.
+    face_count=30;
+    const uint8_t geometric_faces[]={19,24,29};
+    for(unsigned i=0;i<sizeof geometric_faces/sizeof geometric_faces[0];i++){
+        face=geometric_faces[i];background_started=false;image_until=0;background_until=6000000;
+        expect(STARTUP_OK);assert(!background_started && now==4000000);
+    }
+    face_count=15;
     face=255;background_started=false;image_until=0;background_until=6000000;
     expect(STARTUP_IMAGE);assert(now==5000000);face=0;background_until=0;
     frozen=true;expect(STARTUP_UI);assert(now==5000000);frozen=false;

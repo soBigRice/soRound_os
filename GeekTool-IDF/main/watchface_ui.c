@@ -2,6 +2,8 @@
 #include "app.h"
 #include "weather_artwork.h"
 #include "tools_ui.h"
+#include "watchface_instrument.h"
+#include "watchface_scenes.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -382,7 +384,14 @@ static void hand_face(const draw_t *d,const watchface_data_t *data,int kind) {
 }
 void watchface_render(lv_layer_t *layer,const lv_area_t *area,const watchface_data_t *data,int index,bool preview) {
     draw_t d={.layer=layer,.x=area->x1,.y=area->y1,.size=lv_area_get_width(area),.preview=preview};
-    if(index>=WATCHFACE_LEGACY_COUNT&&index<WATCHFACE_COUNT){hand_face(&d,data,index-WATCHFACE_LEGACY_COUNT);return;}
+    // 新组显式分发，防止追加ID落入旧HAND末款。 / Dispatch STUDIO explicitly so appended IDs never fall through to HAND dots.
+    if(index>=WATCHFACE_STUDIO_START&&index<WATCHFACE_COUNT){
+        int studio=index-WATCHFACE_STUDIO_START;
+        if(studio<3)watchface_instrument_render(layer,area,data,studio,preview);
+        else watchface_scenes_render(layer,area,data,studio-3,preview);
+        return;
+    }
+    if(index>=WATCHFACE_LEGACY_COUNT&&index<WATCHFACE_STUDIO_START){hand_face(&d,data,index-WATCHFACE_LEGACY_COUNT);return;}
     int theme=index/WATCHFACE_KIND_COUNT,kind=index%WATCHFACE_KIND_COUNT;
     char time[8],hours[4],minutes[4];snprintf(time,sizeof time,"%02d:%02d",data->time.tm_hour,data->time.tm_min);
     snprintf(hours,sizeof hours,"%02d",data->time.tm_hour);snprintf(minutes,sizeof minutes,"%02d",data->time.tm_min);

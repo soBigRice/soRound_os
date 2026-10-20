@@ -148,14 +148,23 @@ site/index.html + locales/en.json + styles.css + script.js + assets/
 网页用圆形 viewport 显示其中一个 466×466 区域，保持原始像素；
 不是实机照片，温度、Wi-Fi、时间、电量都是夹具数据。
 
-`script.js` 管理主题 `type/orbit/shift` 和用途索引 `0–4`。切换主题保留用途；
-切换用途更新素材裁剪位置，并同步按钮 `aria-pressed` 与预览的无障碍名称。
+当前目录对应本版 30 款：`TYPE/ORBIT/SHIFT` 各五款、`HAND` 六款、`STUDIO` 九款。
+`script.js` 仅在旧三组间保留用途索引 `0–4`；跨到 HAND/STUDIO 从该组第一款开始，
+点击当前组保留当前款式。款式按钮由各组目录生成，并同步 `aria-pressed` 与预览的无障碍名称。
+
+`assets/hands/hand-*.png` 是 `GeekTool-IDF/artwork/analog-play/native/` 的六张固件原生渲染副本。
+`assets/studio/active-*.png` 是 `GeekTool-IDF/artwork/watchfaces/studio-native/` 的九张固件原生渲染副本。
+它们均为完整 466×466 原生 LVGL 图；独立的 `.native-face` 不使用旧合辑的放大和裁切坐标。
+这两组图片同样是离线夹具，不是实机拍摄或浏览器设计稿。
 主题和用途按钮使用原生按钮，Tab、Enter、Space 可操作；无定时器、后台请求或第三方统计。
 图片失败有可见提示，无 JavaScript 时保留默认 ORBIT 环形预览与所有导航/下载链接。
 
 合辑区域依次为：`(60,145)`、`(607,145)`、`(1154,145)`、`(334,709)`、`(881,709)`；
-每个区域 466×466，合辑 1680×1220。更新合辑时必须一起核对这些坐标。
-页面应用数量已核对 `main/launcher.c:APPS`，表盘组合已核对 `WATCHFACES_UI.md`。
+每个区域 466×466，合辑 1680×1220。更新合辑时必须一起核对这些坐标。构建脚本同时验证五组入口、旧三份合辑及新增 15 张完整 PNG 的尺寸。
+表盘组合已核对 `WATCHFACES_UI.md`；本次只更新表盘目录，不扩大既有 19 个应用预览的范围。
+2026-10-20：本轮离线静态构建、中英文翻译完整性、五组入口、30 款素材尺寸校验通过；
+新增 15 张独立图片与对应固件原生图逐字节一致。中英浏览器交互和部署回读由本轮发版任务继续核验，
+不沿用下方历史 15 款记录作为本轮验收。
 Barlow 字体复用项目已有素材，OFL 许可证随 `assets/OFL.txt` 发布。
 
 ## 设计与验收

@@ -227,14 +227,35 @@ int main(int argc,char **argv) {
                 face=2;rebuild(NULL);tap(button_named(s_panel,"ORBIT"));settle();assert(face==7 && saves==stored+1);
                 tap(button_named(s_panel,"SHIFT"));settle();assert(face==12 && saves==stored+2);
                 tap(button_named(s_panel,"HAND"));settle();assert(face==15 && saves==stored+3);
-                face=20;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+4);
-                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==20 && saves==stored+5);
-                face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==15 && saves==stored+6);
-                for(face=0;face<21;++face) {
+                tap(button_named(s_panel,"STUDIO"));settle();assert(face==21 && saves==stored+4);
+                face=29;rebuild(NULL);tap(button_named(s_panel,"STUDIO"));settle();assert(face==29 && saves==stored+5);
+                tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+6);
+                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==29 && saves==stored+7);
+                face=20;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==21 && saves==stored+8);
+                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==20 && saves==stored+9);
+                face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==15 && saves==stored+10);
+                // 五个完整可点击分组必须一起居中，并留在圆屏内。
+                // Center all five full touch targets together inside the round display.
+                const char *themes[]={"TYPE","ORBIT","SHIFT","HAND","STUDIO"};
+                int first_x=0,last_x=0;
+                for(int theme=0;theme<5;++theme){
+                    lv_obj_t *button=button_named(s_panel,themes[theme]);assert(button);
+                    lv_area_t a;lv_obj_get_coords(button,&a);
+                    assert(lv_area_get_width(&a)>=54 && lv_area_get_height(&a)>=40);
+                    for(int corner=0;corner<4;++corner)
+                        assert(hypot(((corner&1)?a.x2:a.x1)-232.5,((corner&2)?a.y2:a.y1)-232.5)<=233);
+                    if(!theme)first_x=a.x1;
+                    else assert(a.x1>last_x);
+                    last_x=a.x2;
+                }
+                assert(abs(first_x+last_x-465)<=1);
+                for(face=0;face<30;++face) {
                     rebuild(NULL);snprintf(name,sizeof name,"face-%u",face);capture(page,directory,name);check_full_text(s_panel);
                     lv_obj_get_coords(s_face_preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
                 }
-                face=0;rebuild(NULL);
+                face=29;rebuild(NULL);
+                stored=saves;tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==28 && saves==stored+1);
+                tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==29 && saves==stored+2);
             } else if(s_page==SETTINGS_LANG) {
                 // LVGL reports negative bottom space when content is shorter than the viewport.
                 assert(s_scroll && lv_obj_get_scroll_bottom(s_scroll)<=0 && lv_obj_get_scroll_y(s_scroll)==0);uint8_t original=language;
@@ -263,6 +284,7 @@ int main(int argc,char **argv) {
             if(s_page==SETTINGS_AOD) {tap(back);settle();assert(right_backs==returned);}
             else {drag(104,315,224,315);settle();assert(right_backs==returned+1);}
             assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)==position);
+            if(destinations[item]==SETTINGS_FACE)assert(face==29);
             assert(audio_starts==audio_stops);
         }
         capture(page,directory,"settings-home-return");
@@ -331,5 +353,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 21-face selection, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
+    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 30-face selection with five safe groups and persistent studio return, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
 }

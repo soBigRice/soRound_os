@@ -1,5 +1,6 @@
 // Real LVGL renderer and watchface controller; time/network/power/image services are fixtures.
 #include "watchface_ui.h"
+#include "watchface_studio_fonts.h"
 #include "src/misc/lv_timer_private.h"
 #include "power.h"
 #include "settings.h"
@@ -16,11 +17,12 @@ static bool network=true,battery_ok=true,weather_ok=true,loading;
 bool wifi_service_ready(void){return network && ip_ready;}
 static int low=21,high=28,temperature=26,humidity=64,code=3,soc=74;
 static int weather_polls,image_reads;
+static uint8_t restored_face=4;
 static char ssid[33]="soRound";
 static uint16_t image_pixels[3][466*466];
 static lv_image_dsc_t images[3];
 static const lv_image_dsc_t *image;
-uint8_t settings_face(void){return 4;}
+uint8_t settings_face(void){return restored_face;}
 uint8_t settings_lang(void){return 0;}
 void quickpanel_hide(void){}
 bool power_read(int *value,pwr_state_t *state){*value=soc;*state=PWR_DISCHARGING;return battery_ok;}
@@ -45,6 +47,22 @@ static uint64_t capture(const char *folder,const char *name){
     if(folder){char path[1024];snprintf(path,sizeof path,"%s/%s.ppm",folder,name);FILE *f=fopen(path,"wb");assert(f);fprintf(f,"P6\n466 466\n255\n");
         for(unsigned i=0;i<466*466;++i){uint16_t p=pixels[i];uint8_t rgb[]={((p>>11)&31)*255/31,((p>>5)&63)*255/63,(p&31)*255/31};fwrite(rgb,1,3,f);}assert(fclose(f)==0);}
     return hash;
+}
+static void capture_studio_references(const char *folder){
+    if(!folder)return;
+    // 只为获批设计导出固定日期，原有 21 款的默认时间夹具保持不变。
+    // Export approved designs at a fixed date without changing the original 21-face fixture.
+    time_t saved_now=now;int saved_index=watchface_selected();bool saved_aod=s_aod;
+    struct tm reference={.tm_year=126,.tm_mon=9,.tm_mday=20,.tm_hour=10,.tm_min=8,.tm_sec=36};
+    now=mktime(&reference);watchface_set_aod(false);
+    for(int index=21;index<30;++index){
+        char name[64];watchface_select(index);snprintf(name,sizeof name,"studio-reference-%02d",index);
+        capture(folder,name);watchface_set_aod(true);
+        snprintf(name,sizeof name,"studio-reference-aod-%02d",index);capture(folder,name);
+        watchface_set_aod(false);
+    }
+    now=saved_now;watchface_set_aod(saved_aod);watchface_select(saved_index);
+    capture(NULL,"restore-after-studio-reference");
 }
 static uint64_t digest_value(uint64_t hash,uint32_t value){
     for(unsigned i=0;i<4;++i){hash^=(value>>(i*8))&255;hash*=1099511628211ULL;}
@@ -81,6 +99,55 @@ static void font_bitmap_digests(bool snapshot){
         else assert(hash==expected[i]);
     }
 }
+static void studio_font_contract(void){
+    const int regular[]={8,9,10,11,12,13,14,15,30,72,86,87,91,96,99};
+    const int semibold[]={12,13,14,94,146};
+    for(int heavy=0;heavy<2;heavy++){
+        const int *sizes=heavy?semibold:regular;unsigned count=heavy?sizeof semibold/sizeof semibold[0]:sizeof regular/sizeof regular[0];
+        for(unsigned i=0;i<count;i++)for(int preview=0;preview<2;preview++){
+            const lv_font_t *font=wfs_studio_font(sizes[i],preview,heavy);bool small=sizes[i]<=15;
+            // 检查真实解析字体，不允许fallback掩盖冒号或小字缺失。
+            // Check the resolved face so fallback cannot conceal a missing colon or caption glyph.
+            for(uint32_t code=small?32u:48u;code<=(small?126u:58u);code++){
+                lv_font_glyph_dsc_t glyph={0};assert(lv_font_get_glyph_dsc(font,&glyph,code,0));
+                assert(!glyph.is_placeholder && glyph.resolved_font==font);
+            }
+            if(small){lv_font_glyph_dsc_t glyph={0};assert(lv_font_get_glyph_dsc(font,&glyph,0xb7,0));assert(!glyph.is_placeholder && glyph.resolved_font==font);}
+        }
+    }
+}
+static void catalogue_contract(void){
+    // 旧 NVS ID 必须逐一保持原语义；新九款只能追加到末尾。
+    // Preserve every persisted legacy ID; append the nine studio faces only.
+    const char *const preserved[]={
+        "TYPE / dots","TYPE / bold","TYPE / rings","TYPE / weather","TYPE / image",
+        "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
+        "SHIFT / dots","SHIFT / bold","SHIFT / rings","SHIFT / weather","SHIFT / image",
+        "HAND / mark","HAND / arc","HAND / numeral","HAND / orbit","HAND / frame","HAND / dots"};
+    const char *const additions[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth"};
+    assert(watchface_count()==30 && WATCHFACE_THEME_COUNT==5);
+    for(int i=0;i<21;++i){
+        assert(!strcmp(watchface_name(i),preserved[i]));
+        assert(watchface_theme_for(i)==(i<15?i/5:3));
+    }
+    assert(!strcmp(watchface_theme_name(4),"STUDIO"));
+    for(int i=0;i<9;++i){
+        char name[32];snprintf(name,sizeof name,"STUDIO / %s",additions[i]);
+        assert(!strcmp(watchface_name(21+i),name));
+        assert(!strcmp(watchface_kind_name(21+i),additions[i]));
+        assert(watchface_theme_for(21+i)==4);
+        assert(watchface_index_in_theme(4,21+i)==21+i);
+    }
+    assert(watchface_index_in_theme(1,2)==7 && watchface_index_in_theme(3,14)==15);
+    assert(watchface_index_in_theme(3,20)==20 && watchface_index_in_theme(2,20)==10);
+    assert(watchface_index_in_theme(4,20)==21 && watchface_index_in_theme(3,29)==15);
+    assert(watchface_index_in_theme(0,29)==0 && watchface_index_in_theme(2,29)==10);
+    assert(watchface_theme_for(-1)==-1 && watchface_theme_for(30)==-1);
+    assert(!watchface_name(-1)[0] && !watchface_name(30)[0]);
+    assert(!watchface_kind_name(-1)[0] && !watchface_kind_name(30)[0]);
+    assert(!watchface_theme_name(-1)[0] && !watchface_theme_name(5)[0]);
+    assert(watchface_index_in_theme(-1,29)==29 && watchface_index_in_theme(5,29)==29);
+}
 int main(int argc,char **argv){
     if(argc==2&&strcmp(argv[1],"--font-digests")==0){lv_init();font_bitmap_digests(true);lv_deinit();return 0;}
     const char *folder=argc>1?argv[1]:NULL;
@@ -91,15 +158,32 @@ int main(int argc,char **argv){
     lv_init();font_bitmap_digests(false);i18n_init();display=lv_display_create(466,466);lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
     lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_black(),0);
-    watchface_init();assert(watchface_count()==21&&watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
-    uint64_t hashes[21];
-    for(int i=0;i<21;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
-    // New hands must refresh every second without being mistaken for weather/image kinds.
+    catalogue_contract();studio_font_contract();watchface_init();assert(watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
+    uint64_t hashes[30];
+    for(int i=0;i<30;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
+    capture_studio_references(folder);
+    // HAND 与 STUDIO 不得按旧五款分类误读天气或图片。
+    // HAND and STUDIO must not inherit legacy weather/image data sources.
     int polls=weather_polls,reads=image_reads;
-    for(int i=15;i<21;++i){watchface_select(i);uint64_t before=capture(NULL,"hands-before");flushed=0;++now;tick(NULL);assert(before!=capture(NULL,"hands-after")&&flushed>0);--now;}
+    for(int i=15;i<30;++i){
+        watchface_select(i);uint64_t before=capture(NULL,"seconds-before");flushed=0;++now;tick(NULL);
+        uint64_t after=capture(NULL,"seconds-after");
+        // FOLD/HORIZON 的获批设计只依赖时分，其余七款秒变化必须可见。
+        // Approved FOLD/HORIZON depend on hours/minutes; the other seven studio faces visibly encode seconds.
+        bool minute_only=i==25||i==27;
+        bool expected=minute_only?(before==after && flushed==0):(before!=after && flushed>0);
+        if(!expected)fprintf(stderr,"second update failed: ID %d %s minute_only=%d before=%016llx after=%016llx flushed=%u\n",
+            i,watchface_name(i),minute_only,(unsigned long long)before,(unsigned long long)after,flushed);
+        assert(expected);
+        if(minute_only){
+            now+=60;tick(NULL);after=capture(NULL,"minute-only-after");expected=before!=after && flushed>0;
+            if(!expected)fprintf(stderr,"minute update failed: ID %d %s before=%016llx after=%016llx flushed=%u\n",
+                i,watchface_name(i),(unsigned long long)before,(unsigned long long)after,flushed);
+            assert(expected);now-=60;
+        }
+        --now;
+    }
     assert(weather_polls==polls&&image_reads==reads);
-    assert(watchface_theme_for(20)==3&&!strcmp(watchface_kind_name(20),"dots"));
-    assert(watchface_index_in_theme(1,2)==7&&watchface_index_in_theme(3,14)==15&&watchface_index_in_theme(3,20)==20&&watchface_index_in_theme(2,20)==10);
     // At 10:08, minute progress must leave six o'clock dark; the hour ring must have passed it.
     watchface_select(12);capture(NULL,"ring-semantics");
     // Between the 30/31 minute dots, the unused outer track must be black.
@@ -107,8 +191,20 @@ int main(int argc,char **argv){
     assert(((pixels[398*466+233]>>5)&63)>15);
     // The unused portion is dotted, not a duplicate complete solid ring.
     assert(pixels[85*466+153]==0);
-    for(int i=0;i<21;++i){watchface_select(i);watchface_set_aod(true);char name[32];snprintf(name,sizeof name,"aod-%02d",i);uint64_t hash=capture(folder,name);
-        assert(wf_timer->period==39000);now+=9;tick(NULL);assert(hash==capture(NULL,"same-minute"));now-=9;watchface_set_aod(false);assert(wf_timer->period==1000);}
+    for(int i=0;i<30;++i){
+        watchface_select(i);watchface_set_aod(true);char name[32];snprintf(name,sizeof name,"aod-%02d",i);
+        uint64_t hash=capture(folder,name);assert(wf_timer->period==39000);
+        now+=9;flushed=0;tick(NULL);uint64_t after=capture(NULL,"same-minute");
+        bool stable=hash==after && flushed==0;
+        if(!stable)fprintf(stderr,"AOD seconds changed: ID %d %s before=%016llx after=%016llx flushed=%u\n",
+            i,watchface_name(i),(unsigned long long)hash,(unsigned long long)after,flushed);
+        assert(stable);now+=60;tick(NULL);after=capture(NULL,"next-minute");
+        bool changed=hash!=after && flushed>0;
+        if(!changed)fprintf(stderr,"AOD minute unchanged: ID %d %s before=%016llx after=%016llx flushed=%u\n",
+            i,watchface_name(i),(unsigned long long)hash,(unsigned long long)after,flushed);
+        assert(changed);
+        now-=69;watchface_set_aod(false);assert(wf_timer->period==1000);
+    }
     watchface_select(3);capture(NULL,"before");flushed=0;low=18;high=34;tick(NULL);capture(folder,"weather-range-change");assert(flushed>0&&s_data.low==18&&s_data.high==34);
     weather_ok=false;tick(NULL);capture(folder,"weather-unavailable");assert(!s_data.weather_valid);weather_ok=true;
     temperature=-12;low=-18;high=-2;humidity=100;code=71;tick(NULL);capture(folder,"weather-negative");
@@ -123,7 +219,15 @@ int main(int argc,char **argv){
     for(unsigned i=0;i<466*466;++i)image_pixels[0][i]=0xffff;
     lv_obj_invalidate(wf_content);capture(folder,"custom-image-bright");assert((pixels[80*466+233]&31)<=12);
     watchface_set_sleep(true);assert(!wf_timer&&watchface_visible());now+=3660;watchface_set_sleep(false);assert(wf_timer&&s_data.time.tm_hour==11&&s_data.time.tm_min==9);
-    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==20);
+    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==29);
     watchface_hide();assert(!wf_timer&&!watchface_visible());watchface_select(9);watchface_show();assert(watchface_selected()==9);
-    watchface_hide();lv_deinit();puts("21 distinct native faces, six hands/second updates, catalogue boundaries, AOD/minute scheduling, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
+    for(int i=21;i<30;++i){
+        watchface_select(i);capture(NULL,"studio-before-sleep");polls=weather_polls;reads=image_reads;
+        watchface_set_sleep(true);assert(!wf_timer && watchface_visible());time_t before=now;now+=60;
+        watchface_set_sleep(false);assert(wf_timer && wf_timer->period==1000);
+        assert(s_data.time.tm_min==localtime(&now)->tm_min);capture(NULL,"studio-after-wake");
+        assert(weather_polls==polls && image_reads==reads);now=before;
+        watchface_hide();assert(!wf_timer && !watchface_visible());watchface_show();assert(wf_timer);
+    }
+    watchface_hide();lv_deinit();puts("30 distinct native faces with preserved 21 IDs, HAND/STUDIO seconds, FOLD/HORIZON minute-only updates, catalogue boundaries, AOD seconds/minutes, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
 }

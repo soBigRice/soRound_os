@@ -1,6 +1,8 @@
 #pragma once
-// TYPE / ORBIT / SHIFT 各五款 + HAND 六款；旧 NVS 索引0–14保持原对应关系。
-// 黑底 AMOLED + 红色强调。设置页选择；BOOT 解锁和空闲策略由 lock.c 管理。
+// TYPE / ORBIT / SHIFT 各五款 + HAND 六款 + STUDIO 九款；旧 NVS ID 0..20 保持不变。
+// Five legacy kinds per TYPE/ORBIT/SHIFT, six HAND and nine STUDIO; persisted IDs 0..20 stay stable.
+// 设置页选择；BOOT 解锁和空闲策略由 lock.c 管理。
+// Settings owns selection; lock.c owns BOOT unlock and the idle policy.
 #include "lvgl.h"
 #include <stdbool.h>
 

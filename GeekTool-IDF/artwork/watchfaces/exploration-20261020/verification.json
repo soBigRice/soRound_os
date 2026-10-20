@@ -1,0 +1,39 @@
+{
+  "date": "2026-10-20",
+  "kind": "browser_design_review_not_firmware",
+  "design_count": 9,
+  "time_cases": [
+    "00:00",
+    "10:08",
+    "23:59"
+  ],
+  "seconds": [
+    0,
+    1,
+    30,
+    59
+  ],
+  "active_aod_geometry": "passed",
+  "aod_second_stability": "passed",
+  "text_circle_radius_limit": 224,
+  "text_outside_circle": 0,
+  "series_filter": "passed",
+  "dialog_open_close_cleanup": "passed",
+  "motion_start_stop": "passed",
+  "unique_dom_ids_with_dialog": "passed",
+  "viewports": [
+    1440,
+    390
+  ],
+  "horizontal_overflow": false,
+  "offline_file_load": "passed",
+  "offline_fonts_loaded": true,
+  "offline_http_resource_count": 0,
+  "offline_console_errors_or_warnings": 0,
+  "native_lvgl_or_device_verified": false,
+  "firmware_changed": false,
+  "http_server_stopped": true,
+  "test_tabs_closed": true,
+  "local_commit_created": false,
+  "scope_note": "Historical browser design review; approved and implemented 2026-10-20. Native evidence is ../studio-native/comparison.json; no device verification."
+}

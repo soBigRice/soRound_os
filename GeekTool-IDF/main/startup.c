@@ -6,6 +6,7 @@
 #include "img_store.h"
 #include "settings.h"
 #include "watchface.h"
+#include "watchface_ui.h"
 #include "esp_heap_caps.h"
 #include "esp_psram.h"
 #include "esp_ota_ops.h"
@@ -52,11 +53,13 @@ startup_result_t startup_selftest(bool touch_ready,bool launcher_ready,uint32_t 
         if(next!=heartbeat){heartbeat=next;heartbeat_at=now;}
         bool ui=heartbeat!=first_heartbeat && now-heartbeat_at<250000 && display_transfer_count()!=first_transfer;
         bool image=img_store_loading();
-        if(face%5==4) {
+        if(face<WATCHFACE_LEGACY_COUNT&&face%WATCHFACE_KIND_COUNT==4) {
             // A missing custom image can start the selected built-in background
             // only after its decoder finishes. Include that second worker.
-            img_store_face_image_for(face/5);
-            image|=img_store_face_loading(face/5);
+            // 仅旧图片款等待主题解码；HAND/STUDIO不得按余数误入图片门禁。
+            // Only legacy image faces wait for decoding; HAND/STUDIO never inherit a modulo-based image gate.
+            img_store_face_image_for(face/WATCHFACE_KIND_COUNT);
+            image|=img_store_face_loading(face/WATCHFACE_KIND_COUNT);
         }
         if(ui && !image && now-cover_started_us>=IDENTITY_BOOT_MS*1000LL)return (startup_result_t){STARTUP_OK,ESP_OK};
         if(now>=deadline)return failed(ui?STARTUP_IMAGE:STARTUP_UI,ESP_ERR_TIMEOUT);

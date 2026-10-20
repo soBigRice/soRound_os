@@ -1,0 +1,170 @@
+{
+  "fixture": "2026-10-20 10:08:36",
+  "renderer": "production LVGL RGB565",
+  "device_verified": false,
+  "reference": "approved offline SVG, Chrome at 1x",
+  "faces": [
+    {
+      "name": "RADAR",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.0391,
+        1.3506,
+        1.9044
+      ]
+    },
+    {
+      "name": "TAPE",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.1892,
+        1.108,
+        1.1422
+      ]
+    },
+    {
+      "name": "IRIS",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.0903,
+        0.9032,
+        0.9724
+      ]
+    },
+    {
+      "name": "MAZE",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.4914,
+        1.3431,
+        1.3104
+      ]
+    },
+    {
+      "name": "FOLD",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.2894,
+        1.1734,
+        1.1691
+      ]
+    },
+    {
+      "name": "PIXEL CAMP",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        0.2463,
+        0.2655,
+        0.2516
+      ]
+    },
+    {
+      "name": "HORIZON",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.0338,
+        1.0691,
+        1.1279
+      ]
+    },
+    {
+      "name": "TIDE",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.2359,
+        1.3333,
+        1.1652
+      ]
+    },
+    {
+      "name": "GROWTH",
+      "state": "active",
+      "mean_absolute_rgb_error": [
+        1.23,
+        1.0907,
+        0.7898
+      ]
+    },
+    {
+      "name": "RADAR",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.1894,
+        0.1554,
+        0.1512
+      ]
+    },
+    {
+      "name": "TAPE",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.2019,
+        0.1579,
+        0.1527
+      ]
+    },
+    {
+      "name": "IRIS",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.2386,
+        0.1809,
+        0.158
+      ]
+    },
+    {
+      "name": "MAZE",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6231,
+        0.5795,
+        0.539
+      ]
+    },
+    {
+      "name": "FOLD",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6237,
+        0.5804,
+        0.5403
+      ]
+    },
+    {
+      "name": "PIXEL CAMP",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6481,
+        0.6036,
+        0.5598
+      ]
+    },
+    {
+      "name": "HORIZON",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6438,
+        0.5988,
+        0.5565
+      ]
+    },
+    {
+      "name": "TIDE",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6248,
+        0.5827,
+        0.5419
+      ]
+    },
+    {
+      "name": "GROWTH",
+      "state": "aod",
+      "mean_absolute_rgb_error": [
+        0.6381,
+        0.5942,
+        0.552
+      ]
+    }
+  ]
+}

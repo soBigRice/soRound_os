@@ -122,7 +122,12 @@ esp_err_t esp_ota_mark_app_valid_cancel_rollback(void) {
         // The confirmed watchface uses warm white (0xf3f1eb), not pure 0xffffff.
         bright+=((p>>11)&31)>24 && ((p>>5)&63)>50 && (p&31)>24;
     }
-    assert(black>100000 && bright>300 && bright<50000);
+    if(face<21)assert(black>100000 && bright>300 && bright<50000);
+    else {
+        // 新表盘允许彩色字形，仍必须确认实际非空首帧。
+        // Studio faces allow colored glyphs but must reveal a real nonblank first frame.
+        assert(black>20000 && black<466*466-300);
+    }
     ++confirmations;return ESP_OK;
 }
 bool esp_ota_check_rollback_is_possible(void){return true;}
@@ -215,7 +220,10 @@ int main(int argc,char **argv) {
     face=argc>1?(uint8_t)atoi(argv[1]):0;language=argc>2?(uint8_t)atoi(argv[2]):0;
     home_dma=argc<4 || strcmp(argv[3],"stall");
     ui_lock_failure=argc>3 && !strcmp(argv[3],"lock-stall");
-    app_main();assert(!held && APP_COUNT==23 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
+    app_main();assert(face<30 && watchface_selected()==face);
+    if(face==21)assert(!strcmp(watchface_name(face),"STUDIO / radar"));
+    if(face==29)assert(!strcmp(watchface_name(face),"STUDIO / growth"));
+    assert(!held && APP_COUNT==23 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
         APPS[21]==&app_focus && APPS[22]==&app_capsules && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}

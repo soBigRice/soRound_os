@@ -1,5 +1,6 @@
-// Legacy fifteen faces plus six HAND faces; the catalogue owns group boundaries.
-// NVS indices 0..4 retain the original kind mapping. BOOT and power policy belong to lock.c.
+// 原 21 款保持 NVS ID，STUDIO 九款追加；目录管理各组边界。
+// Preserve the original 21 NVS IDs and append nine STUDIO faces; the catalogue owns group boundaries.
+// BOOT 解锁与省电策略属于 lock.c。BOOT unlock and power policy belong to lock.c.
 #include "watchface.h"
 #include "watchface_ui.h"
 #include "quickpanel.h"
@@ -27,7 +28,10 @@ static bool snapshot(bool force) {
     time_t now=time(NULL);struct tm t;localtime_r(&now,&t);
     time_t minute=now/60;bool minute_changed=minute!=s_last_minute;
     bool legacy=s_idx<WATCHFACE_LEGACY_COUNT;
-    bool seconds=!legacy||s_idx%WATCHFACE_KIND_COUNT==0;
+    // 获批的 FOLD/HORIZON 只依赖时分，避免额外重绘或擅自引入秒动效。
+    // Approved FOLD/HORIZON depend on hours/minutes; avoid redundant draws or invented second motion.
+    bool minute_only=s_idx==WATCHFACE_STUDIO_START+4||s_idx==WATCHFACE_STUDIO_START+6;
+    bool seconds=(!legacy&&!minute_only)||(legacy&&s_idx%WATCHFACE_KIND_COUNT==0);
     bool dirty=force||minute_changed||(!s_aod&&seconds&&t.tm_sec!=s_data.time.tm_sec);
     s_data.time=t;s_data.aod=s_aod;
     if(force||minute_changed) {

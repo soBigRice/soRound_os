@@ -229,11 +229,15 @@ static void rebuild(void *arg) {
         l=control_label(next,LV_SYMBOL_RIGHT,UI_FONT_SYM,0,0,30,CONTROL_WHITE);lv_obj_center(l);
         char caption[64];snprintf(caption,sizeof caption,"%s   %d / %d",watchface_kind_name(selected),selected+1,watchface_count());
         center_text(caption,354,278,CONTROL_WHITE,control_small_font());
+        // 五组共同居中，完整触摸区底角保持在半径 233 的圆屏内。
+        // Center all five groups together and keep each full touch target inside radius 233.
+        enum { THEME_WIDTH=54, THEME_GAP=4, THEME_ROW_WIDTH=WATCHFACE_THEME_COUNT*THEME_WIDTH+(WATCHFACE_THEME_COUNT-1)*THEME_GAP };
         for(int theme=0;theme<WATCHFACE_THEME_COUNT;++theme) {
-            lv_obj_t *b=control_button(s_panel,100+theme*66,379,62,40,pick_theme,(void *)(intptr_t)theme);
+            int x=(466-THEME_ROW_WIDTH)/2+theme*(THEME_WIDTH+THEME_GAP);
+            lv_obj_t *b=control_button(s_panel,x,377,THEME_WIDTH,40,pick_theme,(void *)(intptr_t)theme);
             lv_obj_set_style_radius(b,12,0);
             if(theme==watchface_theme_for(selected)){lv_obj_set_style_border_width(b,1,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
-            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_18,0,0,58,theme==watchface_theme_for(selected)?CONTROL_WHITE:CONTROL_GRAY);
+            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_14,0,0,THEME_WIDTH,theme==watchface_theme_for(selected)?CONTROL_WHITE:CONTROL_GRAY);
             lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);lv_obj_center(name);
         }
     } else if(s_page==SETTINGS_LANG) {

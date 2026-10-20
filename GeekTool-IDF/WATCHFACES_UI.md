@@ -1,4 +1,30 @@
-# 锁屏表盘：四组二十一款
+# 锁屏表盘：五组三十款
+
+2026-10-20：用户确认[九款设计](./artwork/watchfaces/exploration-20261020/README.md)全部接入，并要求高还原度、保留旧款、测试发版且不烧录。STUDIO追加为ID21–29，总数30；原0–20保持名称、映射、字库及绘制逻辑。见[原生对照](./artwork/watchfaces/studio-native/README.md)，发布状态另见[发布记录](./PORTING_NOTES.md)。历史21款设备/用户证据不涵盖新款。
+
+## STUDIO 九款与高还原绘制
+
+| NVS ID | 名称 | 活动态刷新 |
+| --- | --- | --- |
+| 21 / 22 / 23 | radar / tape / iris | 秒扫线 / 卷盘 / 秒标，1 Hz |
+| 24 / 25 / 26 | maze / fold / pixel | 迷宫秒球1 Hz / 翻页分钟变化 / 像素场景1 Hz |
+| 27 / 28 / 29 | horizon / tide / growth | 地平线分钟变化 / 波纹浮标1 Hz / 时分秒针1 Hz |
+
+`watchface_ui.c:watchface_render`先识别STUDIO边界，前三款交给`watchface_instrument_render`，其余交给`watchface_scenes_render`；之后才走HAND和原三组。不能把所有15以后的ID都当作HAND。
+
+`watchface_studio_draw.h`只服务新组，不修改旧21款绘制。它按原稿基线、字重、字距、图层和透明度绘制；对细线、圆与多边形保留亚像素覆盖率。原SVG圆弧描边以路径居中，不能直接套LVGL向内描边及整数角度，否则迷宫半径与缺口位置会错。扫描仅覆盖当前DMA分块可见行；使用有界行暂存，不增加全屏常驻画布、SVG引擎或独立计时器。
+
+原稿小字8–15px、精确数字字号及233px预览分别由`gen_watchface_fonts.py --studio`生成；Barlow来源/OFL、4bpp无损存储沿用旧方案，旧字体文件不重新生成。文字保留1/16px原始字宽与小数字距，并按SVG语义折叠连续空格。字库回归检查正屏和预览的数字、冒号、小标签及中点，要求`resolved_font`就是目标字体，避免fallback掩盖缺字。
+
+旧`settings/face`仍为uint8，无NVS格式或分区迁移。设置保留233px预览中心(232.5,232.5)、左右循环、即选即存和返回语义；五组按钮在圆边安全范围重新居中。进入STUDIO默认radar，同组点击保留当前款；旧三组之间仍保留五种用途，HAND/STUDIO切回旧组从dots开始。
+
+新款AOD在装饰前返回静态核心时间，并对齐下一分钟；隐藏/熄屏仍删除计时器，唤醒补画。HORIZON与FOLD本来不依赖秒，不应为满足泛化测试而增加原稿没有的动画。新款不请求天气、图片、心率、GPS、麦克风或音乐桥接；地平线、潮汐、像素场景只是时钟意象。
+
+启动经验：`startup.c`原先按`face%5==4`等待图片，扩展后会把HAND19、STUDIO24/29误算为主题图片。现在限定`face<WATCHFACE_LEGACY_COUNT`，4/9/14的真实解码等待保持；启动单测覆盖19/24/29不触发图片工作，真实全流程覆盖新首末ID恢复。
+
+验证入口：`watchface_collection_and_power`覆盖30款、旧ID、精确字形、秒/分钟变化、AOD、休眠与资源访问；`settings_controls_and_level_recovery`覆盖双语布局、20→21、29↔0、保存与返回；`startup_studio_first_flow/last_flow`覆盖启动恢复。`tools/render_studio_review.py`以2026-10-20 10:08:36导出正常/AOD与设置页，对照批准SVG并保留RGB565比较回执。截图检查不等于真机亮度、功耗或主观验收，不能宣称浏览器与AMOLED每个像素完全相同。
+
+下文为既有21款的历史实现及验证证据。
 
 2026-10-08：当前工作区在旧十五款后追加 HAND 六款，索引15–20；用户已授权按设计开发。
 原生466×466绘制、设置选择、逐秒刷新、常显和旧图片缓存回归通过，本地ESP32-S3构建通过。
@@ -26,6 +52,7 @@
 | ORBIT | 5–9 | dots / bold / rings / weather / image |
 | SHIFT | 10–14 | dots / bold / rings / weather / image |
 | HAND | 15–20 | mark / arc / numeral / orbit / frame / dots |
+| STUDIO | 21–29 | radar / tape / iris / maze / fold / pixel / horizon / tide / growth |
 
 `settings.c`原有`uint8_t face`及NVS键保持；索引0–4继续对应原来的五种用途。
 设置 → 表盘：左右循环全部二十一款，底部四个组名可直接跳组。

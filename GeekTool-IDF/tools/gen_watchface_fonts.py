@@ -84,8 +84,25 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--hands', action='store_true', help='Only generate the small analog numeral subsets')
+    parser.add_argument('--studio', action='store_true', help='Only generate the approved STUDIO numeral pairs')
     args = parser.parse_args()
-    if args.hands:
+    if args.studio:
+        # 原稿字号及半尺寸预览逐一保留，旧字库不重栅格化。 / Preserve each approved size and its half-size preview without touching legacy fonts.
+        sizes_by_weight = {'regular': (8,9,10,11,12,13,14,15,30,72,86,87,88,91,96,99),
+                           'semibold': (12,13,14,94,96,144,146)}
+        studio = [(size, weight, (''.join(chr(c) for c in range(32,127))+'·') if size<=18 else '0123456789:',
+                   f'font_studio_{weight}_{size}')
+                  for weight, originals in sizes_by_weight.items()
+                  for size in sorted(set(originals) | {(size+1)//2 for size in originals})]
+        generate(studio, ROOT / 'main/font_watchface_studio.c')
+        declarations = '// 原稿字体及半尺寸预览；由同目录生成器维护。 / Approved fonts and half-size previews; generated together.\n#pragma once\n#include "lvgl.h"\n'
+        declarations += ''.join(f'LV_FONT_DECLARE({symbol});\n' for _,_,_,symbol in studio)
+        declarations += 'static inline const lv_font_t *wfs_studio_font(int size,bool preview,bool heavy){\nint pixels=preview?(size+1)/2:size;\nif(heavy){switch(pixels){\n'
+        for weight in ('semibold','regular'):
+            declarations += ''.join(f'case {size}:return &{symbol};\n' for size,w,_,symbol in studio if w==weight)
+            declarations += '} } switch(pixels){\n' if weight=='semibold' else '}return &font_studio_regular_14;\n}\n'
+        (ROOT / 'main/watchface_studio_fonts.h').write_text(declarations)
+    elif args.hands:
         generate([(size, weight, '0123456789', f'font_hand_{weight}_{size}')
                   for weight, sizes in [('regular', (12,24)), ('semibold', (16,32))] for size in sizes],
                  ROOT / 'main/font_watchface_hands.c')

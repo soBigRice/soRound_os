@@ -58,6 +58,8 @@ h1 { font-family: RoundDisplay, var(--font); font-size: clamp(54px, 7vw, 104px);
 /* Contact-sheet coordinates from render_watchface_review.py. Keep the native pixels;
    crop only the web viewport, never redraw firmware UI or alter source artwork. */
 .native-sheet { position: absolute; width: 360.515021%; max-width: none; height: auto; left: var(--crop-x); top: var(--crop-y); }
+/* 独立原生图保留完整466px内容，不沿用合辑裁切。 / Keep standalone native faces complete, without contact-sheet cropping. */
+.native-face { display: block; width: 100%; height: 100%; object-fit: contain; }
 .hero-screen { box-shadow: 0 24px 32px -20px #0005; }
 .hero-visual figcaption { display: grid; gap: 2px; text-align: center; margin-top: 30px; font-size: 13px; color: #7a7e84; }
 .hero-visual figcaption .mono { color: var(--ink); font-size: 14px; font-weight: 600; letter-spacing: .14em; }
@@ -74,7 +76,7 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 .face-explorer { display: grid; grid-template-columns: 1fr 1.2fr; gap: 90px; align-items: center; margin-top: 50px; }
 .face-visual { display: flex; justify-content: center; }
 .explorer-screen { max-width: 460px; outline: 1px solid #333538; outline-offset: 1px; }
-.theme-picker { display: flex; gap: 44px; border-bottom: 1px solid #393b40; }
+.theme-picker { display: flex; flex-wrap: wrap; gap: 16px 28px; border-bottom: 1px solid #393b40; }
 .theme-picker button { position: relative; border: 0; padding: 0 0 14px; background: none; color: #93969d; font: 400 19px/1.4 Barlow, sans-serif; letter-spacing: .04em; }
 .theme-picker button[aria-pressed="true"] { color: #fff; font-weight: 600; }
 .theme-picker button[aria-pressed="true"]::after { content: ""; position: absolute; height: 2px; background: #f4f4f3; bottom: -1px; left: 0; right: 0; }
@@ -87,6 +89,8 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 .kind-picker button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: white; }
 .kind-picker button:hover { border-color: #d7d8da; }
 .preview-note { margin-top: 28px; font-size: 12px; color: #9699a0; }
+.preview-note + .preview-note { margin-top: 10px; }
+.preview-note a { text-decoration: underline; text-underline-offset: 3px; }
 .preview-error { margin-top: 12px; font-size: 13px; color: #ffad9f; }
 .feature-columns { display: grid; grid-template-columns: repeat(3, 1fr); margin-top: 52px; padding-top: 40px; border-top: 1px solid #393b40; gap: 40px; scroll-margin-top: 32px; }
 .feature-columns article + article { border-left: 1px solid #393b40; padding-left: 40px; }
@@ -223,8 +227,8 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
   .section-lead > p { margin-top: 20px; font-size: 16px; padding-bottom: 0; }
   .face-explorer { grid-template-columns: 1fr; gap: 40px; margin-top: 38px; }
   .explorer-screen { width: min(86%, 370px); }
-  .theme-picker { gap: 0; justify-content: space-between; }
-  .theme-picker button { font-size: 18px; padding-inline: 12px; }
+  .theme-picker { gap: 12px 18px; justify-content: flex-start; }
+  .theme-picker button { font-size: 18px; padding-inline: 0; }
   .face-description { padding-top: 28px; min-height: 128px; }
   .face-description h3 { font-size: 38px; }
   .face-description p { font-size: 16px; }

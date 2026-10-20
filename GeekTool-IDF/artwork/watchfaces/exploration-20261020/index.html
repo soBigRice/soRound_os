@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>soRound · 九款创意表盘</title>
+<style>
+@font-face{font-family:Barlow;src:url('../fonts/Barlow-Regular.ttf');font-weight:400;font-display:swap}
+@font-face{font-family:Barlow;src:url('../fonts/Barlow-SemiBold.ttf');font-weight:600;font-display:swap}
+@font-face{font-family:Barlow;src:url('../fonts/Barlow-Black.ttf');font-weight:900;font-display:swap}
+:root{color-scheme:dark;--paper:#edece5;--muted:#96968d;--line:#30312e;--accent:#f07153}
+*{box-sizing:border-box}body{margin:0;background:#151613;color:var(--paper);font:15px/1.6 -apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif}button,input{font:inherit}button{color:inherit;cursor:pointer}button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:6px}main{max-width:1460px;padding:58px 44px 40px;margin:auto}.eyebrow{display:flex;justify-content:space-between;font:13px Barlow,sans-serif;letter-spacing:.16em;color:#b9bbb0}.masthead{display:flex;align-items:end;justify-content:space-between;gap:40px;margin:56px 0 33px}h1{font-size:clamp(35px,4.8vw,66px);letter-spacing:-.055em;font-weight:500;line-height:1.16;margin:0}.intro{max-width:360px;color:#b4b5a9;font-size:14px;line-height:1.9;margin:0 0 3px}.toolbar{display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap;padding:20px 0;border-block:1px solid var(--line)}.filters{display:flex;gap:20px;flex-wrap:wrap}.filters button{background:none;border:0;padding:4px 0;color:var(--muted);font-size:13px}.filters button[aria-pressed=true]{color:var(--paper);box-shadow:0 2px var(--accent)}.controls{display:flex;align-items:center;gap:17px;color:#b9bbb0;font-size:12px}.controls label{display:flex;gap:7px;align-items:center}.controls input[type=time]{width:88px;border:0;border-bottom:1px solid #55584d;background:transparent;color:var(--paper);padding:3px;font:17px Barlow}.controls input[type=checkbox]{accent-color:var(--accent);width:14px;height:14px}.series{padding-top:48px}.series[hidden]{display:none}.series-head{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:17px;margin-bottom:28px}.series-head h2{font-size:23px;letter-spacing:.04em;font-weight:500;margin:0}.series-head span{font:13px Barlow;letter-spacing:.12em;color:var(--muted)}.series-head p{margin:0 0 0 auto;font-size:12px;color:var(--muted)}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:34px}.face-card{min-width:0}.face-button{display:block;width:100%;max-width:376px;aspect-ratio:1;margin:auto;background:transparent;border:0;padding:0;border-radius:50%;transition:transform .2s}.face-button:hover{transform:translateY(-3px)}.face-button svg{display:block;width:100%;height:100%;border-radius:50%;box-shadow:0 0 0 1px #ffffff0c,0 15px 28px #00000021}.face-meta{padding:23px 4px 3px}.face-name{display:flex;align-items:baseline;gap:10px}.face-name h3{font-size:18px;font-weight:500;margin:0;letter-spacing:.025em}.face-name span{font:12px Barlow;color:var(--muted);letter-spacing:.13em}.number{font:12px Barlow;color:var(--muted);margin-left:auto}.face-meta p{color:#a3a69a;line-height:1.8;font-size:12px;margin:8px 0 0;max-width:340px}footer{border-top:1px solid var(--line);margin-top:52px;padding-top:19px;display:flex;justify-content:space-between;gap:20px;color:#92958a;font-size:12px}footer strong{font-weight:400;color:#c8c9c0}dialog{background:#191b17;border:1px solid #41443a;border-radius:18px;padding:25px;color:var(--paper);max-width:calc(100vw - 28px);width:560px}dialog::backdrop{background:#000c;backdrop-filter:blur(8px)}.dialog-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}.dialog-top h2{margin:0;font-size:20px;font-weight:500}.dialog-top button{background:transparent;border:1px solid #55594b;border-radius:50%;width:32px;height:32px;font-size:20px;line-height:1}.dialog-face{max-width:466px;aspect-ratio:1;margin:auto}.dialog-face svg{width:100%;height:100%;display:block}.dialog-note{color:var(--muted);font-size:12px;text-align:center;margin-bottom:0}
+@media(max-width:900px){main{padding:35px 24px}.masthead{align-items:start;flex-direction:column;gap:22px;margin-top:38px}.intro{max-width:580px}.grid{gap:22px}.face-meta{padding:19px 0}.face-name{flex-wrap:wrap;gap:5px 9px}.face-name h3{font-size:16px}.number{display:none}.series-head p{display:none}.controls{flex-wrap:wrap}.toolbar{gap:18px}.series-head{gap:12px}footer{flex-direction:column;gap:6px}}
+@media(max-width:620px){main{padding:26px 20px}.eyebrow{font-size:11px}.eyebrow span:last-child{display:none}.grid{grid-template-columns:1fr;gap:34px}.face-button{max-width:350px}.face-meta{max-width:350px;margin:auto}.series{padding-top:34px}.series-head{margin-bottom:24px}.series-head h2{font-size:20px}.masthead{margin:35px 0 28px}.filters{gap:18px}.controls{gap:14px}.intro{font-size:13px}footer{margin-top:35px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<main id="sheet">
+  <div class="eyebrow"><span>soRound / WATCHFACE STUDIES — 01</span><span>466 × 466 / OCT 2026</span></div>
+  <header class="masthead"><h1>让时间，换个样子。</h1><p class="intro">三个系列，九种看时间的方式。<br>点击圆盘放大；切换演示时间，看看它们怎样变化。</p></header>
+  <div class="toolbar">
+    <nav class="filters" aria-label="表盘系列"><button data-filter="all" aria-pressed="true">全部 09</button><button data-filter="instrument" aria-pressed="false">器械 03</button><button data-filter="play" aria-pressed="false">玩物 03</button><button data-filter="ambient" aria-pressed="false">自然 03</button></nav>
+    <div class="controls"><label>演示时间 <input type="time" id="demo-time" value="10:08" aria-label="演示时间"></label><label><input type="checkbox" id="motion">逐秒动效</label><label><input type="checkbox" id="aod">常显预览</label></div>
+  </div>
+  <div id="collection"></div>
+  <footer><span><strong>获批设计原稿</strong> · 时间为演示数据；固件效果见原生审图。</span><span>保留现有 21 款 · 不新增解锁手势 · 常显保留核心时间</span></footer>
+</main>
+<dialog id="detail"><div class="dialog-top"><h2 id="detail-name"></h2><button id="close-detail" aria-label="关闭放大预览">×</button></div><div id="detail-face" class="dialog-face"></div><p class="dialog-note">466 × 466 设计画布 · 当前为浏览器预览</p></dialog>
+<script src="instrument-faces.js"></script>
+<script src="nature-play-faces.js"></script>
+<script>
+(() => {
+  'use strict';
+  const groups=[{id:'instrument',name:'器械',en:'INSTRUMENT',note:'把精密机械，收进一枚圆屏。'},{id:'play',name:'玩物',en:'TIME TO PLAY',note:'每一秒，发生一点小事。'},{id:'ambient',name:'自然',en:'SLOW LANDSCAPES',note:'让时间有自己的地形。'}];
+  const designs=[
+    {id:'radar',group:'instrument',name:'雷达',en:'RADAR',description:'扫线指示秒，时分保持清晰。暗绿刻度与细线构成仪表层次。'},
+    {id:'tape',group:'instrument',name:'磁带',en:'TAPE',description:'两只卷盘随秒转动，时间印在磁带标签上。保留模拟器材的触感。'},
+    {id:'iris',group:'instrument',name:'光圈',en:'IRIS',description:'镜头叶片围绕中央时间，一条橙色秒标走过精细刻度。'},
+    {id:'maze',group:'play',name:'迷宫秒',en:'MAZE',description:'红色小球逐秒走过外圈，迷宫纹理包围中央的堆叠时间。'},
+    {id:'flip',group:'play',name:'翻页',en:'FOLD',description:'奶白纸牌与墨绿底色。横向折痕把大数字变成桌面翻页钟。'},
+    {id:'pixel',group:'play',name:'夜营',en:'PIXEL CAMP',description:'点阵时间下，一只猫守着篝火。秒变化让火光和尾巴轻轻换帧。'},
+    {id:'horizon',group:'ambient',name:'地平线',en:'HORIZON',description:'白昼与夜色随本地时段切换。日轮是时间意象，不冒充真实日出数据。'},
+    {id:'tide',group:'ambient',name:'潮汐',en:'TIDE',description:'层层水线随秒起伏，橙色浮标点出当下。时间留在安静的上半屏。'},
+    {id:'growth',group:'ambient',name:'年轮',en:'GROWTH',description:'有机轮廓代替规整刻度，细长时针穿过纹理，像树木记录时间。'}
+  ];
+  const collection=document.getElementById('collection'),state={h:10,m:8,s:36,date:new Date(2026,9,20)},dialog=document.getElementById('detail');
+  let active=null,frame=0,lastStep=0,renderId=0;
+  function svg(id,aod){
+    const render=window.instrumentFaces[id]||window.naturePlayFaces[id];
+    const clip=`round-${id}-${++renderId}`;
+    return `<svg viewBox="0 0 466 466" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${designs.find(d=>d.id===id).name}，${String(state.h).padStart(2,'0')}:${String(state.m).padStart(2,'0')}" style="font-family:Barlow,sans-serif"><defs><clipPath id="${clip}"><circle cx="233" cy="233" r="232"/></clipPath></defs><g clip-path="url(#${clip})"><circle cx="233" cy="233" r="233" fill="#070908"/>${render(state,aod)}</g></svg>`;
+  }
+  groups.forEach(group=>{
+    const section=document.createElement('section');section.className='series';section.dataset.group=group.id;
+    section.innerHTML=`<div class="series-head"><h2>${group.name}</h2><span>${group.en}</span><p>${group.note}</p></div><div class="grid"></div>`;
+    designs.filter(d=>d.group===group.id).forEach(design=>{
+      const card=document.createElement('article');card.className='face-card';
+      card.innerHTML=`<button class="face-button" data-face="${design.id}" aria-label="放大${design.name}表盘"></button><div class="face-meta"><div class="face-name"><h3>${design.name}</h3><span>${design.en}</span><div class="number">${String(designs.indexOf(design)+1).padStart(2,'0')}</div></div><p>${design.description}</p></div>`;
+      section.querySelector('.grid').append(card);
+    });collection.append(section);
+  });
+  function redraw(){const aod=document.getElementById('aod').checked;document.querySelectorAll('[data-face]').forEach(button=>{button.innerHTML=svg(button.dataset.face,aod)});if(active)document.getElementById('detail-face').innerHTML=svg(active,aod)}
+  // 与固件现有逐秒节奏一致；隐藏页面时停止调度。 / Match the existing one-second cadence and stop scheduling while hidden.
+  function tick(time){if(time-lastStep>=1000){state.s=(state.s+1)%60;if(state.s===0){state.m=(state.m+1)%60;if(state.m===0)state.h=(state.h+1)%24;document.getElementById('demo-time').value=`${String(state.h).padStart(2,'0')}:${String(state.m).padStart(2,'0')}`}redraw();lastStep=time}frame=requestAnimationFrame(tick)}
+  function schedule(){cancelAnimationFrame(frame);frame=0;if(document.getElementById('motion').checked&&!document.getElementById('aod').checked&&!document.hidden){lastStep=performance.now();frame=requestAnimationFrame(tick)}}
+  document.getElementById('demo-time').addEventListener('input',event=>{if(!event.target.value)return;[state.h,state.m]=event.target.value.split(':').map(Number);redraw()});
+  document.getElementById('motion').addEventListener('change',schedule);
+  document.getElementById('aod').addEventListener('change',()=>{redraw();schedule()});
+  document.addEventListener('visibilitychange',schedule);window.addEventListener('pagehide',()=>cancelAnimationFrame(frame));
+  document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('[data-filter]').forEach(item=>item.setAttribute('aria-pressed',String(item===button)));document.querySelectorAll('.series').forEach(section=>section.hidden=button.dataset.filter!=='all'&&button.dataset.filter!==section.dataset.group)}));
+  collection.addEventListener('click',event=>{const button=event.target.closest('[data-face]');if(!button)return;active=button.dataset.face;document.getElementById('detail-name').textContent=designs.find(d=>d.id===active).name;redraw();dialog.showModal()});
+  document.getElementById('close-detail').addEventListener('click',()=>dialog.close());dialog.addEventListener('close',()=>{active=null;document.getElementById('detail-face').replaceChildren()});
+  // 仅供本地设计审阅与导出，不作为固件或真实遥测接口。 / Local design review/export only; this is neither firmware nor telemetry.
+  window.watchfaceStudy={designs,state,redraw,render:svg,animationRunning:()=>Boolean(frame),setSeconds(value){state.s=((value%60)+60)%60;redraw()}};
+  redraw();
+})();
+</script>
+</html>

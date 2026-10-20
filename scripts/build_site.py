@@ -119,6 +119,7 @@ class PageCheck(HTMLParser):
         self.local_files = []
         self.h1_count = 0
         self.app_ids = []
+        self.theme_ids = []
         self.copy = []
         self.skip_copy = False
 
@@ -129,6 +130,8 @@ class PageCheck(HTMLParser):
         self.copy.extend(value for key, value in attributes if key in COPY_ATTRIBUTES and value)
         if "data-app" in attrs:
             self.app_ids.append(attrs["data-app"])
+        if "data-theme" in attrs:
+            self.theme_ids.append(attrs["data-theme"])
         if "id" in attrs:
             if attrs["id"] in self.ids:
                 raise ValueError(f"Duplicate element id: {attrs['id']}")
@@ -173,6 +176,8 @@ def validate_page(output, language):
             raise ValueError(f"Missing public asset: {file}")
     if language == "en" and any(HAN.search(value) for value in check.copy):
         raise ValueError("Untranslated English page copy")
+    if len(check.theme_ids) != 5 or set(check.theme_ids) != {"type", "orbit", "shift", "hand", "studio"}:
+        raise ValueError("Website must expose all five watch face groups exactly once")
     expected_apps = {"weather", "calendar", "countdown", "stopwatch", "settings", "ota", "wifi",
                      "i2c", "system", "audio", "level", "remote", "twin", "maze", "fluid", "dice",
                      "answers", "zodiac", "merit"}
@@ -193,6 +198,16 @@ def validate(output):
         data = (output / f"assets/{theme}.png").read_bytes()
         if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (1680, 1220):
             raise ValueError(f"Native {theme} contact-sheet coordinates no longer match; update web crops")
+    # 新两组是完整原生图；不得按旧三组的合辑坐标裁切。
+    # The two new groups contain complete native faces, not legacy contact-sheet crops.
+    groups = {"hands": ("hand-", ("mark", "arc", "numeral", "orbit", "frame", "dots")),
+              "studio": ("active-", ("radar", "tape", "iris", "maze", "fold", "pixel-camp", "horizon", "tide", "growth"))}
+    for group, (prefix, faces) in groups.items():
+        for face in faces:
+            data = (output / f"assets/{group}/{prefix}{face}.png").read_bytes()
+            if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (466, 466):
+                raise ValueError(f"Native {group}/{face} preview must preserve 466 × 466 pixels")
+    print("30 native watch faces verified across five groups")
     css = (output / "styles.css").read_text()
     for asset in re.findall(r'url\("([^\"]+)"\)', css):
         if not (output / asset).is_file():
@@ -235,7 +250,9 @@ def main():
         if set(re.findall(r"\{\w+\}", message)) != set(re.findall(r"\{\w+\}", translation)):
             raise ValueError(f"Translation placeholders differ: {message}")
     # Dynamic descriptions and accessible names share the same catalog as static HTML.
-    for message in re.findall(r'["\']([^"\']*[\u3400-\u9fff][^"\']*)["\']', (SOURCE / "script.js").read_text()):
+    # 动态文案均为单行字符串；不能跨行把中英注释误认成引号内文案。
+    # Dynamic copy uses single-line strings; do not consume bilingual comments between lines.
+    for message in re.findall(r'["\']([^"\'\r\n]*[\u3400-\u9fff][^"\'\r\n]*)["\']', (SOURCE / "script.js").read_text()):
         if message not in messages:
             raise ValueError(f"Missing English script translation: {message}")
     english = EnglishPage(messages)

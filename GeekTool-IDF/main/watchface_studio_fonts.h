@@ -1,0 +1,87 @@
+// 原稿字体及半尺寸预览；由同目录生成器维护。 / Approved fonts and half-size previews; generated together.
+#pragma once
+#include "lvgl.h"
+LV_FONT_DECLARE(font_studio_regular_4);
+LV_FONT_DECLARE(font_studio_regular_5);
+LV_FONT_DECLARE(font_studio_regular_6);
+LV_FONT_DECLARE(font_studio_regular_7);
+LV_FONT_DECLARE(font_studio_regular_8);
+LV_FONT_DECLARE(font_studio_regular_9);
+LV_FONT_DECLARE(font_studio_regular_10);
+LV_FONT_DECLARE(font_studio_regular_11);
+LV_FONT_DECLARE(font_studio_regular_12);
+LV_FONT_DECLARE(font_studio_regular_13);
+LV_FONT_DECLARE(font_studio_regular_14);
+LV_FONT_DECLARE(font_studio_regular_15);
+LV_FONT_DECLARE(font_studio_regular_30);
+LV_FONT_DECLARE(font_studio_regular_36);
+LV_FONT_DECLARE(font_studio_regular_43);
+LV_FONT_DECLARE(font_studio_regular_44);
+LV_FONT_DECLARE(font_studio_regular_46);
+LV_FONT_DECLARE(font_studio_regular_48);
+LV_FONT_DECLARE(font_studio_regular_50);
+LV_FONT_DECLARE(font_studio_regular_72);
+LV_FONT_DECLARE(font_studio_regular_86);
+LV_FONT_DECLARE(font_studio_regular_87);
+LV_FONT_DECLARE(font_studio_regular_88);
+LV_FONT_DECLARE(font_studio_regular_91);
+LV_FONT_DECLARE(font_studio_regular_96);
+LV_FONT_DECLARE(font_studio_regular_99);
+LV_FONT_DECLARE(font_studio_semibold_6);
+LV_FONT_DECLARE(font_studio_semibold_7);
+LV_FONT_DECLARE(font_studio_semibold_12);
+LV_FONT_DECLARE(font_studio_semibold_13);
+LV_FONT_DECLARE(font_studio_semibold_14);
+LV_FONT_DECLARE(font_studio_semibold_47);
+LV_FONT_DECLARE(font_studio_semibold_48);
+LV_FONT_DECLARE(font_studio_semibold_72);
+LV_FONT_DECLARE(font_studio_semibold_73);
+LV_FONT_DECLARE(font_studio_semibold_94);
+LV_FONT_DECLARE(font_studio_semibold_96);
+LV_FONT_DECLARE(font_studio_semibold_144);
+LV_FONT_DECLARE(font_studio_semibold_146);
+static inline const lv_font_t *wfs_studio_font(int size,bool preview,bool heavy){
+int pixels=preview?(size+1)/2:size;
+if(heavy){switch(pixels){
+case 6:return &font_studio_semibold_6;
+case 7:return &font_studio_semibold_7;
+case 12:return &font_studio_semibold_12;
+case 13:return &font_studio_semibold_13;
+case 14:return &font_studio_semibold_14;
+case 47:return &font_studio_semibold_47;
+case 48:return &font_studio_semibold_48;
+case 72:return &font_studio_semibold_72;
+case 73:return &font_studio_semibold_73;
+case 94:return &font_studio_semibold_94;
+case 96:return &font_studio_semibold_96;
+case 144:return &font_studio_semibold_144;
+case 146:return &font_studio_semibold_146;
+} } switch(pixels){
+case 4:return &font_studio_regular_4;
+case 5:return &font_studio_regular_5;
+case 6:return &font_studio_regular_6;
+case 7:return &font_studio_regular_7;
+case 8:return &font_studio_regular_8;
+case 9:return &font_studio_regular_9;
+case 10:return &font_studio_regular_10;
+case 11:return &font_studio_regular_11;
+case 12:return &font_studio_regular_12;
+case 13:return &font_studio_regular_13;
+case 14:return &font_studio_regular_14;
+case 15:return &font_studio_regular_15;
+case 30:return &font_studio_regular_30;
+case 36:return &font_studio_regular_36;
+case 43:return &font_studio_regular_43;
+case 44:return &font_studio_regular_44;
+case 46:return &font_studio_regular_46;
+case 48:return &font_studio_regular_48;
+case 50:return &font_studio_regular_50;
+case 72:return &font_studio_regular_72;
+case 86:return &font_studio_regular_86;
+case 87:return &font_studio_regular_87;
+case 88:return &font_studio_regular_88;
+case 91:return &font_studio_regular_91;
+case 96:return &font_studio_regular_96;
+case 99:return &font_studio_regular_99;
+}return &font_studio_regular_14;
+}
