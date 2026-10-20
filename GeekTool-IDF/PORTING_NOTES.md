@@ -2344,7 +2344,7 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 
 用户更新beta.36后，选择STUDIO即出现黑白闪屏、无法操作。事故前NVS备份中的`settings/face=21`，对应RADAR。实际USB日志确认多次Guru Meditation（LoadStoreError / LoadProhibited / Cache error）、损坏的回溯以及自动重启；不是已经验收的新表盘效果。准确运行ELF SHA256为`b77698e93e2e3b457b899dbd6a1194432f18aea0f9ae352c7c61503baa70f314`，已从标签CI产物提取并与发布bin描述符核对。
 
-先前50项主机测试、原生图和单函数2368B栈帧检查漏掉了完整对象递归、同步软件draw后端与任务控制区保存栈的累积。真实任务栈7168B，静态迷宫路径已有超过该容量的风险；精确ELF解码显示vPortYieldFromInt保存协处理器状态时TCB指针已坏，另核任务就绪列表也损坏。这些证据支持任务栈/内存破坏；未捕获首次越界写点前，不把Wi-Fi/NVS正常读链或一个单帧数字当成最终根因。40行双DMA、RGB565_SWAPPED、完整设置层级与目标任务高水位须单独验证。
+先前50项主机测试、原生图和单函数2368B栈帧检查漏掉了完整对象递归、同步软件draw后端与任务控制区保存栈的累积。真实任务栈7168B，RADAR同样经过poly/ring与三层对象递归，其已知静态调用帧加协处理器和中断保存区即有超容量风险，不能只看迷宫最大帧。精确ELF解码显示vPortYieldFromInt保存协处理器状态时TCB指针已坏，另核任务就绪列表也损坏。这些证据支持任务栈/内存破坏；未捕获首次越界写点前，不把Wi-Fi/NVS正常读链或一个单帧数字当成最终根因。40行双DMA、RGB565_SWAPPED、完整设置层级与目标任务高水位须单独验证。
 
 用户明确批准“允许，先恢复设备”及“允许撤回并恢复beta.35”。恢复前按Espressif USB VID303A/PID1001核对端口；分区表、NVS、otadata和两个App头均双读一致，确认旧ota_1是beta.34且完整5,068,512B与归档原包MD5一致。实际布局仍是双8MiB槽加原0xFE0000文件区，没有录音卷，不能用当前源码分区CSV覆盖现场。
 
@@ -2352,6 +2352,8 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 
 beta.36 Release（ID418072033）已转draft并标记WITHDRAWN；Git标签保留取证。现有恢复工作流仅将归档beta.35原包上传beta对象，提交`6820eba`、[运行39428665067](https://github.com/soBigRice/soRound_os/actions/runs/39428665067)均已核实。R2及国内完整beta包均与归档5,068,848B / SHA256 `1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1`逐字节一致，条件Range206切片准确，正式v1.7 SHA仍为`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
 
-候选修复只将poly/ring的扫描数组移入唯一2084B模块工作区，按唯一LVGL绘制线程的非重入契约复用；实际Xtensa函数栈2368/1232B降为288/288B，保留全部采样、画质、路径和刷新率，不增任务栈或关闭看门狗。候选目前仅本地验证，尚未写设备、未发布；不能把设备切回旧槽说成新表盘已修复。官网可用计数恢复21，STUDIO禁用并明确撤回；公开部署待本轮文档推送后核对。
+本地候选：`main/watchface_studio_draw.c`提供唯一2084B `g_wfs_draw_scratch`，`watchface_studio_draw.h`的`wfs_poly_opa`/`wfs_ring_opa`按唯一LVGL绘制线程的非重入契约复用，覆盖RADAR同类调用；实际Xtensa函数栈2368/1232B降为288/288B。保留全部采样、画质、路径和刷新率，不增任务栈或关闭看门狗。原header与候选在相同格式下分别比较，48行RGB565及40行双缓冲RGB565_SWAPPED各89/89帧逐字节一致，含旧21款、新9款和全部AOD；不把跨格式差异混算为此次修改。52项主机测试通过，含新增设备格式与完整设置层级检查。本地IDF6.0.1/LVGL9.5构建`v1.7-beta.36-recovery1`为5,183,824B，SHA256 `261369e48d2ea50e68627a37a887e7c27b0fc72ab29d0bc4b05f4dc2db923a05`；还未用发布LVGL9.6重建或实测目标栈水位。源码保持本地未提交，尚未写设备、未发布；不能把设备切回旧槽说成新表盘已修复。回执同私有恢复目录`candidate-*.json/log`。
+
+官网可用计数已恢复21，STUDIO禁用并明确撤回；源码`2f7cc88`的[Pages39429902992](https://github.com/soBigRice/soRound_os/actions/runs/39429902992)为completed/success。公开中英文完整HTML及CSS/JS均HTTP200、与本地构建逐字节一致，beta.35入口及禁用状态核对通过，见`website-withdrawal.json`。浏览器交互读取超时，本轮未宣称实际点击验收；生成的测试页面与主机像素/构建临时输出在核验后清理。
 
 现场接入纠正：首次只按`cu.usbmodem*`取到LG显示器控制口，未获得日志，ROM同步失败；实际ESP32端口出现后通过VID/PID确认才捕获崩溃。以后不得用端口名称前缀猜设备，所有读写先验证vendor/product且唯一匹配，再核对芯片/Flash/分区。恢复使用ROM慢读及仅低地址元数据写，没有为此装新stub或触及高位文件区。
