@@ -2338,3 +2338,20 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 准确发布bin及SHA保留在`build/releases/v1.7-beta.36/`，小型测试、源码/tag、CI、分发回执在`build/flash-records/beta36-release-20261020/`；对应bin/ELF/map/config/依赖锁由既有Actions产物保留7天。官网本地中英30款及320/390px布局检查通过；第一轮Pages39379016381成功，公开英文30款已实际切换并查看STUDIO原生图。中英文README及`site/releases.json`已通过`a9e5d0d`同步beta.36；[Pages39380478373](https://github.com/soBigRice/soRound_os/actions/runs/39380478373)为completed/success。公开中文与英文完整HTML、CSS/JS及15张HAND/STUDIO独立PNG均HTTP200，与本地发布输出逐字节一致；两种语言均显示beta.36、保留正式v1.7和五组目录。验证见同目录`website-verification.json`。没有USB/串口/BLE访问或设备写入；没有把静态每函数栈分析当成真机高水位或功耗测试。
 
 本轮GitHub侧使用官方资产API的摘要声明，未将本机Github CDN完整下载当作已验证。公网核验工具默认Python User-Agent曾返回403，改用显式`soRound-release-verifier/1.0`后两入口206及完整包通过；此为请求条件差异，不归因于固件内容。
+
+
+## 2026-10-20 beta.36撤回与旧槽恢复
+
+用户更新beta.36后，选择STUDIO即出现黑白闪屏、无法操作。事故前NVS备份中的`settings/face=21`，对应RADAR。实际USB日志确认多次Guru Meditation（LoadStoreError / LoadProhibited / Cache error）、损坏的回溯以及自动重启；不是已经验收的新表盘效果。准确运行ELF SHA256为`b77698e93e2e3b457b899dbd6a1194432f18aea0f9ae352c7c61503baa70f314`，已从标签CI产物提取并与发布bin描述符核对。
+
+先前50项主机测试、原生图和单函数2368B栈帧检查漏掉了完整对象递归、同步软件draw后端与任务控制区保存栈的累积。真实任务栈7168B，静态迷宫路径已有超过该容量的风险；精确ELF解码显示vPortYieldFromInt保存协处理器状态时TCB指针已坏，另核任务就绪列表也损坏。这些证据支持任务栈/内存破坏；未捕获首次越界写点前，不把Wi-Fi/NVS正常读链或一个单帧数字当成最终根因。40行双DMA、RGB565_SWAPPED、完整设置层级与目标任务高水位须单独验证。
+
+用户明确批准“允许，先恢复设备”及“允许撤回并恢复beta.35”。恢复前按Espressif USB VID303A/PID1001核对端口；分区表、NVS、otadata和两个App头均双读一致，确认旧ota_1是beta.34且完整5,068,512B与归档原包MD5一致。实际布局仍是双8MiB槽加原0xFE0000文件区，没有录音卷，不能用当前源码分区CSV覆盖现场。
+
+仅在`0x10000`写4096B OTA选择记录，把旧ota_1序号从34改为36、保留VALID状态与正确CRC；原ota_0序号35和两个应用镜像都保留。写后整个otadata读回准确，NVS及分区表与备份逐字节一致；没有刷应用、擦设置/文件或迁移分区。随后日志确认从0x820000运行beta.34、startup core/check=OK、home frame完成、心跳持续，用户明确反馈“已经恢复，可以操作”。备份和授权操作回执在忽略的私有`build/flash-records/beta36-recovery-20261020/`，不提交NVS或日志中的私有网络信息。
+
+beta.36 Release（ID418072033）已转draft并标记WITHDRAWN；Git标签保留取证。现有恢复工作流仅将归档beta.35原包上传beta对象，提交`6820eba`、[运行39428665067](https://github.com/soBigRice/soRound_os/actions/runs/39428665067)均已核实。R2及国内完整beta包均与归档5,068,848B / SHA256 `1ca78be123cb68b1518972b81ea531742efc90ff745d1b4bd7cf2affad32b7e1`逐字节一致，条件Range206切片准确，正式v1.7 SHA仍为`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`。
+
+候选修复只将poly/ring的扫描数组移入唯一2084B模块工作区，按唯一LVGL绘制线程的非重入契约复用；实际Xtensa函数栈2368/1232B降为288/288B，保留全部采样、画质、路径和刷新率，不增任务栈或关闭看门狗。候选目前仅本地验证，尚未写设备、未发布；不能把设备切回旧槽说成新表盘已修复。官网可用计数恢复21，STUDIO禁用并明确撤回；公开部署待本轮文档推送后核对。
+
+现场接入纠正：首次只按`cu.usbmodem*`取到LG显示器控制口，未获得日志，ROM同步失败；实际ESP32端口出现后通过VID/PID确认才捕获崩溃。以后不得用端口名称前缀猜设备，所有读写先验证vendor/product且唯一匹配，再核对芯片/Flash/分区。恢复使用ROM慢读及仅低地址元数据写，没有为此装新stub或触及高位文件区。

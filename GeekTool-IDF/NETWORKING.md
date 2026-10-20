@@ -99,3 +99,10 @@ OTA的 `esp_http_client_get_and_clear_last_tls_error` 返回值是ESP-TLS传输�
 - [ESP32-S3 Wi-Fi事件及IP时机](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-guides/wifi-driver/overview.html)：GOT_IP之后再开始socket工作，断开后旧TCP连接失效。
 - [esp_http_client.h](https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_http_client/include/esp_http_client.h) / [实现](https://github.com/espressif/esp-idf/blob/v6.0.1/components/esp_http_client/esp_http_client.c)：timeout、完整响应、TLS getter返回值及cleanup契约。
 - [SNTP实现](https://github.com/espressif/esp-idf/blob/v6.0.1/components/lwip/apps/sntp/sntp.c)：首次init与后续线程安全restart；不重建整个无线服务。
+
+
+## 2026-10-20 星座再次“获取失败”（待设备同次请求证据）
+
+用户反馈最新固件白羊座获取失败，同一设备天气和答案之书正常。当天按设备默认User-Agent/TLS1.2真实请求全部12星座，均HTTP200，当前真实`zodiac_data_parse`及10月20日日期检查全部通过；这不能证明设备同次请求成功。共享网络与星座行为代码自10月7日未改，不能据此排除运行时内存/时序问题。UI把网络、解析、业务码、日期失败合并为“获取失败”，既有固定10月5日夹具也不能证明今日服务与设备链路。此次尚无失败请求日志，设备日期未核对，不应猜测为服务停机或再次改超时。
+
+排查因新表盘导致连续panic而暂停，先按用户授权恢复到旧beta.34，星座问题仍开放。后续只需抓同一次zodiac阶段/HTTP/transport/TLS/errno/字节数、实际设备日期及解析结果；没有批准新设备写入时不为采日志直接刷诊断固件。已有主机网络门禁不可代替这些设备证据。

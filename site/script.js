@@ -22,7 +22,7 @@ document.querySelector(".language-switch").addEventListener("click", event => {
       {label: "数字", file: "hand-numeral"}, {label: "轨道", file: "hand-orbit"},
       {label: "框架", file: "hand-frame"}, {label: "圆点", file: "hand-dots"},
     ] },
-    studio: { title: "STUDIO", description: "器械、玩物与自然，九种新的时间想象。", family: "studio", kinds: [
+    studio: { title: "STUDIO", description: "器械、玩物与自然，九种新的时间想象。", available: false, family: "studio", kinds: [
       {label: "雷达", file: "active-radar"}, {label: "磁带", file: "active-tape"},
       {label: "光圈", file: "active-iris"}, {label: "迷宫秒", file: "active-maze"},
       {label: "翻页", file: "active-fold"}, {label: "像素夜营", file: "active-pixel-camp"},
@@ -46,6 +46,9 @@ document.querySelector(".language-switch").addEventListener("click", event => {
 
   function render() {
     const selected = themes[theme];
+    // 真机连续panic未解决前，不把留档设计当作可用表盘开放。
+    // Keep archived designs unavailable until the device panic/reboot fault is resolved.
+    if (selected.available === false) return;
     if (selected.family !== renderedFamily) {
       const buttons = selected.kinds.map((item, index) => {
         const button = document.createElement("button");
@@ -86,6 +89,7 @@ document.querySelector(".language-switch").addEventListener("click", event => {
 
   themeButtons.forEach(button => button.addEventListener("click", () => {
     const next = button.dataset.theme;
+    if (button.disabled || themes[next].available === false) return;
     if (themes[next].family !== themes[theme].family) kind = 0;
     theme = next;
     render();
