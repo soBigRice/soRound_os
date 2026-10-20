@@ -148,23 +148,28 @@ site/index.html + locales/en.json + styles.css + script.js + assets/
 网页用圆形 viewport 显示其中一个 466×466 区域，保持原始像素；
 不是实机照片，温度、Wi-Fi、时间、电量都是夹具数据。
 
-当前可用目录为 21 款：`TYPE/ORBIT/SHIFT` 各五款、`HAND` 六款。beta.36 因真机选择 STUDIO 后连续 panic 重启而撤回，九款 STUDIO 暂缓开放。
-网页保留 STUDIO 标签但使用原生 `disabled`、`aria-disabled` 和说明文字明确不可选；`script.js` 同时拒绝其交互入口。
-旧三组间继续保留用途索引 `0–4`；跨到 HAND 从该组第一款开始，点击当前组保留当前款式。
-款式按钮由各组目录生成，并同步 `aria-pressed` 与预览的无障碍名称。
+beta.37 已公开发布为 prerelease，官网恢复五组30款：`TYPE/ORBIT/SHIFT` 各五款、`HAND` 六款和 `STUDIO` 九款，保留原21款ID与行为。
+[发布CI 39441675606](https://github.com/soBigRice/soRound_os/actions/runs/39441675606)通过53项主机、2项配套功能、媒体sanitizer和14项镜像检查。
+真机 probe3 候选通过真实启动器链运行约283秒，覆盖九款全屏、39次预览、九款AOD、分钟变化/熄屏唤醒、RADAR70秒与木鱼视觉，未出现fault；LVGL栈配置9216B，最低剩余2952B。
+白羊座五次实际请求均为HTTP200、1525B且日期正确；历史失败未复现，根因未确认，星座修改按新增诊断记录，不宣传未知根因已解决。
+R2与国内完整beta.37包均与CI/Release资产摘要一致，强ETag条件Range返回准确206；两处正式v1.7完整包SHA保持不变。精确公开CI包USB安装已开始，安装、首启及VALID读回仍待主任务完成，不以候选或分发校验代替。
+beta.36 因真机选择 STUDIO 后连续 panic 重启保持撤回，后续恢复不改写这条历史。
 
-`assets/hands/hand-*.png` 是 `GeekTool-IDF/artwork/analog-play/native/` 的六张固件原生渲染副本。
-`assets/studio/active-*.png` 是 `GeekTool-IDF/artwork/watchfaces/studio-native/` 的九张留档渲染副本，素材仍保留，不代表设备可用。
-它们均为完整 466×466 原生 LVGL 图；独立的 `.native-face` 不使用旧合辑的放大和裁切坐标。
-图片是离线夹具，不是实机拍摄或浏览器设计稿。30 份素材与 21 款当前可用表盘必须分开统计。
-可用主题和用途按钮使用原生按钮，Tab、Enter、Space 可操作；无定时器、后台请求或第三方统计。
+`script.js` 在旧三组间保留用途索引 `0–4`；跨到 HAND/STUDIO 从该组第一款开始，点击当前组保留当前款式。
+款式按钮由各组目录生成，并同步 `aria-pressed` 与预览的无障碍名称；STUDIO 不再使用临时禁用规则。
+`assets/hands/hand-*.png` 来自 `GeekTool-IDF/artwork/analog-play/native/` 的六张固件原生渲染。
+`assets/studio/active-*.png` 来自 `GeekTool-IDF/artwork/watchfaces/studio-native/` 的九张固件原生渲染。
+保留既有原图；完整466×466图通过 `.native-face` 展示，不套用旧合辑的放大和裁切坐标。
+图片是离线夹具，不是实机拍摄，也不证明星座真实网络返回或设备全项验收。
+主题和用途按钮使用原生按钮，Tab、Enter、Space 可操作；无定时器、后台请求或第三方统计。
 图片失败有可见提示，无 JavaScript 时保留默认 ORBIT 环形预览与所有导航/下载链接。
 
 合辑区域依次为：`(60,145)`、`(607,145)`、`(1154,145)`、`(334,709)`、`(881,709)`；
-每个区域 466×466，合辑 1680×1220。构建分别校验五个标签、四个可用入口、STUDIO禁用状态、三份合辑及15张独立PNG尺寸。
-`releases.json` 当前内测恢复为 beta.35；在线刷新沿用现有草稿过滤逻辑，撤回版本的 GitHub Release 由发版任务置为草稿。
-本次只更新表盘和撤回状态，不扩大既有 19 个应用预览的范围。
-2026-10-20：撤回后的离线构建、双语翻译与资源校验通过；此前 30 款浏览器/图片检查不能替代已失败的真机验收。
+每个区域466×466，合辑1680×1220。构建校验五组均可用、三份合辑及15张独立PNG尺寸；撤回期间的“仅四组”约束已移除。
+`releases.json` 当前内测指向已公开的 beta.37。在线刷新继续沿用现有 Release 草稿过滤，不硬编码排除版本。
+本次只更新表盘和版本状态，不扩大既有19个应用预览的范围。木鱼、表盘、星座的验证范围按上面的实际证据分别记录。
+本次最终文案的双语静态构建、30款五组入口/资源及JavaScript语法校验通过；`build/site/` 保留给主任务做官网HTTP回读比对，未启动驻留服务。
+精确CI包已完成USB安装、70秒普通固件观察与VALID回读；设置、引导器/分区、beta.35回退槽及完整文件区均核验保持。官网部署与公开HTTP回读结果统一见[组合发布记录](../GeekTool-IDF/PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。图片/主机检查及USB安装仍不代替用户观感、网络OTA或失败回滚验收。
 Barlow 字体复用项目已有素材，OFL 许可证随 `assets/OFL.txt` 发布。
 
 ## 设计与验收

@@ -8,13 +8,16 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**v1.7-beta.36 is withdrawn. Stop using that version.**
-Selecting STUDIO caused repeated panic reboots on the device. The earlier successful builds, 50 host tests and native-image checks did not catch this device failure and do not establish usability.
-The nine STUDIO [designs and native comparisons](./GeekTool-IDF/artwork/watchfaces/studio-native/README.md) and source remain for investigation. They are on hold and excluded from the available face count.
-The beta channel is restored to beta.35 below, retaining the original 21 TYPE / ORBIT / SHIFT / HAND faces. Devices already in a reboot loop need the separately approved recovery procedure; access to normal OTA must not be assumed.
-See the [verification and recovery record](./GeekTool-IDF/PORTING_NOTES.md) and [release notes](./GeekTool-IDF/RELEASE_NOTES.md).
+**Current beta: [v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) is published.**
+Wooden Fish, watch face and horoscope diagnostics updates restore 30 faces across five groups while preserving the original 21 IDs and saved selection. CI passed 53 host tests, two companion tests, media sanitizer checks and 14 mirror tests. A device candidate ran the real launcher path for about 283 seconds without a fault, covering nine active/AOD faces, previews and sleep/wake.
+Five Aries requests returned HTTP 200 with the correct date. The historical failure was not reproduced and its root cause is unconfirmed. Complete R2/domestic images match the CI and Release asset digest, conditional Range checks passed, and stable v1.7 bytes are unchanged. The exact CI image passed USB installation, startup checks and VALID-state readback; settings, stored files and the beta.35 recovery slot were preserved. See the [verification record](./GeekTool-IDF/PORTING_NOTES.md), [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [Horoscope / Wooden Fish notes](./GeekTool-IDF/ZODIAC_MERIT_UI.md) for the exact scope.
 
-**Current beta: [v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35).**
+**Withdrawal history: v1.7-beta.36 remains withdrawn. Stop using that version.**
+Selecting STUDIO in that version caused repeated panic reboots on the device. Its successful builds, 50 host tests and native-image checks did not catch the device failure and did not establish usability.
+The beta channel was restored to beta.35 and the nine STUDIO faces were put on hold at withdrawal. Subsequent beta.37 repairs and verification do not reverse beta.36's withdrawal.
+Devices already in a reboot loop need the separately approved recovery procedure; access to normal OTA must not be assumed.
+
+**Previously: [v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35).**
 Fixes missing glyphs in new launcher names and centers transparent music controls around a larger play button, retaining standard BLE HID commands.
 The Mac bridge fixes accidental artwork clearing and missed connected devices. Actual artwork transfer still fails at ATT; lyrics currently require a local LRC file.
 Recording storage still needs separate initialization; this application OTA does not migrate it. The manual CI build and all gates passed. Complete R2 and domestic downloads of the 5,068,848-byte image match GitHub's asset digest, conditional Range checks passed, and stable remains v1.7.
@@ -44,7 +47,7 @@ The 4,185,936-byte image requires two 4 MiB OTA slots. Physical touch, IMU feel 
 acceptance remain pending; see the [release record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡).
 
 **October 8, 2026: [v1.7 stable](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) is published.**
-Both channels served v1.7 at that release; the beta channel is restored to beta.35 above, and beta.36 is withdrawn.
+Both channels served v1.7 at that release. See the current beta status above; beta.36 remains withdrawn.
 The stable v1.7 production code is the same as beta.31. Beta.30 remains withdrawn.
 Scrolling Settings, separate adjustment pages,
 centered watch-face previews, the ring-and-red-dot identity and About screen are included.
@@ -53,9 +56,9 @@ the revealed watch-face frame must pass before a new OTA image is confirmed. Cor
 roll back when a recovery image exists. Network-check failures allow offline startup;
 network recovery for Weather, Answers, Zodiac and OTA is retained.
 
-Use `GeekTool-IDF/` for current development. `main` retains the withdrawn beta.36 STUDIO source for investigation; those nine faces are unavailable and beta.35 is the recommended beta.
+Use `GeekTool-IDF/` for current development. `main` contains the beta.37 combined changes; see the device and public distribution status above.
 At the v1.7 stable release, all 34 local regressions and nine startup CI checks passed; its release-dependency candidate's watch face, unlock and Settings were accepted on the device.
-The beta.36 device panic supersedes its earlier pending-acceptance status. Host tests and native previews cannot establish device usability. The original beta.30 white-screen trigger has not been reproduced.
+The beta.36 device panic supersedes that version's earlier pending-acceptance status. Subsequent candidates must record device results separately; host tests and native previews cannot establish device acceptance. The original beta.30 white-screen trigger has not been reproduced.
 
 **Stable v1.7 upgrade requirement: two 4 MiB OTA slots.** v1.6.1 uses 3 MiB slots and cannot directly
 OTA-install the 4,149,792-byte v1.7 image. Older layouts need a USB partition and resource
@@ -163,7 +166,7 @@ Direct implementation references:
 | --- | --- |
 | Scheduling, animation and resource lifetime | [Performance record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化) |
 | Audio spectrum and level layout | [Audio / Level design](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md) |
-| Twenty-one available watch faces, images and always-on state; nine STUDIO faces on hold after the beta.36 device panic | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
+| Thirty watch faces in beta.37, images and always-on state; device candidate and exact release-image results recorded separately | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
 | Original particles + color dye fluid modes and twelve fixed maze levels; device acceptance pending | [Play implementation](./GeekTool-IDF/PLAY_UI.md) |
 | Coin drawing, animation, pause and exit | [Coin implementation](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画) |
 | Memory statistics and System info pages | [System UI](./GeekTool-IDF/SYSTEM_UI.md) |

@@ -133,8 +133,6 @@ class PageCheck(HTMLParser):
             self.app_ids.append(attrs["data-app"])
         if "data-theme" in attrs:
             self.theme_ids.append(attrs["data-theme"])
-            if attrs["data-theme"] == "studio" and ("disabled" not in attrs or attrs.get("aria-disabled") != "true"):
-                raise ValueError("Withdrawn STUDIO group must have native and accessible disabled states")
             if "disabled" not in attrs and attrs.get("aria-disabled") != "true":
                 self.available_theme_ids.append(attrs["data-theme"])
         if "id" in attrs:
@@ -182,11 +180,11 @@ def validate_page(output, language):
     if language == "en" and any(HAN.search(value) for value in check.copy):
         raise ValueError("Untranslated English page copy")
     if len(check.theme_ids) != 5 or set(check.theme_ids) != {"type", "orbit", "shift", "hand", "studio"}:
-        raise ValueError("Website must retain five watch face group labels exactly once")
-    if len(check.available_theme_ids) != 4 or set(check.available_theme_ids) != {"type", "orbit", "shift", "hand"}:
-        raise ValueError("Only the four available watch face groups may be enabled; STUDIO is withdrawn")
+        raise ValueError("Website must expose all five watch face groups exactly once")
+    if len(check.available_theme_ids) != 5 or set(check.available_theme_ids) != {"type", "orbit", "shift", "hand", "studio"}:
+        raise ValueError("All five watch face groups must be enabled")
     if "studio-status" not in check.ids:
-        raise ValueError("Website must disclose the STUDIO device-panic withdrawal")
+        raise ValueError("Website must disclose STUDIO release and verification status")
     expected_apps = {"weather", "calendar", "countdown", "stopwatch", "settings", "ota", "wifi",
                      "i2c", "system", "audio", "level", "remote", "twin", "maze", "fluid", "dice",
                      "answers", "zodiac", "merit"}
@@ -216,7 +214,7 @@ def validate(output):
             data = (output / f"assets/{group}/{prefix}{face}.png").read_bytes()
             if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (466, 466):
                 raise ValueError(f"Native {group}/{face} preview must preserve 466 × 466 pixels")
-    print("21 available watch faces verified across four groups; 9 withdrawn STUDIO assets retained")
+    print("30 native watch faces verified across five enabled groups")
     css = (output / "styles.css").read_text()
     for asset in re.findall(r'url\("([^\"]+)"\)', css):
         if not (output / asset).is_file():

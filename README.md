@@ -9,13 +9,16 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**v1.7-beta.36 已撤回，停止使用该版本。**
-真机选择 STUDIO 后进入连续 panic 重启；此前构建、50项主机回归及原生图检查通过，未能识别这项设备故障，不能作为可用性结论。
-九款 STUDIO 的[设计与原生对照](GeekTool-IDF/artwork/watchfaces/studio-native/README.md)及源码保留供排查，当前暂缓开放，不计入可用表盘数量。
-内测通道已恢复为下方 beta.35，保留原 TYPE / ORBIT / SHIFT / HAND 共21款；已陷入重启的设备需按单独确认的恢复步骤处理，不以普通 OTA 可访问为前提。
-撤回、设备恢复与原因调查见[发布记录](GeekTool-IDF/PORTING_NOTES.md)和[版本说明](GeekTool-IDF/RELEASE_NOTES.md)。
+**当前内测：[v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) 已发布。**
+本版合并木鱼、新表盘与星座网络诊断更新，恢复五组30款表盘，保留原21款ID和已保存选择。CI的53项主机、2项配套功能、媒体sanitizer和14项镜像检查通过；真机候选经实际启动器链约283秒测试未出现fault，覆盖九款全屏/常显、预览与熄屏唤醒。
+白羊座五次请求均HTTP200且日期正确；历史失败未复现，根因未确认，不宣称已修复未知根因。R2/国内完整包与CI及Release资产摘要一致，条件Range通过，正式v1.7字节未变；精确CI包已通过USB安装、启动自检与VALID回读，设置、文件区及beta.35回退槽完整保留。具体范围见[发布记录](GeekTool-IDF/PORTING_NOTES.md)、[版本说明](GeekTool-IDF/RELEASE_NOTES.md)及[星座/木鱼说明](GeekTool-IDF/ZODIAC_MERIT_UI.md)。
 
-**当前内测：[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35)。**
+**历史撤回：v1.7-beta.36 保持撤回，停止使用该版本。**
+该版本在真机选择 STUDIO 后连续 panic 重启；当时构建、50项主机回归及原生图检查通过，未识别这项设备故障，不能作为可用性结论。
+撤回时内测通道恢复为 beta.35，STUDIO 九款暂停开放；beta.37 的后续修复和验证不改变 beta.36 的撤回记录。
+已陷入重启的设备需使用单独确认的恢复步骤，不以普通 OTA 可访问为前提。
+
+**此前：[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35)。**
 修复新App启动器名称方块字，音乐三键改为正中放大的透明播放键与左右切歌键，保留标准BLE HID控制。
 Mac桥接修复封面误清和已连接设备漏检；实际封面传输仍有ATT失败，歌词目前仅支持本地LRC。
 录音分区仍需另行初始化，本次应用OTA不会迁移存储。手动CI构建和全部门禁通过；5,068,848B发布包在R2、国内完整下载与GitHub资产摘要一致，两处条件Range核验通过，正式通道仍为v1.7。
@@ -38,14 +41,14 @@ GitHub故障期间标签运行状态可能延迟回写，发布与包校验分�
 新内测应用镜像4,185,936B，需要双4MiB OTA槽；真机触摸、IMU手感与升级重启仍待验收，见[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)。
 
 **2026-10-08：[v1.7 正式版](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) 已发布。**
-当时正式与内测OTA通道同时更新至v1.7；内测当前恢复至上述beta.35，beta.36已撤回。v1.7生产代码与beta.31一致；beta.30保持撤回。
+当时正式与内测OTA通道同时更新至v1.7；后续内测状态见顶部，beta.36保持撤回。v1.7生产代码与beta.31一致；beta.30保持撤回。
 设置首页滚动、七个独立设置项、居中表盘预览、圆环红点Logo和关于本机已纳入正式版。
 启动动画至少4秒；完成公共初始化、核心检查与表盘实际刷新后才确认新OTA固件有效，核心失败且可回退时回滚。
 联网检查失败记录并提示，允许离线启动；天气、答案之书、星座与OTA保留联网恢复修正。
 
-当前仓库 `main` 保留已撤回 beta.36 的 STUDIO 源码用于排查，不代表这九款已可用；推荐内测为 beta.35。主线开发使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
+当前仓库 `main` 包含 beta.37 的组合修复，真实设备与公开分发验证状态见顶部。主线开发使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
 v1.7正式发布时，本地34组回归和发布CI的9组启动检查通过；当时正式依赖候选的表盘、解锁、设置已由用户确认。
-beta.36 的真机 panic 已推翻“仅待验收”的状态；修复前不得将主机测试或原生预览通过当作设备可用。原beta.30白屏触发点尚未复现。
+beta.36 的真机 panic 已推翻该版“仅待验收”的状态；后续候选仍须分别记录真实设备结果，不能将主机测试或原生预览通过当作设备验收。原beta.30白屏触发点尚未复现。
 
 **v1.7稳定版升级要求：双4MiB OTA槽。** v1.6.1采用双3MiB布局，不能直接OTA安装v1.7的4,149,792B应用镜像；
 旧布局需先USB迁移分区及配套资源，见 [分区迁移说明](GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移)。
@@ -122,13 +125,13 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 | `.github/workflows/firmware.yml` | Tag 构建、GitHub Release 和 R2 上传 | 发布流程 |
 | `.github/workflows/pages.yml` | 官网构建和 GitHub Pages 部署 | 网站发布 |
 
-官网本地预览、十九个应用 UI、当前二十一款可用表盘交互、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
+官网本地预览、十九个应用 UI、五组共三十款表盘交互（beta.37）、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
-当前可用 TYPE / ORBIT / SHIFT / HAND 共二十一款锁屏表盘；STUDIO 九款因 beta.36 真机 panic 暂缓。
+beta.37恢复 TYPE / ORBIT / SHIFT / HAND / STUDIO 共三十款锁屏表盘，保留原21款行为；真实设备与精确发布包结果分别记录。
 真实缩略图、默认/自定义背景和常显状态见[锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。HAND六款的内测发布见
 [beta.32记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)，真机效果待验收。
 流体当前仅保留原粒子（2026-10-13按用户卡顿反馈移除染料）和三章十二个固定迷宫关卡见[小游戏实现](./GeekTool-IDF/PLAY_UI.md)。

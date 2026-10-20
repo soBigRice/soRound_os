@@ -1,8 +1,8 @@
-# 锁屏表盘：21款可用，STUDIO九款已撤回
+# 锁屏表盘：beta.37恢复30款
 
-> **2026-10-20撤回状态**：beta.36在设备选择新表盘后触发连续panic，不能使用。当前公开推荐beta.35、四组21款；九款设计/原生图保留，仅为实现对照。故障后已恢复旧槽并获用户确认，随后用户授权烧录本地beta.37验证候选；候选尚未发布。恢复与验证状态见[恢复记录](./PORTING_NOTES.md#2026-10-20-beta36撤回与旧槽恢复)及[beta.37候选记录](./PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。
+> **2026-10-20发布状态**：[beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37)已发布，恢复STUDIO九款并保留原21款；beta.36继续撤回。9216B配置的probe3已完成九款全屏/预览/AOD与生命周期轮测，最低可用栈2952B。精确CI发布包USB安装通过，普通生产固件70秒观察无fault，启动选择新鲜读回VALID，原数据及beta.35恢复槽校验保持。恢复与验证见[事故记录](./PORTING_NOTES.md#2026-10-20-beta36撤回与旧槽恢复)及[beta.37组合记录](./PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。
 
-2026-10-20：用户确认[九款设计](./artwork/watchfaces/exploration-20261020/README.md)全部接入，并要求高还原度、保留旧款、测试发版且不烧录。STUDIO追加为ID21–29，总数30；原0–20保持名称、映射、字库及绘制逻辑。见[原生对照](./artwork/watchfaces/studio-native/README.md)，发布状态另见[发布记录](./PORTING_NOTES.md)。历史21款设备/用户证据不涵盖新款。
+2026-10-20：用户确认[九款设计](./artwork/watchfaces/exploration-20261020/README.md)全部接入，最初要求高还原度、保留旧款、测试发版且不烧录；事故恢复后另行授权应用烧录。STUDIO追加为ID21–29，总数30；原0–20保持名称、映射、字库及绘制逻辑。见[原生对照](./artwork/watchfaces/studio-native/README.md)，发布状态另见[发布记录](./PORTING_NOTES.md)。历史21款设备/用户证据不涵盖新款。
 
 ## STUDIO 九款与高还原绘制
 
@@ -14,7 +14,7 @@
 
 `watchface_ui.c:watchface_render`先识别STUDIO边界，前三款交给`watchface_instrument_render`，其余交给`watchface_scenes_render`；之后才走HAND和原三组。不能把所有15以后的ID都当作HAND。
 
-`watchface_studio_draw.h`只服务新组，不修改旧21款绘制。它按原稿基线、字重、字距、图层和透明度绘制；对细线、圆与多边形保留亚像素覆盖率。原SVG圆弧描边以路径居中，不能直接套LVGL向内描边及整数角度，否则迷宫半径与缺口位置会错。扫描仅覆盖当前DMA分块可见行；beta.37候选由`watchface_studio_draw.c`提供唯一2084B BSS工作区，存放`px/py/xs[96]`和`coverage[466]`，不再把扫描数组放入深层绘制栈，不增加全屏常驻画布、SVG引擎或独立计时器。
+`watchface_studio_draw.h`只服务新组，不修改旧21款绘制。它按原稿基线、字重、字距、图层和透明度绘制；对细线、圆与多边形保留亚像素覆盖率。原SVG圆弧描边以路径居中，不能直接套LVGL向内描边及整数角度，否则迷宫半径与缺口位置会错。扫描仅覆盖当前DMA分块可见行；beta.37由`watchface_studio_draw.c`提供唯一2084B BSS工作区，存放`px/py/xs[96]`和`coverage[466]`，不再把扫描数组放入深层绘制栈，不增加全屏常驻画布、SVG引擎或独立计时器。
 
 工作区只在唯一`taskLVGL`线程内供非重入STUDIO绘制复用。当前`LV_USE_OS=0`，矩形描述符不绑定触发STUDIO回调的对象；同步软件后端不会重入这些helper，且已创建的draw task复制描述符、不引用扫描数组。后续若改变绘制线程或回调链，必须重新核对这个契约，不能无条件跨线程复用。
 
@@ -28,7 +28,7 @@
 
 验证入口：`watchface_collection_and_power`覆盖30款、旧ID、精确字形、秒/分钟变化、AOD、休眠与资源访问；`settings_controls_and_level_recovery`覆盖双语布局、20→21、29↔0、保存与返回；`startup_studio_first_flow/last_flow`覆盖启动恢复。`tools/render_studio_review.py`以2026-10-20 10:08:36导出正常/AOD与设置页，对照批准SVG并保留RGB565比较回执。截图检查不等于真机亮度、功耗或主观验收，不能宣称浏览器与AMOLED每个像素完全相同。
 
-## beta.36事故与beta.37候选验证
+## beta.36事故与beta.37验证
 
 2026-10-20现场备份确认崩溃时`settings/face=21`，实际为RADAR。准确发布ELF解码显示任务控制结构已损坏；完整对象递归、同步软件绘制以及协处理器/中断保存区叠加，使7168B任务栈存在超容量风险。未捕获首次越界写点，不能把单个helper的栈帧或Wi-Fi/NVS正常读取链当作最终根因。初次主机截图和50项通过漏掉了真实任务栈约束。
 
@@ -40,9 +40,9 @@
 
 probe2在7168B栈下完成287.6秒轮测：九款全屏、设置预览20→21–29→0→29→21、RADAR连续70秒、AOD跨分钟与木鱼画面阶段均未见fault；全屏阶段最低可用栈1000B，进入实际设置层级233px预览后历史最低降到424B。424B余量不足，不能把这轮无panic写成最终生产验收。
 
-据此最终候选在`display.c`显式设置`port_cfg.task_stack=9216`，比7168B增加2048B内部RAM；scratch保持不变。这是独立的生产余量保护，不以加栈反向证明原事故首次坏写原因，也不降低画质或频率。优先级5、core1亲和性和看门狗保持；9216B下的实际余量须重新采集，不能把424+2048当作实测。
+据此beta.37在`display.c`显式设置`port_cfg.task_stack=9216`，比7168B增加2048B内部RAM；scratch保持不变。这是独立的生产余量保护，不以加栈反向证明原事故首次坏写原因，也不降低画质或频率。优先级5、core1亲和性和看门狗保持；9216B下的实际余量由后续probe3重新采集，不使用424+2048代替实测。
 
-probe3已通过真实launcher `enter_app/go_home`链、39次设置预览、九款全屏/AOD、跨分钟、sleep/wake与RADAR70秒，约283秒到达DONE，无监测fault。9216B配置下实际最低可用栈2952B；开机内部RAM最低73451B。独立看门狗从`taskLVGL`句柄采样，IDF单位为字节，避免在绘制回调打印。最终生产构建已去除probe驱动，发布身份/安装结果见[组合验证记录](./PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。候选待发布CI，触摸与主观观感仍须用户验收。
+probe3已通过真实launcher `enter_app/go_home`链、39次设置预览、九款全屏/AOD、跨分钟、sleep/wake与RADAR70秒，约283秒到达DONE，无监测fault。9216B配置下实际最低可用栈2952B；开机内部RAM最低73451B。独立看门狗从`taskLVGL`句柄采样，IDF单位为字节，避免在绘制回调打印。发布CI已成功，精确发布ELF再次确认四个helper均288B、唯一2084B BSS及9216B任务栈，且无probe驱动符号。精确公开包USB安装后普通生产固件观察70.0955秒无fault，新鲜元数据为seq44/ota_1 VALID(2)、seq43/ota_0 VALID(2)，两CRC有效；启动可用栈3256B与内部RAM最低73435B属于该启动观察，不替代probe3完整轮测最低值。分区表、引导器、原数据及beta.35恢复槽校验保持，见[组合验证记录](./PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。本轮未测网络OTA或失败自动回滚；触摸、主观观感与扬声器仍须用户验收。
 
 下文为既有21款的历史实现及验证证据。
 

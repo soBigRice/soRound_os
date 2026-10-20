@@ -2360,7 +2360,7 @@ beta.36 Release（ID418072033）已转draft并标记WITHDRAWN；Git标签保留�
 
 ## 2026-10-20 beta.37组合修复与验证
 
-用户随后要求木鱼、新表盘、星座合测并正常发版，又明确“直接烧录”。本节记录已完成的新表盘候选与启动选择证据；当前为本地probe验证，尚未发布beta.37。应用烧录保留原有用户数据和文件区，不迁移分区、不写引导器；可手工选择的beta.35恢复槽继续保留。probe2已完成但设置预览栈余量不足，追加9216B余量保护后的probe3待实测，之后再补最终构建身份和发布状态。
+用户随后要求木鱼、新表盘、星座合测并正常发版，又明确“直接烧录”。本节记录本地probe、公开beta.37及授权应用安装的分层证据：probe3已完成，beta.37已发布，精确CI发布包USB写入ota_1后，70秒普通生产固件启动观察和新鲜VALID读回均通过。应用烧录保留原有用户数据和文件区，不迁移分区、不写引导器；可手工选择的beta.35恢复槽继续保留。
 
 `watchface_studio_draw.c`提供唯一2084B BSS符号`g_wfs_draw_scratch`，将`px/py/xs`各96个float和466个uint16覆盖率元素移出深层绘制栈。poly/ring在单一`taskLVGL`、非重入契约下复用，逐行清零逻辑、像素采样、透明度、路径、刷新率均保持；不新增逐primitive堆分配，不修改旧21款，不关闭看门狗。scratch单变量验证阶段沿用7168B任务栈；后续依据实测追加的9216B余量保护单独记录在下文。RADAR的网格/刻度/扫线/余辉进入poly，背景/圆环/圆点进入ring，事故所涉路径全部覆盖。
 
@@ -2372,7 +2372,7 @@ probe1为本地带验证驱动的`v1.7-beta.37-probe`，应用SHA256 `27ce2a0564
 
 probe1运行数分钟后的新鲜`probe2-otadata-before.bin`读回seq38已经VALID(2)，seq37仍VALID，两CRC均正确，实证NEW经实际运行后完成健康确认。观察器等待16秒再接USB，保存的完整启动日志前先出现残缺镜像行及`USB_UART_CHIP_RESET`；其后的`startup OTA action=0`属于已确认后的再次启动，不能反推现场引导器不支持确认，也没有捕获首次确认日志。现场前32KiB引导区与2026-10-13完整备份逐字节一致，SHA256 `1cf6541427bfd82884129a295a893f80a87bc200bb349d909fdbb86cb624b201`；未为此刷新本地新编的引导器。
 
-本轮没有注入首启失败或执行失败自动回滚测试；NEW→VALID实证不能扩大为本轮回滚成功。公开版本仍为beta.35，beta.36保持撤回。完整Flash、NVS、原始网络日志及设备私有恢复资料只保存在忽略的`build/flash-records/`，不进入Git或公开发布包。
+本轮没有注入首启失败或执行失败自动回滚测试；probe1的NEW→VALID实证不能扩大为本轮回滚成功，也不能代替最终发布包的新鲜读回。上述probe阶段公开版本为beta.35，之后beta.37已发布，beta.36继续撤回。完整Flash、NVS、原始网络日志及设备私有恢复资料只保存在忽略的`build/flash-records/`，不进入Git或公开发布包。
 
 ### probe2结果与生产栈余量
 
@@ -2380,7 +2380,7 @@ probe2已完成287.6秒轮测并到达DONE，无fault：全屏21–29、设置�
 
 同轮白羊请求5次均HTTP200、响应1525B、`ready=1/waiting=0`，日期分别为接口`20261020`和显示`10月20日`。这是该现场请求链的结果，不扩展为所有星座/日期/失败恢复场景已经验收；其他联网与木鱼检查由对应模块记录。
 
-依据该实测，最终候选在`display.c`显式设`port_cfg.task_stack=9216`，比原7168B多2048B内部RAM；这是scratch修复后的独立生产余量保护，不以加栈反向证明原事故首次坏写原因。IDF本端`StackType_t`为uint8，参数按字节分配，新增成本是2KiB；协处理器保存区仍在该任务栈内，不再从HWM重复扣除。画质、频率、scratch、优先级5、core1亲和性与看门狗保持。9216B下的最低可用栈须重新实测，不能把424+2048写成设备结果。
+依据该实测，beta.37在`display.c`显式设`port_cfg.task_stack=9216`，比原7168B多2048B内部RAM；这是scratch修复后的独立生产余量保护，不以加栈反向证明原事故首次坏写原因。IDF本端`StackType_t`为uint8，参数按字节分配，新增成本是2KiB；协处理器保存区仍在该任务栈内，不再从HWM重复扣除。画质、频率、scratch、优先级5、core1亲和性与看门狗保持。9216B下的最低可用栈随后由probe3重新实测，不把424+2048写成设备结果。
 
 ### probe3：最终9216B配置实机通过
 
@@ -2388,8 +2388,22 @@ probe2已完成287.6秒轮测并到达DONE，无fault：全屏21–29、设置�
 
 同轮实际白羊页面五次均HTTP200/1525B，`ready=1/waiting=0`，设备请求日20261020与返回10月20日一致。原历史“获取失败”未复现；没有据此发明服务、日期或内存根因。worker新增同次日志/失败分类及掉线误诊回归，现有提供方、严格校验、超时、重试和UI保持。木鱼设备驱动只启动视觉反馈，不增功德或播放声音；真实触摸、主观观感与扬声器音色仍待用户验收。另未执行网络OTA和失败自动回滚。
 
-最终生产源码与隔离构建所有已跟踪main文件逐字节相同，验证驱动/导出入口已移除，ELF无`device_probe`符号。本地生产候选为5,218,816B、SHA256 `408748cee54a610ee3709ac74c4940fd5b99a3d0c92fb4abc3a7372124c67937`，ELF SHA256 `818f99fc80e42a40b6b0ad3600feaed42d26177b70bbf1842cae1b1084e9daa0`；四个poly/ring符号均288B，唯一scratch仍2,084B，`display_init`实码确认9,216B。发布必须安装CI公开的精确原包，不能把本地probe或候选摘要当作发布包摘要。
+最终生产源码与隔离构建所有已跟踪main文件逐字节相同，验证驱动/导出入口已移除，ELF无`device_probe`符号。CI前本地生产候选为5,218,816B、SHA256 `408748cee54a610ee3709ac74c4940fd5b99a3d0c92fb4abc3a7372124c67937`，ELF SHA256 `818f99fc80e42a40b6b0ad3600feaed42d26177b70bbf1842cae1b1084e9daa0`；四个poly/ring符号均288B，唯一scratch仍2,084B，`display_init`实码确认9,216B。该本地构建与下述精确CI发布包分开记录，不能互换摘要。
 
-最终本地主机53项、生态箱/专注2项、媒体ASan/UBSan与镜像14项均通过。小型回执在忽略的`build/flash-records/beta37-validation-20261020/{probe3-summary,production-source-check,production-target-stack,local-production-build}.json`。CI发布、公开完整包/Range及精确发布包USB安装核验待完成；beta.36仍撤回，正式v1.7保持。
+最终本地主机53项、生态箱/专注2项、媒体ASan/UBSan与镜像14项均通过。小型回执在忽略的`build/flash-records/beta37-validation-20261020/{probe3-summary,production-source-check,production-target-stack,local-production-build}.json`；后续CI与分发结果如下，beta.36仍撤回，正式v1.7保持。
+
+### beta.37精确CI发布与分发
+
+源码`e6876ac431cc8ae706b969acd51bbe02d05ffaa0`，annotated tag对象`38ae004a3485c715c21e92e607abfcad557cfb86`；标签[CI39441675606](https://github.com/soBigRice/soRound_os/actions/runs/39441675606)已success。[beta.37 Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37)为公开版本，Release ID418518170、应用资产ID659604713。CI精确应用5,218,864B，SHA256 `39c6c480753511908b2fd4871269d3721a6cc975072bcc3591e8ebb262136733`；精确ELF SHA256 `e4e1c13978f793046cb1882b93fbbf54b33f01f599abf996666919e2904e5396`。
+
+CI归档artifact12273757704为14,640,825B，官方SHA256 `38b13079f6697d8cc67b649e9520944a813c1762a9511b5f975fa044161e2569`。`gh`完整归档下载55秒超时后丢弃部分文件，改用官方签名URL进行28段If-Match Range完整下载，重组长度与官方摘要通过，再提取精确bin/ELF/map/sdkconfig/依赖锁。依赖锁与实测构建逐字节一致；精确发布ELF中四个poly/ring符号均288B、仅一个2084B BSS工作区，实码确认9216B任务栈且没有`device_probe`符号。证据分别在同私有目录`release-ci.json`、`release-target-stack.json`。
+
+R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitHub资产声明一致；强ETag下条件Range均返回准确206切片。两处正式完整包仍4,149,792B/v1.7，SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`不变；分发回执为`release-distribution.json`。发布与probe3的设备结果分别成立，不把发布成功或静态ELF检查替代最终安装观察。
+
+### 精确发布包USB安装与运行确认
+
+按用户授权，将上述精确CI公开原包仅写入ota_1应用，物理MD5通过；安装回执为`release37-install.json`。普通生产固件随后观察70.0955秒，无fault且没有probe phase，应用版本为`v1.7-beta.37`，startup core/check均OK、首帧DMA `completed=1`、心跳9次；启动LVGL可用栈3256B，内部RAM最低73435B。该观察与probe3的完整轮测分开记录，启动余量不替代完整层级最低值，回执为`release37-boot-summary.json`。
+
+`verify_device`随后新鲜读取otadata：seq44/ota_1 VALID(2)、seq43/ota_0 VALID(2)，两CRC有效；精确CI包的设备物理MD5匹配。引导器、分区表、beta.35整个恢复槽、storage整个文件区均与备份完全相同；NVS与安装前及本轮最初完整备份的`nvs-before.bin`均逐字节一致，原始设置全程保持。校验过程零Flash写入，结束时通过watchdog reset回到普通固件，串口已关闭；私有32MiB完整备份保留。结果为`release37-device-verification.json`，这些是最终发布包自身的结果，不继承probe的确认状态。本轮仍未测网络OTA、失败自动回滚或用户主观/触摸/扬声器验收；历史星座获取失败原因未复现。
 
 防复发检查保留在直接调用链：新增/调整绘制helper时，核对最终目标ELF栈帧、完整对象递归与保存区，再用同格式像素对照、40行交换字节双缓冲及完整设置层级回归；实际诊断从独立看门狗取得`taskLVGL`句柄后读历史最低可用栈，IDF单位为字节。堆内存快照、host大栈测试及每函数数字均不能单独证明设备绘制栈安全。
