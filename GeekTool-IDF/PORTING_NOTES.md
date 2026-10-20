@@ -2335,6 +2335,6 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 
 [Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.36)于2026-10-20T06:24:23Z发布，为非draft的prerelease。发布应用5,220,144B，双8MiB槽余3,168,464B；GitHub资产声明SHA256为`9ce8abe287ed30b10cd4449f72cd9a020428b235d2a18d506fb14e798e9e320a`。R2与国内beta完整包均经生产镜像校验器核实ESP32-S3/GeekTool/v1.7-beta.36、段边界、XOR和内嵌SHA，与资产摘要一致；强ETag加If-Match / bytes=1024–2047均返回准确206切片，Cache-Control含no-store。两处stable完整包仍为4,149,792B/v1.7，SHA256`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`，与发布前逐字节一致。
 
-准确发布bin及SHA保留在`build/releases/v1.7-beta.36/`，小型测试、源码/tag、CI、分发回执在`build/flash-records/beta36-release-20261020/`；对应bin/ELF/map/config/依赖锁由既有Actions产物保留7天。官网本地中英30款及320/390px布局检查通过；第一轮Pages39379016381成功，公开英文30款已实际切换并查看STUDIO原生图。最终beta版本快照和中英文公开HTML在文档推送部署后核验。没有USB/串口/BLE访问或设备写入；没有把静态每函数栈分析当成真机高水位或功耗测试。
+准确发布bin及SHA保留在`build/releases/v1.7-beta.36/`，小型测试、源码/tag、CI、分发回执在`build/flash-records/beta36-release-20261020/`；对应bin/ELF/map/config/依赖锁由既有Actions产物保留7天。官网本地中英30款及320/390px布局检查通过；第一轮Pages39379016381成功，公开英文30款已实际切换并查看STUDIO原生图。中英文README及`site/releases.json`已通过`a9e5d0d`同步beta.36；[Pages39380478373](https://github.com/soBigRice/soRound_os/actions/runs/39380478373)为completed/success。公开中文与英文完整HTML、CSS/JS及15张HAND/STUDIO独立PNG均HTTP200，与本地发布输出逐字节一致；两种语言均显示beta.36、保留正式v1.7和五组目录。验证见同目录`website-verification.json`。没有USB/串口/BLE访问或设备写入；没有把静态每函数栈分析当成真机高水位或功耗测试。
 
 本轮GitHub侧使用官方资产API的摘要声明，未将本机Github CDN完整下载当作已验证。公网核验工具默认Python User-Agent曾返回403，改用显式`soRound-release-verifier/1.0`后两入口206及完整包通过；此为请求条件差异，不归因于固件内容。
