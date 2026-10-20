@@ -2407,3 +2407,9 @@ R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitH
 `verify_device`随后新鲜读取otadata：seq44/ota_1 VALID(2)、seq43/ota_0 VALID(2)，两CRC有效；精确CI包的设备物理MD5匹配。引导器、分区表、beta.35整个恢复槽、storage整个文件区均与备份完全相同；NVS与安装前及本轮最初完整备份的`nvs-before.bin`均逐字节一致，原始设置全程保持。校验过程零Flash写入，结束时通过watchdog reset回到普通固件，串口已关闭；私有32MiB完整备份保留。结果为`release37-device-verification.json`，这些是最终发布包自身的结果，不继承probe的确认状态。本轮仍未测网络OTA、失败自动回滚或用户主观/触摸/扬声器验收；历史星座获取失败原因未复现。
 
 防复发检查保留在直接调用链：新增/调整绘制helper时，核对最终目标ELF栈帧、完整对象递归与保存区，再用同格式像素对照、40行交换字节双缓冲及完整设置层级回归；实际诊断从独立看门狗取得`taskLVGL`句柄后读历史最低可用栈，IDF单位为字节。堆内存快照、host大栈测试及每函数数字均不能单独证明设备绘制栈安全。
+
+### 官网与清理收束
+
+官网源提交`d454fc6f5f9ceb047080bc6c1d825df700b33c7c`的[Pages39444330179](https://github.com/soBigRice/soRound_os/actions/runs/39444330179)已completed/success。公开中英文完整HTML、CSS/JS、首末STUDIO原生图及旧TYPE合辑均HTTP200，与最终本地构建逐字节一致；五组30款入口启用、beta.37链接正确。回执为`website-verification.json`；本轮没有宣称实际浏览器点击或用户主观验收。
+
+已移除本轮隔离构建/依赖副本、重复probe应用/ELF/map、生成网页与目标Python缓存；串口、测试和构建进程均已退出。保留私有32MiB完整恢复备份、小型回执、精确公开应用及其ELF/map/config/依赖锁，便于后续定位。清理回执为`cleanup.json`；用户原有未跟踪图标设计/生成器未纳入提交或清理。源码仍为`e6876ac`，后续只更新文档与官网。
