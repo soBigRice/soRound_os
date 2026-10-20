@@ -2325,8 +2325,16 @@ R2、国内beta完整下载的大小、版本和SHA均与上述资产声明一�
 本轮没有设备USB/串口、烧录或分区迁移，也未继续修补或真实重试ATT链路。蓝牙三键仍为标准HID；封面/文字的ATT超时、歌词仅本地LRC、录音分区未初始化等限制均在发布说明中保留。发布与代码自动验证不代替真机验收。
 
 
-## 2026-10-20 v1.7-beta.36 九款STUDIO（发布候选）
+## 2026-10-20 v1.7-beta.36 九款STUDIO发布
 
 用户确认全部九款并要求按原稿高还原、保留原21款和正常测试发版；本轮明确不烧录。旧ID 0–20、NVS格式、锁/解锁、常显/隐藏生命周期不变，新增21–29和第五组STUDIO。字体、基线、字距、透明度与描边以获批SVG为对照，原生输出及固有栅格差异见[审图](artwork/watchfaces/studio-native/README.md)，真实调用链和防复发检查见[表盘说明](WATCHFACES_UI.md)。不增加分区、传感器或联网能力。
 
-本地ESP-IDF6.0.1 / LVGL9.5.0构建成功，应用5,186,240B；GCC15主机50项、生态箱/专注2项、媒体解析ASan/UBSan及镜像14项通过。首次回归发现启动图片判断未限制旧15款，新增29被错误当作图片；已限定旧ID并增加19/24/29恢复测试。HORIZON原稿只含时分，按分钟刷新而不引入新秒动效。字体检查核实resolved_font，防止数字/冒号被fallback掩盖。九款正常/常显及中英文设置已原生审图，官网中英文30款切换和390px无横向溢出已检查。以上不等于真机功耗/性能或用户审美验收；无设备访问、写入或迁移。最终CI与分发结果待发布后在本节续记。
+本地ESP-IDF6.0.1 / LVGL9.5.0构建成功，应用5,186,240B；GCC15主机50项、生态箱/专注2项、媒体解析ASan/UBSan及镜像14项通过。首次回归发现启动图片判断未限制旧15款，新增29被错误当作图片；已限定旧ID并增加19/24/29恢复测试。HORIZON原稿只含时分，按分钟刷新而不引入新秒动效。字体检查核实resolved_font，防止数字/冒号被fallback掩盖。九款正常/常显及中英文设置已原生审图，官网中英文30款切换和390px无横向溢出已检查。以上不等于真机功耗/性能或用户审美验收；无设备访问、写入或迁移。最终CI与分发核验如下。
+
+源码`441be7c3b25cd3c535c33713d96c65db50a7a8c4`；annotated tag对象`79b41aa53019a6ce3b11181a74e7050ff1877d7f`精确指向该源码。本机GitHub HTTPS连接超时，沿用官方Git数据库API传输，78个blob、root tree、commit及tag均与本地SHA一致，main仅作非强制fast-forward；未改发布工作流或Git身份。手动候选[39379055335](https://github.com/soBigRice/soRound_os/actions/runs/39379055335)与标签发布[39379661989](https://github.com/soBigRice/soRound_os/actions/runs/39379661989)均completed/success。实际发布依赖ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0、CO5300 2.2.0；标签日志再次确认50+2项、媒体ASan/UBSan和镜像14项通过。
+
+[Release](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.36)于2026-10-20T06:24:23Z发布，为非draft的prerelease。发布应用5,220,144B，双8MiB槽余3,168,464B；GitHub资产声明SHA256为`9ce8abe287ed30b10cd4449f72cd9a020428b235d2a18d506fb14e798e9e320a`。R2与国内beta完整包均经生产镜像校验器核实ESP32-S3/GeekTool/v1.7-beta.36、段边界、XOR和内嵌SHA，与资产摘要一致；强ETag加If-Match / bytes=1024–2047均返回准确206切片，Cache-Control含no-store。两处stable完整包仍为4,149,792B/v1.7，SHA256`5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`，与发布前逐字节一致。
+
+准确发布bin及SHA保留在`build/releases/v1.7-beta.36/`，小型测试、源码/tag、CI、分发回执在`build/flash-records/beta36-release-20261020/`；对应bin/ELF/map/config/依赖锁由既有Actions产物保留7天。官网本地中英30款及320/390px布局检查通过；第一轮Pages39379016381成功，公开英文30款已实际切换并查看STUDIO原生图。最终beta版本快照和中英文公开HTML在文档推送部署后核验。没有USB/串口/BLE访问或设备写入；没有把静态每函数栈分析当成真机高水位或功耗测试。
+
+本轮GitHub侧使用官方资产API的摘要声明，未将本机Github CDN完整下载当作已验证。公网核验工具默认Python User-Agent曾返回403，改用显式`soRound-release-verifier/1.0`后两入口206及完整包通过；此为请求条件差异，不归因于固件内容。

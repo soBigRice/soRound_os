@@ -9,7 +9,14 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35) 已发布至内测通道。**
+**[v1.7-beta.36](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.36) 已发布至内测通道。**
+追加雷达、磁带、光圈、迷宫秒、翻页、像素夜营、地平线、潮汐和年轮九款STUDIO表盘，保留原21款与保存的选择，共30款。
+按获批原稿还原字体、位置、色彩、透明度与曲线；[466×466原生正常/常显对照](GeekTool-IDF/artwork/watchfaces/studio-native/README.md)可直接审阅。浏览器与LVGL仍有固有栅格差异，真机显示和功耗待验收。
+本地及发布依赖构建、50项主机回归、2项配套功能、媒体ASan/UBSan和14项镜像检查通过。
+发布包5,220,144B，R2及国内完整包与GitHub资产摘要一致，两处条件Range核验通过，正式包仍为v1.7且字节未变。
+本轮没有访问或烧录设备，没有迁移分区；双8MiB应用槽要求及封面/歌词/录音限制保持，见[本版说明](GeekTool-IDF/RELEASE_NOTES.md)和[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-20-v17-beta36-九款studio发布)。
+
+**此前：[v1.7-beta.35](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.35) 已发布至内测通道。**
 修复新App启动器名称方块字，音乐三键改为正中放大的透明播放键与左右切歌键，保留标准BLE HID控制。
 Mac桥接修复封面误清和已连接设备漏检；实际封面传输仍有ATT失败，歌词目前仅支持本地LRC。
 录音分区仍需另行初始化，本次应用OTA不会迁移存储。手动CI构建和全部门禁通过；5,068,848B发布包在R2、国内完整下载与GitHub资产摘要一致，两处条件Range核验通过，正式通道仍为v1.7。
@@ -32,12 +39,12 @@ GitHub故障期间标签运行状态可能延迟回写，发布与包校验分�
 新内测应用镜像4,185,936B，需要双4MiB OTA槽；真机触摸、IMU手感与升级重启仍待验收，见[发布记录](GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)。
 
 **2026-10-08：[v1.7 正式版](https://github.com/soBigRice/soRound_os/releases/tag/v1.7) 已发布。**
-当时正式与内测OTA通道同时更新至v1.7；内测现已更新为上述beta.34。v1.7生产代码与beta.31一致；beta.30保持撤回。
+当时正式与内测OTA通道同时更新至v1.7；内测现已更新为上述beta.36。v1.7生产代码与beta.31一致；beta.30保持撤回。
 设置首页滚动、七个独立设置项、居中表盘预览、圆环红点Logo和关于本机已纳入正式版。
 启动动画至少4秒；完成公共初始化、核心检查与表盘实际刷新后才确认新OTA固件有效，核心失败且可回退时回滚。
 联网检查失败记录并提示，允许离线启动；天气、答案之书、星座与OTA保留联网恢复修正。
 
-当前仓库 `main` 包含 `v1.7-beta.34` 新功能及 `v1.7` 正式实现，主线开发请使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
+当前仓库 `main` 包含 `v1.7-beta.36` 新功能及 `v1.7` 正式实现，主线开发请使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
 v1.7正式发布时，本地34组回归和发布CI的9组启动检查通过；当时正式依赖候选的表盘、解锁、设置已由用户确认。
 本轮未访问设备，不能以本版CI替代真实OTA升级、软件重启和首启验收，原beta.30白屏触发点尚未复现。
 
@@ -116,13 +123,13 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 | `.github/workflows/firmware.yml` | Tag 构建、GitHub Release 和 R2 上传 | 发布流程 |
 | `.github/workflows/pages.yml` | 官网构建和 GitHub Pages 部署 | 网站发布 |
 
-官网本地预览、十九个应用 UI、十五款表盘交互、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
+官网本地预览、十九个应用 UI、三十款表盘交互、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
-TYPE / ORBIT / SHIFT与新增HAND共二十一款锁屏表盘、真实缩略图、默认/自定义背景和常显状态见
+TYPE / ORBIT / SHIFT / HAND / STUDIO共三十款锁屏表盘、真实缩略图、默认/自定义背景和常显状态见
 [锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。新增六款已完成原生检查；内测发布见
 [beta.32记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)，真机效果待验收。
 流体当前仅保留原粒子（2026-10-13按用户卡顿反馈移除染料）和三章十二个固定迷宫关卡见[小游戏实现](./GeekTool-IDF/PLAY_UI.md)。
