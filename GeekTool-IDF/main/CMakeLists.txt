@@ -5,7 +5,7 @@ idf_component_register(
          "weather_ui.c" "weather_artwork.c" "font_weather_16.c" "font_weather_20.c"
          "weather_data.c" "weather_details.c" "font_weather_details.c"
          "weather_locations.c" "weather_locations_data.c" "weather_location_ui.c" "font_location_24.c"
-         "settings.c" "app_settings.c" "app_ota.c" "ota_update.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
+         "settings.c" "ui_persistence.c" "app_settings.c" "app_watchfaces.c" "watchface_picker.c" "app_ota.c" "ota_update.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
          "img_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "maze_levels.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c" "font_coin.c"
          "ble_twin.c" "app_twin.c" "ble_core.c" "ble_hid.c" "app_mouse.c"

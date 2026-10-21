@@ -37,7 +37,7 @@ static lv_obj_t *focus_button(lv_obj_t *p, int x, int y, int size, const char *s
     lv_label_set_text(label, symbol); lv_obj_center(label); lv_obj_add_event_cb(o, cb, LV_EVENT_CLICKED, NULL); return label;
 }
 static void focus_save_preferences(void) {
-    if (s_preferences_dirty && focus_preferences_save(&s_preferences)) s_preferences_dirty = false;
+    if (s_preferences_dirty && focus_preferences_save_async(&s_preferences)) s_preferences_dirty = false;
     s_preferences_saved_at = lv_tick_get();
 }
 static void focus_sync_audio(void) {
@@ -116,6 +116,11 @@ static void focus_tick(void) {
     if (!g_timer) return;
     focus_finish_if_due();
     uint32_t now = lv_tick_get();
+    // 只读查询后台完成状态，及时更新提示；不能因为dirty已清除而永远错过成功。
+    // Poll durability without re-enqueuing, so a cleared dirty flag cannot hide a successful completion forever.
+    if(s_preferences_dirty && focus_preferences_saved(&s_preferences))s_preferences_dirty=false;
+    if(!s_completion_saved && s_focus.phase==FOCUS_DONE && garden_shared_ready() &&
+       garden_shared_state()->last_focus_id>=s_focus.session_id && !garden_shared_dirty())s_completion_saved=true;
     if (garden_shared_dirty() && now - s_saved_at >= 10000) {
         s_completion_saved = garden_shared_save(); s_saved_at = now;
     }

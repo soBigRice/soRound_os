@@ -14,8 +14,9 @@ lv_obj_t *tools_surface(lv_obj_t *parent, int x, int y, int w, int h) {
 
 void tools_label_center(lv_obj_t *label, int cx, int cy) {
     lv_obj_update_layout(label);
-    // Launcher labels previously use TOP_MID; set_pos otherwise remains an aligned offset.
-    lv_obj_set_align(label, LV_ALIGN_TOP_LEFT);
+    // 启动器标题可能继承TOP_MID；只在对齐改变时设样式，避免每次定位都使标签失效。
+    // Launcher labels can inherit TOP_MID; change alignment only when needed to avoid redundant invalidation.
+    if(lv_obj_get_style_align(label,0)!=LV_ALIGN_TOP_LEFT)lv_obj_set_align(label, LV_ALIGN_TOP_LEFT);
     lv_obj_set_pos(label, cx - lv_obj_get_width(label) / 2, cy - lv_obj_get_height(label) / 2);
 }
 

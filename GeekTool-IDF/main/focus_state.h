@@ -19,3 +19,6 @@ int64_t focus_state_remaining_us(const focus_state_t *s, int64_t now_us);
 bool focus_state_take_completion(focus_state_t *s);
 bool focus_preferences_load(focus_preferences_t *out);
 bool focus_preferences_save(const focus_preferences_t *preferences);
+// true仅在该副本落盘后返回；false保留待保存状态。 / True only when this snapshot is durable; false keeps it pending.
+bool focus_preferences_save_async(const focus_preferences_t *preferences);
+bool focus_preferences_saved(const focus_preferences_t *preferences);

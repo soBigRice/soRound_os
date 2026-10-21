@@ -9,12 +9,39 @@
 typedef struct {lv_layer_t *layer;int x,y,size;bool preview;} wfs_draw_t;
 typedef struct {float x,y;} wfs_point_t;
 typedef struct {
+    wfs_point_t iris[8][36],growth[12][121];
+    uint16_t iris_ready,growth_ready;
+} wfs_geometry_t;
+wfs_geometry_t *wfs_geometry_cache(void);
+void wfs_geometry_release(void);
+typedef struct {
     float px[96],py[96],xs[96];
     uint16_t coverage[466];
 } wfs_draw_scratch_t;
 // 工作区只在唯一taskLVGL线程的非重入STUDIO绘制中借用；同步软件后端不会回调STUDIO。
 // Borrow this workspace only during non-reentrant STUDIO drawing on taskLVGL; the synchronous software backend never calls STUDIO.
 extern wfs_draw_scratch_t g_wfs_draw_scratch;
+typedef struct {int16_t x1,x2,y1,y2;lv_opa_t opacity;} wfs_span_t;
+extern wfs_span_t g_wfs_spans[4];
+static inline void wfs_spans_begin(void){for(unsigned i=0;i<4;i++)g_wfs_spans[i].y2=-1;}
+static inline void wfs_span_flush(const wfs_draw_t *d,lv_draw_rect_dsc_t *rect,wfs_span_t *span){
+    if(span->y2<0)return;
+    rect->bg_opa=span->opacity;lv_area_t area={d->x+span->x1,d->y+span->y1,d->x+span->x2,d->y+span->y2};lv_draw_rect(d->layer,rect,&area);span->y2=-1;
+}
+static inline void wfs_span(const wfs_draw_t *d,lv_draw_rect_dsc_t *rect,int x1,int x2,int y,lv_opa_t opacity){
+    if(!opacity)return;
+    unsigned oldest=0;
+    for(unsigned i=0;i<4;i++){
+        wfs_span_t *span=&g_wfs_spans[i];
+        if(span->y2>=0 && span->y2==y-1 && span->x1==x1 && span->x2==x2 && span->opacity==opacity){span->y2=(int16_t)y;return;}
+        if(span->y2<g_wfs_spans[oldest].y2)oldest=i;
+    }
+    // 同一原语内互不相交的等色行可合并为矩形；四个槽满时先提交最旧项，不改变叠层顺序。
+    // Merge disjoint equal-color rows within one primitive; flush the oldest of four bounded slots without reordering primitives.
+    wfs_span_t *span=&g_wfs_spans[oldest];wfs_span_flush(d,rect,span);
+    *span=(wfs_span_t){(int16_t)x1,(int16_t)x2,(int16_t)y,(int16_t)y,opacity};
+}
+static inline void wfs_spans_end(const wfs_draw_t *d,lv_draw_rect_dsc_t *rect){for(unsigned i=0;i<4;i++)wfs_span_flush(d,rect,&g_wfs_spans[i]);}
 #include "watchface_studio_fonts.h"
 static inline void wfs_bar_opa(const wfs_draw_t*,float,float,float,float,float,uint32_t,float);
 static inline void wfs_line_opa(const wfs_draw_t*,float,float,float,float,float,uint32_t,float);
@@ -72,8 +99,19 @@ static inline void wfs_label(const wfs_draw_t *d,const char *value,float x,float
     for(unsigned i=0;i<length;){unsigned bytes;unsigned code=wfs_codepoint(normalized+i,&bytes);total+=wfs_glyph_advance(font,code)+gap;i+=bytes;}
     float left=d->x+x*scale-total*.5f,advance=0;int top=d->y+wfs_scaled(d,baseline)-font->line_height+font->base_line;
     for(unsigned i=0;i<length;){unsigned bytes;unsigned code=wfs_codepoint(normalized+i,&bytes);char glyph[3]={0};memcpy(glyph,normalized+i,bytes);
-        lv_draw_label_dsc_t label;lv_draw_label_dsc_init(&label);label.font=font;label.text=glyph;label.text_local=1;label.color=lv_color_hex(color);
-        int px=(int)lroundf(left+advance);lv_area_t area={px,top,px+font->line_height*2,top+font->line_height-1};lv_draw_label(d->layer,&label,&area);
+        int px=(int)lroundf(left+advance);lv_font_glyph_dsc_t metrics={0};
+        // 用真实字形墨迹边界裁剪，保留原始字距；块外字符不申请绘制任务或复制文字。
+        // Cull by actual glyph ink bounds without changing advances, avoiding tasks/text copies outside this tile.
+        bool visible=true;
+        if(lv_font_get_glyph_dsc(font,&metrics,code,0)){
+            int ink_x=px+metrics.ofs_x,ink_y=top+font->line_height-font->base_line-metrics.box_h-metrics.ofs_y;
+            const lv_area_t *clip=&d->layer->_clip_area;
+            visible=metrics.box_w && metrics.box_h && ink_x<=clip->x2 && ink_x+metrics.box_w-1>=clip->x1 && ink_y<=clip->y2 && ink_y+metrics.box_h-1>=clip->y1;
+        }
+        if(visible){
+            lv_draw_label_dsc_t label;lv_draw_label_dsc_init(&label);label.font=font;label.text=glyph;label.text_local=1;label.color=lv_color_hex(color);
+            lv_area_t area={px,top,px+font->line_height*2,top+font->line_height-1};lv_draw_label(d->layer,&label,&area);
+        }
         advance+=wfs_glyph_advance(font,code)+gap;i+=bytes;
     }
 }
@@ -86,21 +124,28 @@ static inline void wfs_date(const watchface_data_t *data,char *buffer,size_t siz
 }
 static inline void wfs_aod(const wfs_draw_t *d,const watchface_data_t *data,const char *name){
     static const char *const months[]={"JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"};
-    char value[32];wfs_disc(d,233,233,233,0x070908);wfs_text(d,name,233,174,13,0x4f554b,3);wfs_time(data,value,sizeof value);wfs_text(d,value,233,265,86,0x9a9d91,0);
+    char value[32];wfs_text(d,name,233,174,13,0x4f554b,3);wfs_time(data,value,sizeof value);wfs_text(d,value,233,265,86,0x9a9d91,0);
     wfs_line(d,183,294,283,294,1,0x373c33);snprintf(value,sizeof value,"%02d %s",data->time.tm_mday,months[LV_CLAMP(0,data->time.tm_mon,11)]);wfs_text(d,value,233,323,15,0x60685c,0);
 }
 static inline void wfs_poly_opa(const wfs_draw_t *d,const wfs_point_t *points,int count,uint32_t color,float opacity){
     // 仅466px正屏/233px预览：有界行缓冲和四次边缘采样，不申请全屏画布。 / Bound scratch space to the 466/233px surfaces; four edge samples, no full-frame canvas.
     if(count<3||count>96||d->size<1||d->size>466)return;
     float *px=g_wfs_draw_scratch.px,*py=g_wfs_draw_scratch.py;
-    float top=466,bottom=0,scale=d->size/466.0f;
-    for(int i=0;i<count;i++){px[i]=points[i].x*scale-.5f;py[i]=points[i].y*scale-.5f;top=fminf(top,py[i]);bottom=fmaxf(bottom,py[i]);}
+    float top=466,bottom=0,min_x=466,max_x=0,scale=d->size/466.0f;
+    for(int i=0;i<count;i++){px[i]=points[i].x*scale-.5f;py[i]=points[i].y*scale-.5f;top=fminf(top,py[i]);bottom=fmaxf(bottom,py[i]);min_x=fminf(min_x,px[i]);max_x=fmaxf(max_x,px[i]);}
+    // 半像素覆盖率仍用四次采样；只清空/扫描图形与当前块相交的列。
+    // Keep four half-pixel coverage samples; clear/scan only columns intersecting the shape and current tile.
+    int left=LV_MAX(LV_MAX(0,d->layer->_clip_area.x1-d->x),(int)floorf(min_x)-1);
+    int right=LV_MIN(LV_MIN(d->size-1,d->layer->_clip_area.x2-d->x),(int)ceilf(max_x)+1);
+    if(left>right)return;
+    float opacity_scale=fminf(1,fmaxf(0,opacity));
+    wfs_spans_begin();
     lv_draw_rect_dsc_t rect;lv_draw_rect_dsc_init(&rect);rect.bg_color=lv_color_hex(color);
     float center=d->size*.5f-.5f,radius=232*scale;
     // 只扫描当前DMA分块可见行，像素和覆盖率不变。 / Rasterize only the current DMA tile without changing pixel coverage.
     int clip_top=LV_MAX(0,d->layer->_clip_area.y1-d->y),clip_bottom=LV_MIN(d->size-1,d->layer->_clip_area.y2-d->y);
     for(int y=LV_MAX(clip_top,(int)floorf(top));y<=LV_MIN(clip_bottom,(int)ceilf(bottom));y++){
-        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage,0,sizeof g_wfs_draw_scratch.coverage);
+        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage+left,0,(size_t)(right-left+1)*sizeof *coverage);
         for(int sample=0;sample<4;sample++){
             float sy=y-.375f+sample*.25f,dy=sy-center;if(fabsf(dy)>=radius)continue;
             float reach=sqrtf(radius*radius-dy*dy),lo=center-reach,hi=center+reach;
@@ -109,13 +154,14 @@ static inline void wfs_poly_opa(const wfs_draw_t *d,const wfs_point_t *points,in
             for(int i=1;i<n;i++){float x=xs[i];int j=i;while(j>0&&xs[j-1]>x){xs[j]=xs[j-1];j--;}xs[j]=x;}
             for(int i=0;i+1<n;i+=2){
                 float a=fmaxf(lo,xs[i]),b=fminf(hi,xs[i+1]);if(a>=b)continue;
-                int first=LV_MAX(0,(int)floorf(a+.5f)),last=LV_MIN(d->size-1,(int)floorf(b+.5f));
+                int first=LV_MAX(left,(int)floorf(a+.5f)),last=LV_MIN(right,(int)floorf(b+.5f));
                 for(int x=first;x<=last;x++){float amount=x==first||x==last?fmaxf(0,fminf(b,x+.5f)-fmaxf(a,x-.5f)):1;coverage[x]+=(uint16_t)lroundf(amount*255);}
             }
         }
-        for(int x=0;x<d->size;){unsigned alpha=(coverage[x]+2u)/4u;if(!alpha){x++;continue;}int end=x;while(end+1<d->size&&(coverage[end+1]+2u)/4u==alpha)end++;
-            rect.bg_opa=(lv_opa_t)lroundf(LV_MIN(255u,alpha)*fminf(1,fmaxf(0,opacity)));lv_area_t area={d->x+x,d->y+y,d->x+end,d->y+y};lv_draw_rect(d->layer,&rect,&area);x=end+1;}
+        for(int x=left;x<=right;){unsigned alpha=(coverage[x]+2u)/4u;if(!alpha){x++;continue;}int end=x;while(end<right&&(coverage[end+1]+2u)/4u==alpha)end++;
+            wfs_span(d,&rect,x,end,y,(lv_opa_t)lroundf(LV_MIN(255u,alpha)*opacity_scale));x=end+1;}
     }
+    wfs_spans_end(d,&rect);
 }
 
 static inline void wfs_poly(const wfs_draw_t *d,const wfs_point_t *points,int count,uint32_t color){wfs_poly_opa(d,points,count,color,1);}
@@ -136,26 +182,32 @@ static inline void wfs_line_opa(const wfs_draw_t *d,float x1,float y1,float x2,f
     wfs_ring_opa(d,x1,y1,width*.5f,0,color,opacity,true);wfs_ring_opa(d,x2,y2,width*.5f,0,color,opacity,true);
 }
 
-static inline void wfs_cov_span(uint16_t *coverage,int size,float a,float b){
+static inline void wfs_cov_span(uint16_t *coverage,int left,int right,float a,float b){
     if(a>=b)return;
-    int first=LV_MAX(0,(int)floorf(a)),last=LV_MIN(size-1,(int)floorf(b));
+    int first=LV_MAX(left,(int)floorf(a)),last=LV_MIN(right,(int)floorf(b));
     for(int x=first;x<=last;x++){float amount=x==first||x==last?fmaxf(0,fminf(b,x+1.0f)-fmaxf(a,(float)x)):1;coverage[x]+=(uint16_t)lroundf(amount*255);}
 }
 static inline void wfs_ring_opa(const wfs_draw_t *d,float x,float y,float radius,float width,uint32_t color,float opacity,bool fill){
     if(d->size<1||d->size>466||radius<=0)return;
     // SVG坐标位于像素边界，亚像素细线/小圆按真实覆盖率栅格化。 / SVG coordinates lie on pixel edges; retain true coverage for fractional strokes and discs.
     float scale=d->size/466.0f,cx=x*scale,cy=y*scale,outer=(radius+(fill?0:width*.5f))*scale,inner=fill?0:fmaxf(0,(radius-width*.5f)*scale),clip=d->size*.5f,clip_r=232*scale;
+    int left=LV_MAX(LV_MAX(0,d->layer->_clip_area.x1-d->x),(int)floorf(cx-outer)-1);
+    int right=LV_MIN(LV_MIN(d->size-1,d->layer->_clip_area.x2-d->x),(int)ceilf(cx+outer)+1);
+    if(left>right)return;
+    float opacity_scale=fminf(1,fmaxf(0,opacity));
+    wfs_spans_begin();
     lv_draw_rect_dsc_t rect;lv_draw_rect_dsc_init(&rect);rect.bg_color=lv_color_hex(color);
     int clip_top=LV_MAX(0,d->layer->_clip_area.y1-d->y),clip_bottom=LV_MIN(d->size-1,d->layer->_clip_area.y2-d->y);
     for(int row=LV_MAX(clip_top,(int)floorf(cy-outer));row<=LV_MIN(clip_bottom,(int)ceilf(cy+outer));row++){
-        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage,0,sizeof g_wfs_draw_scratch.coverage);
+        uint16_t *coverage=g_wfs_draw_scratch.coverage;memset(coverage+left,0,(size_t)(right-left+1)*sizeof *coverage);
         for(int sample=0;sample<4;sample++){
             float sy=row+.125f+sample*.25f,dy=sy-cy,clip_dy=sy-clip;if(fabsf(dy)>=outer||fabsf(clip_dy)>=clip_r)continue;
             float reach=sqrtf(outer*outer-dy*dy),clip_reach=sqrtf(clip_r*clip_r-clip_dy*clip_dy),lo=fmaxf(cx-reach,clip-clip_reach),hi=fminf(cx+reach,clip+clip_reach);
-            if(inner>0&&fabsf(dy)<inner){float hole=sqrtf(inner*inner-dy*dy);wfs_cov_span(coverage,d->size,lo,fminf(hi,cx-hole));wfs_cov_span(coverage,d->size,fmaxf(lo,cx+hole),hi);}
-            else wfs_cov_span(coverage,d->size,lo,hi);
+            if(inner>0&&fabsf(dy)<inner){float hole=sqrtf(inner*inner-dy*dy);wfs_cov_span(coverage,left,right,lo,fminf(hi,cx-hole));wfs_cov_span(coverage,left,right,fmaxf(lo,cx+hole),hi);}
+            else wfs_cov_span(coverage,left,right,lo,hi);
         }
-        for(int col=0;col<d->size;){unsigned alpha=(coverage[col]+2u)/4u;if(!alpha){col++;continue;}int end=col;while(end+1<d->size&&(coverage[end+1]+2u)/4u==alpha)end++;
-            rect.bg_opa=(lv_opa_t)lroundf(LV_MIN(255u,alpha)*fminf(1,fmaxf(0,opacity)));lv_area_t area={d->x+col,d->y+row,d->x+end,d->y+row};lv_draw_rect(d->layer,&rect,&area);col=end+1;}
+        for(int col=left;col<=right;){unsigned alpha=(coverage[col]+2u)/4u;if(!alpha){col++;continue;}int end=col;while(end<right&&(coverage[end+1]+2u)/4u==alpha)end++;
+            wfs_span(d,&rect,col,end,row,(lv_opa_t)lroundf(LV_MIN(255u,alpha)*opacity_scale));col=end+1;}
     }
+    wfs_spans_end(d,&rect);
 }

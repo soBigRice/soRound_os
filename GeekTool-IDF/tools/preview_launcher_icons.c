@@ -22,7 +22,7 @@ static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
 }
 static const char *const names[]={"WiFi","I2C","System","weather","calendar","countdown","stopwatch","settings",
                                 "ota","audio","level","maze","fluid","dice","mouse","twin","Answers","Zodiac","Merit","Pixels",
-                                "Garden","Focus","Capsules"};
+                                "Garden","Focus","Capsules","Watchfaces"};
 #define PREVIEW_ICON_COUNT (LAUNCHER_ICON_COUNT + COMPANION_ICON_COUNT)
 _Static_assert(sizeof(names)/sizeof(names[0]) == PREVIEW_ICON_COUNT, "Preview every registered icon");
 static void battery(void) {

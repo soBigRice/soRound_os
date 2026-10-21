@@ -23,6 +23,7 @@ static unsigned lock_calls;
 static unsigned confirmations,rollbacks,transfers;
 static unsigned memory_samples,memory_caps;
 static uint8_t face,language;
+static unsigned settings_saves;
 static uint32_t requested,completed;
 static lv_display_t *display;
 static uint16_t pixels[466*466];
@@ -101,6 +102,9 @@ bool rtc_sync_to_system(void){return false;}
 void settings_init(void){}
 uint8_t settings_lang(void){return language;}
 uint8_t settings_face(void){return face;}
+void settings_set_face(uint8_t value){face=value;}
+void settings_save(void){++settings_saves;}
+bool ui_persistence_flush(unsigned timeout_ms){assert(timeout_ms==2000);return true;}
 uint8_t settings_beta(void){return 1;}
 uint8_t settings_brightness(void){return 191;}
 uint8_t settings_idle_mode(void){return IDLE_AOD;}
@@ -138,7 +142,9 @@ void power_charge_govern(void){}
 void power_off(void){assert(!"Unexpected power off");}
 void buttons_init(void){}
 void buttons_reset_control(void){}
-button_event_t buttons_poll(bool visible){assert(!visible);return BUTTON_NONE;}
+// 独立App会在解锁时运行真实轮询；锁屏期间仍不能发布App控制事件。
+// Real app polling runs while unlocked; the lock screen must still suppress app controls.
+button_event_t buttons_poll(bool visible){assert(!visible || !lock_is_locked());return BUTTON_NONE;}
 void quickpanel_init(lv_obj_t *top){assert(top==lv_layer_top());}
 void quickpanel_hide(void){}
 void quickpanel_open(void){}
@@ -206,6 +212,17 @@ static void check_launcher_names(const char *dir) {
                 assert(lv_screen_active()!=home);
                 lv_obj_t *title=find_label(lv_layer_top(),tr_app_name(APPS[index]->name));require_glyphs(title);
                 assert(lv_obj_get_style_text_font(title,0)==&font_companion_24);
+                if(APPS[index]==&app_watchfaces) {
+                    // 此项链接真实App，确认入口可切换、保存并显示所选锁屏表盘。
+                    // Link the real app here and exercise selection, persistence and its lock screen.
+                    unsigned saved=settings_saves;
+                    lv_obj_t *studio=find_label(lv_screen_active(),"STUDIO");assert(studio);
+                    lv_obj_send_event(lv_obj_get_parent(studio),LV_EVENT_CLICKED,NULL);vTaskDelay(20);
+                    assert(face==21 && watchface_selected()==21 && settings_saves==saved+1);
+                    lock_set(true);vTaskDelay(100);assert(watchface_visible());
+                    lock_set(false);assert(!watchface_visible());require_glyphs(title);
+                    capture_launcher_name(dir,"app-Watchfaces");
+                }
                 go_home();assert(lv_screen_active()==home);require_glyphs(name);
             }
             // 用真实按钮/动画推进到下一项，覆盖中点换字和末尾回绕。
@@ -223,8 +240,8 @@ int main(int argc,char **argv) {
     app_main();assert(face<30 && watchface_selected()==face);
     if(face==21)assert(!strcmp(watchface_name(face),"STUDIO / radar"));
     if(face==29)assert(!strcmp(watchface_name(face),"STUDIO / growth"));
-    assert(!held && APP_COUNT==23 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
-        APPS[21]==&app_focus && APPS[22]==&app_capsules && lock_is_locked());
+    assert(!held && APP_COUNT==24 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
+        APPS[21]==&app_focus && APPS[22]==&app_capsules && APPS[23]==&app_watchfaces && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
     if(argc>3 && !strcmp(argv[3],"launcher"))

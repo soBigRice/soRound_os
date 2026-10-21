@@ -2,7 +2,7 @@
 #include "control_ui.h"
 #include "settings.h"
 #include "watchface.h"
-#include "watchface_ui.h"
+#include "watchface_picker.h"
 #include "glyph.h"
 #include "audio_out.h"
 #include "esp_app_desc.h"
@@ -13,7 +13,8 @@
 
 enum { SETTINGS_HOME, SETTINGS_BRIGHTNESS, SETTINGS_FACE, SETTINGS_AOD,
        SETTINGS_VOLUME, SETTINGS_MUTE, SETTINGS_LANG, SETTINGS_ABOUT, SETTINGS_COUNT };
-static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute,*s_face_preview;
+static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute;
+static watchface_picker_t s_face_picker;
 static lv_obj_t *s_home_list,*s_scroll,*s_body;
 static int32_t s_scroll_y[SETTINGS_COUNT];
 static int s_built_page;
@@ -159,15 +160,6 @@ static void toggle(lv_event_t *e) {
     else settings_set_silent(on);
     settings_save();queue_rebuild();
 }
-static void pick_face(lv_event_t *e) {
-    int count=watchface_count(),index=(watchface_selected()+(int)(intptr_t)lv_event_get_user_data(e)+count)%count;
-    watchface_select(index);settings_set_face((uint8_t)index);settings_save();queue_rebuild();
-}
-static void pick_theme(lv_event_t *e) {
-    int theme=(int)(intptr_t)lv_event_get_user_data(e);
-    int index=watchface_index_in_theme(theme,watchface_selected());
-    watchface_select(index);settings_set_face((uint8_t)index);settings_save();queue_rebuild();
-}
 static void pick_lang(lv_event_t *e) {
     settings_set_lang((uint8_t)(uintptr_t)lv_event_get_user_data(e));settings_save();queue_rebuild();
 }
@@ -176,8 +168,9 @@ static void rebuild(void *arg) {
     if(s_scroll)s_scroll_y[s_built_page]=lv_obj_get_scroll_y(s_scroll);
     s_home_list=s_scroll=s_body=NULL;s_built_page=s_page;
     if(s_audio_ready && s_page!=SETTINGS_VOLUME){audio_out_deinit();s_audio_ready=false;}
+    watchface_picker_unmount(&s_face_picker);
     if(s_panel)lv_obj_delete(s_panel);
-    s_value=s_slider=s_aod=s_mute=s_face_preview=NULL;s_panel=control_surface(s_parent,0,0,466,466);
+    s_value=s_slider=s_aod=s_mute=NULL;s_panel=control_surface(s_parent,0,0,466,466);
     if(s_page==SETTINGS_HOME) {
         launcher_set_title(tr_app_name("settings"));
         scroll_view();s_home_list=s_scroll;
@@ -220,26 +213,8 @@ static void rebuild(void *arg) {
         center_text(word(aod?(on?"空闲时保持亮屏":"空闲后自动熄屏"):"提示音与铃声",
                          aod?(on?"Dim while idle":"Turn off when idle"):"Alarms and beeps"),300,278,CONTROL_GRAY,control_small_font());
     } else if(s_page==SETTINGS_FACE) {
-        launcher_set_title(word("表盘","Watch face"));int selected=watchface_selected();
-        // The preview center is the physical screen center, independent of list scroll position.
-        s_face_preview=watchface_create_preview(s_panel,selected);lv_obj_set_pos(s_face_preview,116,116);
-        lv_obj_t *prev=control_button(s_panel,52,205,50,56,pick_face,(void *)(intptr_t)-1);
-        lv_obj_t *next=control_button(s_panel,364,205,50,56,pick_face,(void *)(intptr_t)1);
-        lv_obj_t *l=control_label(prev,LV_SYMBOL_LEFT,UI_FONT_SYM,0,0,30,CONTROL_WHITE);lv_obj_center(l);
-        l=control_label(next,LV_SYMBOL_RIGHT,UI_FONT_SYM,0,0,30,CONTROL_WHITE);lv_obj_center(l);
-        char caption[64];snprintf(caption,sizeof caption,"%s   %d / %d",watchface_kind_name(selected),selected+1,watchface_count());
-        center_text(caption,354,278,CONTROL_WHITE,control_small_font());
-        // 五组共同居中，完整触摸区底角保持在半径 233 的圆屏内。
-        // Center all five groups together and keep each full touch target inside radius 233.
-        enum { THEME_WIDTH=54, THEME_GAP=4, THEME_ROW_WIDTH=WATCHFACE_THEME_COUNT*THEME_WIDTH+(WATCHFACE_THEME_COUNT-1)*THEME_GAP };
-        for(int theme=0;theme<WATCHFACE_THEME_COUNT;++theme) {
-            int x=(466-THEME_ROW_WIDTH)/2+theme*(THEME_WIDTH+THEME_GAP);
-            lv_obj_t *b=control_button(s_panel,x,377,THEME_WIDTH,40,pick_theme,(void *)(intptr_t)theme);
-            lv_obj_set_style_radius(b,12,0);
-            if(theme==watchface_theme_for(selected)){lv_obj_set_style_border_width(b,1,0);lv_obj_set_style_border_color(b,lv_color_hex(COL_RED),0);}
-            lv_obj_t *name=control_label(b,watchface_theme_name(theme),&font_wf_14,0,0,THEME_WIDTH,theme==watchface_theme_for(selected)?CONTROL_WHITE:CONTROL_GRAY);
-            lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);lv_obj_center(name);
-        }
+        launcher_set_title(word("表盘","Watch face"));
+        watchface_picker_mount(&s_face_picker,s_panel);
     } else if(s_page==SETTINGS_LANG) {
         launcher_set_title(tr(S_LANGUAGE));detail_body();
         stack_text(word("界面语言","Interface language"),278,CONTROL_GRAY,control_small_font());
@@ -280,10 +255,11 @@ static void settings_enter(lv_obj_t *parent) {
     rebuild(NULL);
 }
 static void settings_exit(void) {
+    watchface_picker_unmount(&s_face_picker);
     lv_async_call_cancel(rebuild,NULL);if(s_audio_ready)audio_out_deinit();
-    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=s_face_preview=s_home_list=s_scroll=s_body=NULL;
+    s_parent=s_panel=s_value=s_slider=s_aod=s_mute=s_home_list=s_scroll=s_body=NULL;
     for(unsigned i=0;i<sizeof s_scroll_y/sizeof s_scroll_y[0];++i)s_scroll_y[i]=0;
     s_audio_ready=false;
 }
-static void settings_tick(void) {if(s_page==SETTINGS_FACE&&s_face_preview)watchface_refresh_preview(s_face_preview);}
+static void settings_tick(void) {if(s_page==SETTINGS_FACE)watchface_picker_refresh(&s_face_picker);}
 const app_t app_settings={.name="settings",.color=COL_TXT,.enter=settings_enter,.tick=settings_tick,.exit=settings_exit,.back=settings_back,.tick_period_ms=1000};

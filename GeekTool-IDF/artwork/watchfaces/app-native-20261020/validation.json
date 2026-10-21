@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-20",
+  "status": "local_installed_candidate",
+  "base_commit": "7822839edb22e420a4f675d8ba7d8e229bcfe4dc",
+  "idf": "6.0.1",
+  "target": "esp32s3",
+  "lvgl": "9.6.0~1",
+  "candidate_version": "v1.7-beta.37-watchfaces",
+  "binary_bytes": 5241136,
+  "binary_sha256": "03fbac80d9b78e84eac1828b3abe34f3c8be8b4d0fab3476284456e784ece02e",
+  "source_files_verified": 180,
+  "source_snapshot_sha256": "f8a39a76930d83908f53d2081ee9e2363844036c765faaea512825f6cce2f6fb",
+  "release37_dependencies_unchanged": true,
+  "host_tests_passed": 53,
+  "final_affected_tests_repeated_passed": 3,
+  "pixel_comparison": {
+    "rgb565": {
+      "unchanged_baseline_frames": 114,
+      "new_frames": 62
+    },
+    "device": {
+      "unchanged_baseline_frames": 114,
+      "new_frames": 62
+    }
+  },
+  "launcher_artwork_states_passed": 72,
+  "launcher_apps": 24,
+  "watchfaces": 30,
+  "lvgl_stack_bytes": 9216,
+  "released": false,
+  "device_written": true,
+  "device_acceptance": "pending",
+  "retained_previews": {
+    "app-en.png": "0e2ae2be24f96e06ba92805074c0ca3943654780a6fbc7090fd6736f51134372",
+    "app-zh.png": "cff89315deb546adddfc77d2c679f8874b07f755fdc5153f1b3df05fc416602c",
+    "launcher-en.png": "51d84009b46cef695ee781efe4c3894bc8f8ab12cb0eaf4b9e9fd9fd2799cde6",
+    "launcher-zh.png": "aa49e326ac45992bdbd944b064bd114bc0ce5dc23038d107c69d4b844025285b"
+  },
+  "previous_local_build_sha256": "68cf568f9a811c6854bf48f6f9d1f6bd25311f2ff0d207c343183dc2d54e2912",
+  "installation": {
+    "date": "2026-10-20",
+    "version": "v1.7-beta.37-watchfaces",
+    "image_sha256": "03fbac80d9b78e84eac1828b3abe34f3c8be8b4d0fab3476284456e784ece02e",
+    "source_matches_tested_candidate": true,
+    "full_backup_bytes": 33554432,
+    "active_slot": "ota_1",
+    "startup_state": "VALID",
+    "core_and_startup_check_ok": true,
+    "first_home_frame_dma_completed": true,
+    "network_check_ok": true,
+    "observed_seconds": 70.12164379190654,
+    "fault_seen": false,
+    "image_device_md5_verified": true,
+    "nvs_byte_identical_to_preinstall": true,
+    "bootloader_partition_beta35_storage_unchanged": true,
+    "serial_closed": true,
+    "visual_acceptance": "pending"
+  }
+}

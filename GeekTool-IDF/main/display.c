@@ -2,6 +2,7 @@
 #include "board_config.h"
 #include "weather_refresh.h"
 #include "display_frame_gate.h"
+#include "render_power.h"
 
 #include "driver/spi_master.h"
 #include "esp_lcd_panel_io.h"
@@ -29,6 +30,9 @@ static volatile bool s_frame_sending;
 static bool s_te_ready,s_te_warned;
 static volatile uint32_t s_transfer_count;
 static display_frame_gate_t s_frame_gate;
+#if CONFIG_PM_ENABLE
+static render_power_t s_render_power;
+#endif
 static weather_refresh_t s_refresh;
 static struct {
     int64_t started_us;
@@ -254,6 +258,9 @@ lv_display_t *display_init(void) {
     // fail within a bound so the bootloader can recover a pending OTA.
     ESP_ERROR_CHECK(lvgl_port_lock(5000)?ESP_OK:ESP_ERR_TIMEOUT);
     assert(disp);s_disp=disp;s_dma=xSemaphoreCreateBinary();s_te=xSemaphoreCreateBinary();assert(s_dma&&s_te);
+#if CONFIG_PM_ENABLE
+    if(!render_power_bind(disp,&s_render_power))ESP_LOGW(TAG,"render CPU boost unavailable");
+#endif
     esp_lcd_panel_io_callbacks_t callbacks={.on_color_trans_done=color_done};
     ESP_ERROR_CHECK(esp_lcd_panel_io_register_event_callbacks(io,&callbacks,disp));
     s_refresh.wait_te=wait_te;s_refresh.send=send_frame_tile;s_refresh.wait_send=wait_frame_tile;

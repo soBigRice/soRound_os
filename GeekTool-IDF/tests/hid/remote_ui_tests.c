@@ -44,7 +44,10 @@ static uint32_t clock_ms(void) { return (uint32_t)(host_time_us/1000); }
 // 显式满足LVGL缓冲区契约，不依赖Clang/GCC默认静态变量对齐。
 // Honor LVGL's buffer contract without relying on Clang/GCC default alignment.
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466*466];
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t second_buffer[466*40];
 static uint16_t pixels[466*466];
+static bool device_format;
+static unsigned flushed_pixels;
 static lv_display_t *display;
 static lv_obj_t *page, *heading;
 static lv_point_t pointer;
@@ -54,7 +57,12 @@ void launcher_set_title(const char *title) { if(heading) lv_label_set_text(headi
 
 static void flush(lv_display_t *d, const lv_area_t *a, uint8_t *map) {
     int width=lv_area_get_width(a);
-    for(int y=a->y1;y<=a->y2;y++) { memcpy(pixels+y*466+a->x1,map,width*2); map+=width*2; }
+    flushed_pixels+=(unsigned)(width*lv_area_get_height(a));
+    for(int y=a->y1;y<=a->y2;y++) {
+        if(device_format)for(int x=0;x<width;x++)pixels[y*466+a->x1+x]=(uint16_t)((map[x*2]<<8)|map[x*2+1]);
+        else memcpy(pixels+y*466+a->x1,map,width*2);
+        map+=width*2;
+    }
     lv_display_flush_ready(d);
 }
 static void read_pointer(lv_indev_t *input, lv_indev_data_t *data) {
@@ -121,8 +129,9 @@ static void snapshot(const char *directory, const char *name) {
 int main(int argc,char **argv) {
     const char *directory=argc>1?argv[1]:NULL;
     lv_init(); lv_tick_set_cb(clock_ms); i18n_init();
-    display=lv_display_create(466,466); lv_display_set_color_format(display,LV_COLOR_FORMAT_RGB565);
-    lv_display_set_buffers(display,buffer,NULL,sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);
+    device_format=getenv("SOROUND_TEST_DEVICE_FORMAT")!=NULL;
+    display=lv_display_create(466,466); lv_display_set_color_format(display,device_format?LV_COLOR_FORMAT_RGB565_SWAPPED:LV_COLOR_FORMAT_RGB565);
+    lv_display_set_buffers(display,buffer,device_format?second_buffer:NULL,device_format?466*40*2:sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_hex(COL_BG),0);
     // 仅重建现有系统框架以便看圆屏位置;三种模式的内容来自真实 app_mouse.c。
@@ -219,6 +228,14 @@ int main(int argc,char **argv) {
     media_fixture.lyrics_available=false; step();
     assert(ui_obj_is_hidden(g_track) && lv_obj_get_y(g_overlay)==82);
     media_fixture.playing=false; angle=s_rotation; host_time_us+=1000000; mouse_tick(); assert(s_rotation==angle);
+    // 暂停且元数据不变时不刷屏；播放状态变化仍必须更新按钮。
+    // Stable paused media must not repaint; a real play-state change must still update the control.
+    lv_refr_now(display);flushed_pixels=0;
+    for(int i=0;i<100;i++){host_time_us+=20000;mouse_tick();lv_refr_now(display);}
+    assert(flushed_pixels==0 && s_rotation==angle);
+    media_fixture.playing=true;host_time_us+=20000;mouse_tick();lv_refr_now(display);
+    assert(flushed_pixels>0 && !strcmp(lv_label_get_text(g_play_symbol),LV_SYMBOL_PAUSE));
+    media_fixture.playing=false;host_time_us+=20000;mouse_tick();lv_refr_now(display);
     media_fixture.has_artwork=false; media_fixture.has_overlay=false; step();
     assert(ui_obj_is_hidden(g_cover) && ui_obj_is_hidden(g_overlay) && ui_obj_is_hidden(g_track) && !ui_obj_is_hidden(g_media_hint));
     snapshot(directory,"remote-media-no-artwork");

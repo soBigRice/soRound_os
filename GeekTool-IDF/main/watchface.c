@@ -3,6 +3,7 @@
 // BOOT 解锁与省电策略属于 lock.c。BOOT unlock and power policy belong to lock.c.
 #include "watchface.h"
 #include "watchface_ui.h"
+#include "watchface_studio_draw.h"
 #include "quickpanel.h"
 #include "power.h"
 #include "settings.h"
@@ -80,6 +81,7 @@ static void tick(lv_timer_t *timer) {
     if(wf_timer)lv_timer_set_period(wf_timer,s_aod?(uint32_t)(60-s_data.time.tm_sec)*1000u:1000u);
 }
 void watchface_select(int index) {
+    if(index!=s_idx)wfs_geometry_release();
     s_idx=LV_CLAMP(0,index,WATCHFACE_COUNT-1);s_last_minute=(time_t)-1;
     if(watchface_visible()){snapshot(true);lv_obj_invalidate(wf_content);}
 }
@@ -104,6 +106,7 @@ void watchface_show(void) {
 void watchface_hide(void) {
     if(!wf_screen)return;
     ui_obj_set_hidden(wf_screen,true);if(wf_timer){lv_timer_delete(wf_timer);wf_timer=NULL;}
+    wfs_geometry_release();
 }
 void watchface_set_aod(bool aod) {
     if(aod==s_aod)return;

@@ -60,8 +60,7 @@ static void two_digits(int value, char out[3])
 
 static void maze(const wfs_draw_t *d, const watchface_data_t *data)
 {
-    const uint32_t paper = 0xe6e3d5, ink = 0x273229;
-    wfs_disc(d, 233, 233, 233, paper);
+    const uint32_t paper = 0x000000, ink = 0x8ea18a;
     // 迷宫不代表真实路径；外圈小球与下方数值共同编码秒。
     // The maze is ornamental; the outer bead and its caption encode actual seconds.
     for (int row = 0; row < 4; ++row) {
@@ -87,15 +86,15 @@ static void maze(const wfs_draw_t *d, const watchface_data_t *data)
     char hour[3], minute[3], caption[20];
     two_digits(data->time.tm_hour, hour);
     two_digits(data->time.tm_min, minute);
-    wfs_heavy_text(d, hour, 233, 216, 94, 0x26352d, 0);
-    wfs_heavy_text(d, minute, 233, 299, 94, 0x26352d, 0);
+    wfs_heavy_text(d, hour, 233, 216, 94, 0xd6e1cf, 0);
+    wfs_heavy_text(d, minute, 233, 299, 94, 0xd6e1cf, 0);
     wfs_bar(d, 195, 235, 271, 235, 1.5f, 0xc1c5b4);
     wfs_point_t bead = polar(189, data->time.tm_sec * SCENE_TAU / 60.0f, 233, 233);
     wfs_disc(d, bead.x, bead.y, 8, 0xd65c43);
     wfs_disc(d, bead.x, bead.y, 3, 0xf5d6b3);
-    wfs_heavy_text(d, "MAZE / 60", 233, 76, 13, 0x4d5a4b, 3);
+    wfs_heavy_text(d, "MAZE / 60", 233, 76, 13, 0x8ea18a, 3);
     snprintf(caption, sizeof(caption), "%02d SECONDS", data->time.tm_sec);
-    wfs_heavy_text(d, caption, 233, 398, 12, 0x4d5a4b, 2);
+    wfs_heavy_text(d, caption, 233, 398, 12, 0x8ea18a, 2);
 }
 
 static void fold_hinge(const wfs_draw_t *d, float x, float y)
@@ -117,7 +116,6 @@ static void fold_hinge(const wfs_draw_t *d, float x, float y)
 
 static void fold(const wfs_draw_t *d, const watchface_data_t *data)
 {
-    wfs_disc(d, 233, 233, 233, 0x293128);
     wfs_circle(d, 233, 233, 211, 1, 0x59624e);
     wfs_heavy_text(d, "FOLD / TIME", 233, 66, 14, 0xb4bba4, 4);
     for (int i = 0; i < 2; ++i) {
@@ -184,7 +182,6 @@ static void pixel_time(const wfs_draw_t *d, const watchface_data_t *data)
 
 static void pixel_camp(const wfs_draw_t *d, const watchface_data_t *data)
 {
-    wfs_disc(d, 233, 233, 233, 0x101b15);
     face_date(d, data, DATE_PIXEL, 80, 15, 0x9dae8b, 3);
     pixel_time(d, data);
     static const wfs_point_t stars[] = {{103, 228}, {151, 244}, {338, 227}, {376, 279}, {240, 228}};
@@ -192,7 +189,7 @@ static void pixel_camp(const wfs_draw_t *d, const watchface_data_t *data)
         wfs_rect(d, stars[i].x, stars[i].y, 3, 3, 0, 0x879f72);
     }
     wfs_disc(d, 338, 259, 14, 0xb8cba1);
-    wfs_disc(d, 344, 253, 14, 0x101b15);
+    wfs_disc(d, 344, 253, 14, 0x000000);
     wfs_bar(d, 100, 354, 366, 354, 3, 0x6c805c);
     wfs_bar(d, 103, 357, 168, 357, 3, 0x6c805c);
     wfs_bar(d, 186, 357, 266, 357, 3, 0x6c805c);
@@ -287,8 +284,7 @@ static void horizon(const wfs_draw_t *d, const watchface_data_t *data)
     float progress = day ? (clock_hour - 7.0f) / 12.0f : fmodf(clock_hour + 5.0f, 24.0f) / 12.0f;
     progress = fmaxf(0, fminf(1, progress));
     float sx = 85 + 296 * progress, sy = 315 - 105 * sinf(SCENE_PI * progress);
-    uint32_t sky = day ? 0x2b2824 : 0x171f30;
-    wfs_disc(d, 233, 233, 233, sky);
+    uint32_t sky = 0x000000;
     clipped_sun(d, sx, sy, 91, day ? 0xd69565 : 0xb6bca8);
     if (!day) clipped_sun(d, sx + 39, sy - 19, 84, sky);
     static const uint32_t day_bands[] = {0x9f6044, 0x754b3d, 0x503e35, 0x342f28};
@@ -313,7 +309,6 @@ static wfs_point_t bezier(wfs_point_t a, wfs_point_t b, wfs_point_t c, wfs_point
 
 static void tide(const wfs_draw_t *d, const watchface_data_t *data)
 {
-    wfs_disc(d, 233, 233, 233, 0x101e28);
     char time[8], caption[16];
     wfs_time(data, time, sizeof(time));
     wfs_text(d, "TIDE", 233, 80, 15, 0xb7c7c8, 5);
@@ -354,18 +349,23 @@ static void tide(const wfs_draw_t *d, const watchface_data_t *data)
 
 static void growth(const wfs_draw_t *d, const watchface_data_t *data)
 {
-    wfs_disc(d, 233, 233, 233, 0x242820);
     // 年轮是固定装饰纹理；不伪装生长进度，也不需要持久化状态。
     // Tree rings are fixed ornament, not growth progress, and need no persistent state.
+    wfs_geometry_t *cache=wfs_geometry_cache();
     for (int n = 0; n < 12; ++n) {
         float radius = 30 + n * 15;
         wfs_point_t previous = {0, 0};
         for (int i = 0; i <= 120; ++i) {
-            float a = i * SCENE_TAU / 120.0f;
-            float r = radius + 4 * sinf(a * 3 + n * 0.9f) + 3 * cosf(a * 7 + n * 0.7f);
-            wfs_point_t current = polar(r, a, 231, 235);
-            current.x = roundf(current.x * 100) / 100;
-            current.y = roundf(current.y * 100) / 100;
+            wfs_point_t current;
+            if(cache && (cache->growth_ready&(1u<<n)))current=cache->growth[n][i];
+            else {
+                float a = i * SCENE_TAU / 120.0f;
+                float r = radius + 4 * sinf(a * 3 + n * 0.9f) + 3 * cosf(a * 7 + n * 0.7f);
+                current = polar(r, a, 231, 235);
+                current.x = roundf(current.x * 100) / 100;
+                current.y = roundf(current.y * 100) / 100;
+                if(cache)cache->growth[n][i]=current;
+            }
             if (i > 0) {
                 wfs_bar_opa(d, previous.x, previous.y, current.x, current.y,
                             n % 3 == 0 ? 1.4f : 1, n % 3 == 0 ? 0x9a9d72 : 0x737f5c,
@@ -373,6 +373,7 @@ static void growth(const wfs_draw_t *d, const watchface_data_t *data)
             }
             previous = current;
         }
+        if(cache)cache->growth_ready|=(uint16_t)(1u<<n);
     }
     char title[24];
     snprintf(title, sizeof(title), "GROWTH / %04d", data->time.tm_year + 1900);

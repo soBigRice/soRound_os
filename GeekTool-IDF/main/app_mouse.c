@@ -6,6 +6,7 @@
 #include "esp_timer.h"
 #include "esp_heap_caps.h"
 #include "remote_media.h"
+#include "ui_update.h"
 #include "src/misc/cache/instance/lv_image_cache.h"
 #include "remote_icons.inc"
 #include <stdlib.h>
@@ -91,7 +92,7 @@ static void update_media_view(void) {
     ui_obj_set_hidden(g_media_hint, overlay);
     // 只有主机确认正在播放才显示暂停；未同步时播放图标仍是切换入口，不猜测点击结果。
     // Only confirmed playback shows pause; an unsynced play icon remains a toggle without guessing its result.
-    lv_label_set_text(g_play_symbol, state.connected && state.playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
+    ui_text(g_play_symbol, state.connected && state.playing ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
     uint32_t now = lv_tick_get();
     if (s_visible && artwork && state.playing && lv_tick_elaps(s_rotation_at) >= 100) {
         s_rotation = (s_rotation + 3) % 3600;

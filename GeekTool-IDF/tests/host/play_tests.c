@@ -43,12 +43,14 @@ static void *test_heap_malloc(size_t size,unsigned caps){(void)caps;return test_
 #include "../../main/app_maze.c"
 #define W 466
 static uint16_t pixels[W*W];
+static unsigned flushed_pixels;
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[W*48];
 static lv_display_t *display;
 static lv_indev_data_t pointer={.state=LV_INDEV_STATE_RELEASED};
 static lv_obj_t *page;
 static const char *folder;
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *data){
+    flushed_pixels+=(unsigned)(lv_area_get_width(a)*lv_area_get_height(a));
     int w=lv_area_get_width(a);for(int y=a->y1;y<=a->y2;++y){memcpy(pixels+y*W+a->x1,data,w*2);data+=w*2;}lv_display_flush_ready(d);
 }
 static void read_pointer(lv_indev_t *i,lv_indev_data_t *data){(void)i;*data=pointer;}
@@ -145,7 +147,13 @@ static void maze_levels_and_physics(void){
             }
             assert(g_maze_mode==MAZE_MENU);
         }
-        assert(!maze_back());tap(332,363);assert(g_level==11&&g_ball);sensor=false;host_time_us+=20000;maze_tick();assert(!strcmp(lv_label_get_text(g_msg),tr(S_FLUID_NOIMU)));sensor=true;
+        assert(!maze_back());tap(332,363);assert(g_level==11&&g_ball);sensor=false;host_time_us+=20000;maze_tick();assert(!strcmp(lv_label_get_text(g_msg),tr(S_FLUID_NOIMU)));
+        // IMU故障且提示不变时应完全静止；恢复后文字仍要更新。
+        // An unchanged IMU failure must stay idle, while sensor recovery still updates the message.
+        lv_refr_now(display);flushed_pixels=0;
+        for(int n=0;n<100;n++){host_time_us+=20000;maze_tick();lv_refr_now(display);}
+        assert(flushed_pixels==0);sensor=true;host_time_us+=20000;maze_tick();lv_refr_now(display);
+        assert(flushed_pixels>0 && !strcmp(lv_label_get_text(g_msg),maze_word("Tilt into the red dot","倾斜设备，滚入红点")));
         maze_back();maze_exit();lv_obj_delete(page);advance(20);assert(!g_maze_queued&&!g_maze_parent);
     }
     puts("12 authored levels EN/ZH: native pointer selection/replay/next/final-level/back, reciprocal/closed walls, connected maps, actual continuous collision goals, fixed win state and queued-exit cleanup passed.");

@@ -112,8 +112,8 @@ static void maze_enter(lv_obj_t *parent){g_maze_parent=parent;g_maze_mode=MAZE_M
 static void maze_tick(void){
     if(!g_ball||g_maze_mode!=MAZE_PLAY||g_maze_queued)return;
     int64_t now=esp_timer_get_time();float dt=fminf((now-s_last_us)/1000000.0f,.1f);s_last_us=now;
-    float tx,ty;if(!imu_read_tilt(&tx,&ty)){lv_label_set_text(g_msg,tr(S_FLUID_NOIMU));return;}
-    lv_label_set_text(g_msg,maze_word("Tilt into the red dot","倾斜设备，滚入红点"));
+    float tx,ty;if(!imu_read_tilt(&tx,&ty)){ui_text(g_msg,tr(S_FLUID_NOIMU));return;}
+    ui_text(g_msg,maze_word("Tilt into the red dot","倾斜设备，滚入红点"));
     float ax = tx * G_MS2 * PPM, ay = ty * G_MS2 * PPM;   // 真实重力加速度(px/s^2)
     int steps = (int)ceilf(dt / (DT_S / SUBS));
     if (steps < 1) return;

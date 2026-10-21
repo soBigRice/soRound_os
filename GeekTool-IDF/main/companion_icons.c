@@ -8,7 +8,10 @@ void companion_launcher_icon_set(lv_obj_t *icon, int index) {
     ui_obj_set_hidden(original,added); ui_obj_set_hidden(image,!added);
     if (!added) launcher_icon_set(original,(launcher_icon_t)index);
     else {
-        const lv_image_dsc_t *const sources[]={&companion_sprout,&companion_disc_3,&companion_mic};
+        // 新入口只在末尾追加，保留已发布的应用索引和图标身份。
+        // Append new entries so shipped app indices retain their icon identity.
+        const lv_image_dsc_t *const sources[]={&companion_sprout,&companion_disc_3,&companion_mic,&companion_watchfaces};
+        _Static_assert(sizeof sources/sizeof sources[0]==COMPANION_ICON_COUNT,"Keep appended icon sources in sync");
         lv_image_set_src(image,sources[index-LAUNCHER_ICON_COUNT]);
     }
 }

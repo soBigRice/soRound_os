@@ -25,4 +25,5 @@ uint8_t settings_lang(void);              // 界面语言:0=English(默认),1=�
 void    settings_set_lang(uint8_t v);
 uint8_t settings_dice(void);              // 骰子模式:0/1/2=1/2/3 颗,3=硬币(默认 2 颗)
 void    settings_set_dice(uint8_t v);
-void    settings_save(void);              // 把当前值写 NVS(离散改动或滑块松手时调,避免频繁写 flash)
+// 将当前副本交给后台保存；退出App统一等待落盘。 / Queue an immutable snapshot; app exit waits for persistence.
+void    settings_save(void);

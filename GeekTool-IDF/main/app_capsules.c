@@ -111,11 +111,15 @@ static void list_refresh(void) {
         if(s_delete==(int)i)snprintf(text,sizeof text,"%s",tools_text("Tap again to confirm","再次点击确认"));
         else if(!entry->valid)snprintf(text,sizeof text,"%s",tools_text("DAMAGED CLIP","损坏录音"));
         else snprintf(text,sizeof text,"%02lu:%02lu  ·  %.0f KB",(unsigned long)(entry->bytes/32000/60),(unsigned long)(entry->bytes/32000%60),entry->bytes/1024.0);
-        ui_text(g_row_times[row],text);tools_label_center(g_row_times[row],134,42);lv_obj_set_style_text_color(g_row_names[row],lv_color_hex(s_delete==(int)i?0xff4d36:TOOLS_WHITE),0);
+        ui_text(g_row_times[row],text);tools_label_center(g_row_times[row],134,42);
+        lv_color_t color=lv_color_hex(s_delete==(int)i?0xff4d36:TOOLS_WHITE);
+        if(!lv_color_eq(lv_obj_get_style_text_color(g_row_names[row],0),color))lv_obj_set_style_text_color(g_row_names[row],color,0);
     }
 }
 static void capsules_tick(void) {
     if(!g_main || !s_visible)return;
+    capsule_state_t previous_state=s_view.state;capsule_result_t previous_result=s_view.result;
+    bool was_recording=recording();
     capsule_recorder_snapshot(&s_view);
     if(s_listing){list_refresh();return;}
     uint32_t seconds=s_view.samples/CAPSULE_RATE;char text[40];
@@ -124,8 +128,10 @@ static void capsules_tick(void) {
     snprintf(text,sizeof text,"%02lu",(unsigned long)(seconds%60));
     ui_text(g_seconds,text);tools_label_center(g_seconds,281,169);
     ui_text(g_hint,status_text());tools_label_center(g_hint,233,217);
-    if(memcmp(s_wave,s_view.waveform,sizeof s_wave)){memcpy(s_wave,s_view.waveform,sizeof s_wave);lv_obj_invalidate(g_wave);}
-    lv_obj_invalidate(g_record);
+    // 波形颜色依赖录音状态，按钮依赖状态/错误；静止轮询不重画，真实状态变化不能漏画。
+    // Wave colors depend on recording, and the button on state/result; repaint real transitions only.
+    if(was_recording!=recording() || memcmp(s_wave,s_view.waveform,sizeof s_wave)){memcpy(s_wave,s_view.waveform,sizeof s_wave);lv_obj_invalidate(g_wave);}
+    if(previous_state!=s_view.state || previous_result!=s_view.result)lv_obj_invalidate(g_record);
 }
 static void capsules_enter(lv_obj_t *parent) {
     launcher_set_title(tools_text("CAPSULES","声音胶囊"));

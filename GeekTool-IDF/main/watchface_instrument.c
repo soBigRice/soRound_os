@@ -20,7 +20,6 @@ static void radial_bar(const wfs_draw_t *d, float radius1, float radius2,
 static void subdued_time(const wfs_draw_t *d, const watchface_data_t *data, float baseline) {
     char time[8];
     wfs_time(data, time, sizeof time);
-    wfs_disc(d, 233, 233, 233, 0x070908);
     wfs_text(d, time, 233, baseline, 72, 0x4b4d4b, -2);
 }
 
@@ -41,7 +40,6 @@ static void radar(const wfs_draw_t *d, const watchface_data_t *data) {
     wfs_time(data, time, sizeof time);
     instrument_date(data, date, sizeof date);
     snprintf(seconds, sizeof seconds, "%02d SEC", data->time.tm_sec);
-    wfs_disc(d, 233, 233, 233, 0x08130f);
 
     float sweep = data->time.tm_sec * WFI_PI / 30 - WFI_PI / 2;
     for (int offset = -160; offset <= 160; offset += 40) {
@@ -71,7 +69,7 @@ static void radar(const wfs_draw_t *d, const watchface_data_t *data) {
     wfs_bar(d, 233, 233, tip.x, tip.y, 1.4f, 0x9ce7a1);
     wfs_disc(d, 233, 233, 3, 0xa5e7aa);
     wfs_text(d, "RADAR", 233, 110, 13, 0x7baf88, 6);
-    wfs_rect_opa(d, 73, 181, 320, 102, 16, 0x08130f, 0.91f);
+    wfs_rect_opa(d, 73, 181, 320, 102, 16, 0x000000, 0.91f);
     wfs_text(d, time, 233, 261, 91, 0xd3f3c9, -2.5f);
     wfs_text(d, date, 233, 327, 13, 0x78977d, 2);
     wfs_text(d, seconds, 233, 366, 10, 0x52735b, 3);
@@ -139,7 +137,6 @@ static void tape(const wfs_draw_t *d, const watchface_data_t *data) {
     char time[8], date[24];
     wfs_time(data, time, sizeof time);
     instrument_date(data, date, sizeof date);
-    wfs_disc(d, 233, 233, 233, 0x13130f);
     wfs_text(d, date, 233, 67, 12, 0x99957f, 2);
     wfs_bar(d, 156, 100, 310, 100, 1, 0x6d6755);
     wfs_bar(d, 156, 230, 310, 230, 1, 0x6d6755);
@@ -165,16 +162,20 @@ static wfs_point_t rotate_blade(wfs_point_t point, float angle) {
 }
 
 static void iris_blade(const wfs_draw_t *d, int index) {
-    wfs_point_t points[36];
+    wfs_geometry_t *cache=wfs_geometry_cache();wfs_point_t fallback[36];
+    wfs_point_t *points=cache?cache->iris[index]:fallback;
     float angle = index * WFI_PI / 4;
-    for (int i = 0; i <= 32; ++i) {
-        wfs_point_t p = cubic_point((wfs_point_t){233, 35}, (wfs_point_t){296, 35},
-                                    (wfs_point_t){350, 65}, (wfs_point_t){382, 108}, i / 32.0f);
-        points[i] = rotate_blade(p, angle);
+    if(!cache || !(cache->iris_ready&(1u<<index))){
+        for (int i = 0; i <= 32; ++i) {
+            wfs_point_t p = cubic_point((wfs_point_t){233, 35}, (wfs_point_t){296, 35},
+                                        (wfs_point_t){350, 65}, (wfs_point_t){382, 108}, i / 32.0f);
+            points[i] = rotate_blade(p, angle);
+        }
+        points[33] = rotate_blade((wfs_point_t){340, 191}, angle);
+        points[34] = rotate_blade((wfs_point_t){307, 140}, angle);
+        points[35] = rotate_blade((wfs_point_t){159, 140}, angle);
+        if(cache)cache->iris_ready|=(uint16_t)(1u<<index);
     }
-    points[33] = rotate_blade((wfs_point_t){340, 191}, angle);
-    points[34] = rotate_blade((wfs_point_t){307, 140}, angle);
-    points[35] = rotate_blade((wfs_point_t){159, 140}, angle);
     wfs_poly(d, points, 36, index % 2 == 0 ? 0x24211c : 0x1b1a17);
     for (int i = 0; i < 36; ++i) {
         wfs_point_t a = points[i], b = points[(i + 1) % 36];
@@ -205,13 +206,12 @@ static void iris(const wfs_draw_t *d, const watchface_data_t *data) {
     char time[8], date[24];
     wfs_time(data, time, sizeof time);
     instrument_date(data, date, sizeof date);
-    wfs_disc(d, 233, 233, 233, 0x13120f);
     for (int i = 0; i < 8; ++i) iris_blade(d, i);
     wfs_circle(d, 233, 233, 211, 1, 0x4c3b28);
     for (int i = 0; i < 60; ++i)
         radial_bar(d, i % 5 == 0 ? 195 : 200, 204, i * WFI_PI / 30 - WFI_PI / 2,
                    0.8f, i % 5 == 0 ? 0x92704c : 0x4f4232);
-    wfs_poly(d, aperture, 8, 0x11110f);
+    wfs_poly(d, aperture, 8, 0x000000);
     for (int i = 0; i < 8; ++i) {
         wfs_point_t a = aperture[i], b = aperture[(i + 1) % 8];
         wfs_bar(d, a.x, a.y, b.x, b.y, 1.2f, 0xaf7a42);

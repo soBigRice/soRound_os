@@ -1,5 +1,6 @@
 #include "garden_state.h"
 #include "nvs.h"
+#include "ui_persistence.h"
 #include <limits.h>
 #include <stddef.h>
 #include <string.h>
@@ -83,10 +84,14 @@ garden_state_t *garden_shared_state(void) {
     return &s_shared;
 }
 bool garden_shared_ready(void) { return s_ready; }
-bool garden_shared_dirty(void) { return s_dirty; }
+bool garden_shared_dirty(void) {
+    if(s_dirty && ui_persistence_saved(UI_STORE_GARDEN,&s_shared,sizeof s_shared))s_dirty=false;
+    return s_dirty;
+}
 void garden_shared_mark_dirty(void) { if (s_ready) s_dirty = true; }
+static bool write_shared_garden(const void *snapshot){return garden_state_save(snapshot);}
 bool garden_shared_save(void) {
     if (!s_ready) return false;
-    if (s_dirty && garden_state_save(&s_shared)) s_dirty = false;
+    if (s_dirty && ui_persistence_save(UI_STORE_GARDEN,&s_shared,sizeof s_shared,write_shared_garden)) s_dirty = false;
     return !s_dirty;
 }

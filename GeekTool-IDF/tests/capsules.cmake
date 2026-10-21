@@ -28,3 +28,5 @@ target_include_directories(capsule_ui_tests PRIVATE "${CAPSULE_TEST_ROOT}/host" 
 target_compile_options(capsule_ui_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 target_link_libraries(capsule_ui_tests PRIVATE lvgl m)
 add_test(NAME capsule_native_ui_interactions COMMAND capsule_ui_tests)
+add_test(NAME capsule_device_idle_and_transitions COMMAND capsule_ui_tests)
+set_tests_properties(capsule_device_idle_and_transitions PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")

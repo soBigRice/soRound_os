@@ -39,6 +39,8 @@ bool img_store_face_loading(int theme){(void)theme;return loading;}
 static uint16_t pixels[466*466];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffer[466*48];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t second_buffer[466*40];
+_Alignas(LV_DRAW_BUF_ALIGN) static uint16_t full_buffer[466*466];
+static uint16_t reference_pixels[466*466];
 static bool device_format;
 static unsigned flushed;
 static lv_display_t *display;
@@ -153,9 +155,42 @@ static void catalogue_contract(void){
     assert(!watchface_theme_name(-1)[0] && !watchface_theme_name(5)[0]);
     assert(watchface_index_in_theme(-1,29)==29 && watchface_index_in_theme(5,29)==29);
 }
+static void studio_tile_contract(void){
+    // 相同真实绘制器必须在整帧与40行双缓冲中输出相同像素，包括偏移预览和常显。
+    // The real renderer must match full-frame pixels in 40-row double buffers, including offset previews and AOD.
+    const int hours[]={0,10,12,23},minutes[]={0,8,34,59},seconds[]={0,15,30,59};
+    watchface_hide();
+    for(int format=0;format<2;format++){
+        device_format=format;
+        lv_display_set_color_format(display,format?LV_COLOR_FORMAT_RGB565_SWAPPED:LV_COLOR_FORMAT_RGB565);
+        for(int small=0;small<2;small++)for(int index=21;index<30;index++){
+            s_idx=index;lv_obj_t *view=surface(lv_screen_active(),small?233:466,small?(0x100u|(uintptr_t)index):0);
+            for(int aod=0;aod<2;aod++)for(int t=0;t<4;t++){
+                struct tm time={.tm_year=126,.tm_mon=9,.tm_mday=20+t,.tm_hour=hours[t],.tm_min=minutes[t],.tm_sec=seconds[t]};
+                now=mktime(&time);s_aod=aod;snapshot(true);
+                lv_display_set_buffers(display,full_buffer,NULL,sizeof full_buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);
+                lv_obj_invalidate(lv_screen_active());lv_refr_now(display);memcpy(reference_pixels,pixels,sizeof pixels);
+                lv_display_set_buffers(display,buffer,second_buffer,466*40*2,LV_DISPLAY_RENDER_MODE_PARTIAL);
+                lv_obj_invalidate(lv_screen_active());lv_refr_now(display);
+                if(memcmp(reference_pixels,pixels,sizeof pixels))fprintf(stderr,"tile mismatch: format=%d preview=%d face=%d aod=%d time=%d\n",format,small,index,aod,t);
+                assert(!memcmp(reference_pixels,pixels,sizeof pixels));
+                // 清掉屏幕中的窄区域再局部恢复，覆盖横向裁剪与非整块起止边界。
+                // Clear and restore a narrow screen region to cover horizontal clips and non-tile-aligned edges.
+                lv_area_t coords;lv_obj_get_coords(view,&coords);int size=small?233:466;
+                lv_area_t dirty={coords.x1+size/3,coords.y1+size/5,coords.x1+size*2/3,coords.y1+size*4/5};
+                for(int y=dirty.y1;y<=dirty.y2;y++)for(int x=dirty.x1;x<=dirty.x2;x++)pixels[y*466+x]^=0xffff;
+                lv_obj_invalidate_area(view,&dirty);lv_refr_now(display);
+                assert(!memcmp(reference_pixels,pixels,sizeof pixels));
+            }
+            lv_obj_delete(view);
+        }
+    }
+    puts("STUDIO: 288 full-frame/40-row pairs matched in both RGB565 formats, 466/233px, AOD and boundary times.");
+}
 int main(int argc,char **argv){
     if(argc==2&&strcmp(argv[1],"--font-digests")==0){lv_init();font_bitmap_digests(true);lv_deinit();return 0;}
-    const char *folder=argc>1?argv[1]:NULL;
+    bool tiles=argc==2 && !strcmp(argv[1],"--tile-contract");
+    const char *folder=argc>1&&!tiles?argv[1]:NULL;
     device_format=getenv("SOROUND_TEST_DEVICE_FORMAT")!=NULL;
     setenv("TZ","UTC",1);tzset();struct tm t={.tm_year=126,.tm_mon=9,.tm_mday=5,.tm_hour=10,.tm_min=8,.tm_sec=21};now=mktime(&t);
     ip_ready=false;snapshot(true);assert(!s_data.wifi && !s_data.ip[0]);ip_ready=true;snapshot(true);assert(s_data.wifi);
@@ -168,6 +203,7 @@ int main(int argc,char **argv){
     lv_display_set_buffers(display,buffer,device_format?second_buffer:NULL,device_format?466*40*2:sizeof buffer,LV_DISPLAY_RENDER_MODE_PARTIAL);lv_display_set_flush_cb(display,flush);
     lv_obj_set_style_bg_color(lv_screen_active(),lv_color_black(),0);
     catalogue_contract();studio_font_contract();watchface_init();assert(watchface_selected()==4&&!watchface_visible());watchface_show();assert(wf_timer);
+    if(tiles){studio_tile_contract();lv_deinit();return 0;}
     uint64_t hashes[30];
     for(int i=0;i<30;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
     capture_studio_references(folder);

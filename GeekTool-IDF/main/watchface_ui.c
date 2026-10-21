@@ -386,6 +386,8 @@ void watchface_render(lv_layer_t *layer,const lv_area_t *area,const watchface_da
     draw_t d={.layer=layer,.x=area->x1,.y=area->y1,.size=lv_area_get_width(area),.preview=preview};
     // 新组显式分发，防止追加ID落入旧HAND末款。 / Dispatch STUDIO explicitly so appended IDs never fall through to HAND dots.
     if(index>=WATCHFACE_STUDIO_START&&index<WATCHFACE_COUNT){
+        // 主屏/预览surface已提供纯黑底，不再用数千个采样行重复填黑圆面。
+        // Full/preview surfaces already provide black; avoid thousands of sampled rows for a redundant black disc.
         int studio=index-WATCHFACE_STUDIO_START;
         if(studio<3)watchface_instrument_render(layer,area,data,studio,preview);
         else watchface_scenes_render(layer,area,data,studio-3,preview);

@@ -2,6 +2,8 @@
 #include "settings.h"
 #include "display.h"
 #include "nvs.h"
+#include "ui_persistence.h"
+#include <string.h>
 
 #define NS "settings"
 
@@ -60,18 +62,25 @@ void settings_set_lang(uint8_t v) { s_lang = v ? 1 : 0; }
 uint8_t settings_dice(void) { return s_dice > 3 ? 1 : s_dice; }
 void settings_set_dice(uint8_t v) { s_dice = v > 3 ? 1 : v; }
 
-void settings_save(void) {
+static bool write_settings(const void *snapshot) {
+    static const char *const keys[]={"bright","vol","face","idle","silent","beta","lang","dice"};
+    static uint8_t committed[8];static bool valid;
+    const uint8_t *values=snapshot;bool changed=!valid || memcmp(committed,values,sizeof committed)!=0;
+    if(!changed)return true;
     nvs_handle_t h;
-    if (nvs_open(NS, NVS_READWRITE, &h) == ESP_OK) {
-        nvs_set_u8(h, "bright", s_bright);
-        nvs_set_u8(h, "vol", s_vol);
-        nvs_set_u8(h, "face", s_face);
-        nvs_set_u8(h, "idle", s_idle);
-        nvs_set_u8(h, "silent", s_silent);
-        nvs_set_u8(h, "beta", s_beta);
-        nvs_set_u8(h, "lang", s_lang);
-        nvs_set_u8(h, "dice", s_dice);
-        nvs_commit(h);
+    esp_err_t err=nvs_open(NS,NVS_READWRITE,&h);
+    if(err==ESP_OK){
+        for(unsigned i=0;i<sizeof committed && err==ESP_OK;i++)
+            if(!valid || committed[i]!=values[i])err=nvs_set_u8(h,keys[i],values[i]);
+        if(err==ESP_OK)err=nvs_commit(h);
         nvs_close(h);
     }
+    if(err==ESP_OK){memcpy(committed,values,sizeof committed);valid=true;}
+    return err==ESP_OK;
+}
+void settings_save(void) {
+    // 快照先复制再交给低优先级任务；已提交缓存只在全部写入及commit成功后更新。
+    // Copy before handing off to the worker; update the durable cache only after every write and commit succeeds.
+    uint8_t snapshot[]={s_bright,s_vol,s_face,s_idle,s_silent,s_beta,s_lang,s_dice};
+    (void)ui_persistence_save(UI_STORE_SETTINGS,snapshot,sizeof snapshot,write_settings);
 }

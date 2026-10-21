@@ -5,6 +5,8 @@
 #include "lvgl_compat.h"
 #include "settings.h"
 #include "nvs.h"
+#include "ui_persistence.h"
+void test_persistence_defer(bool enabled);
 #include "audio_out.h"
 #include "src/misc/lv_text_private.h"
 #include "../host/tools_render.h"
@@ -163,6 +165,12 @@ int main(int argc, char **argv) {
         audio_available = true; unsigned stops = scene_stops; focus_exit(); assert(!audio_active && scene_stops > stops && s_focus.session_id == 0); lv_obj_delete(p);
         p = new_page(); garden_enter(p); capture(dir, "garden-grown"); garden_exit(); lv_obj_delete(p);
     }
-    printf("garden/focus native LVGL: bilingual glyphs, circle bounds, watering/night, hidden animation, timer boundaries, one completion/growth, audio failure and exit passed (%u flushed pixels)\n", flushed);
+    // 真正落盘后应在下一tick清除待保存提示，而不是等下一次用户操作。
+    // Clear pending indicators on the next tick after durability, without requiring another user action.
+    test_persistence_defer(true);lv_obj_t *p=new_page();focus_enter(p);focus_next_scene(NULL);assert(s_preferences_dirty);
+    focus_toggle(NULL);host_time_us+=FOCUS_DURATION_US;step(100);focus_tick();assert(s_focus.phase==FOCUS_DONE && !s_completion_saved);
+    assert(ui_persistence_flush(1000));focus_tick();assert(s_completion_saved && !s_preferences_dirty && !garden_shared_dirty());
+    focus_exit();lv_obj_delete(p);test_persistence_defer(false);
+    printf("garden/focus native LVGL: bilingual glyphs, circle bounds, watering/night, hidden animation, timer boundaries, one completion/growth, audio failure, deferred completion and exit passed (%u flushed pixels)\n", flushed);
     lv_deinit(); return 0;
 }

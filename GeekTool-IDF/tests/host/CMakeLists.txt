@@ -12,6 +12,21 @@ target_include_directories(performance_tests PRIVATE stubs ../../main)
 target_link_libraries(performance_tests PRIVATE lvgl m)
 target_compile_options(performance_tests PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
 enable_testing()
+add_executable(render_power_tests render_power_tests.c)
+target_include_directories(render_power_tests PRIVATE stubs ../../main)
+target_compile_options(render_power_tests PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(render_power_tests PRIVATE lvgl m)
+add_test(NAME render_cpu_lock_lifecycle COMMAND render_power_tests)
+add_executable(persistence_tests ../persistence/persistence_tests.c ../../main/settings.c ../../main/garden_state.c ../../main/focus_state.c)
+target_include_directories(persistence_tests PRIVATE ../persistence/stubs stubs ../../main)
+target_compile_options(persistence_tests PRIVATE -Wall -Wextra -Werror)
+target_link_libraries(persistence_tests PRIVATE lvgl m)
+add_test(NAME deferred_ui_persistence_boundaries COMMAND persistence_tests)
+add_executable(studio_cache_tests ../watchfaces/studio_cache_tests.c)
+target_include_directories(studio_cache_tests PRIVATE stubs ../../main)
+target_link_libraries(studio_cache_tests PRIVATE lvgl m)
+target_compile_options(studio_cache_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME studio_geometry_cache_lifecycle COMMAND studio_cache_tests)
 add_test(NAME performance_regressions COMMAND performance_tests)
 add_executable(play_tests play_tests.c ../../main/maze_levels.c ../../main/glyph.c
                ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
@@ -48,6 +63,8 @@ target_include_directories(remote_ui_tests PRIVATE ../hid/stubs stubs ../../main
 target_link_libraries(remote_ui_tests PRIVATE lvgl m)
 target_compile_options(remote_ui_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME remote_controls_and_layout COMMAND remote_ui_tests)
+add_test(NAME remote_device_idle_and_transitions COMMAND remote_ui_tests)
+set_tests_properties(remote_device_idle_and_transitions PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")
 add_executable(weather_ui_tests ../weather/weather_ui_tests.c ../../main/weather_ui.c ../../main/weather_artwork.c
                ../../main/weather_data.c ../../main/weather_details.c ../../main/font_weather_details.c
                ../../managed_components/espressif__cjson/cJSON/cJSON.c
@@ -71,7 +88,7 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
-target_sources(settings_level_tests PRIVATE ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
+target_sources(settings_level_tests PRIVATE ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
                ../../main/identity_ui.c ../../main/font_identity.c)
 add_executable(identity_ui_tests identity_ui_tests.c ../../main/identity_ui.c ../../main/font_identity.c)
 target_include_directories(identity_ui_tests PRIVATE ../../main)
@@ -101,7 +118,8 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
     ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
     ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c ../../main/tools_ui.c
-    ../../main/font_tools.c ../../main/weather_artwork.c ../../main/companion_icons.c ../../main/font_companion.c)
+    ../../main/font_tools.c ../../main/weather_artwork.c ../../main/companion_icons.c ../../main/font_companion.c
+    ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/control_ui.c ../../main/font_control.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
 target_link_libraries(startup_flow_tests PRIVATE lvgl m)
 target_compile_options(startup_flow_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
@@ -122,6 +140,7 @@ target_link_libraries(watchface_tests PRIVATE lvgl m)
 target_compile_options(watchface_tests PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME watchface_collection_and_power COMMAND watchface_tests)
 add_test(NAME watchface_device_format_and_tiles COMMAND watchface_tests)
+add_test(NAME studio_full_frame_and_dma_tiles COMMAND watchface_tests --tile-contract)
 set_tests_properties(watchface_device_format_and_tiles PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")
 add_test(NAME settings_device_format_and_tiles COMMAND settings_level_tests)
 set_tests_properties(settings_device_format_and_tiles PROPERTIES ENVIRONMENT "SOROUND_TEST_DEVICE_FORMAT=1")

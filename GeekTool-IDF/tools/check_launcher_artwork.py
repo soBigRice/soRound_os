@@ -24,7 +24,7 @@ def main():
     args = parser.parse_args()
     icons = json.loads((ART / "manifest.json").read_text())["icons"]
     references = [ART / f"{icon['id']}.png" for icon in icons]
-    for name in ("sprout", "disc-3", "mic"):
+    for name in ("sprout", "disc-3", "mic", "watchfaces"):
         icons.append({"id": name})
         references.append(ART.parent / "additional" / f"{name}.png")
     with tempfile.TemporaryDirectory(prefix="launcher-artwork-") as temp:

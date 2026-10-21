@@ -13,6 +13,8 @@
 #include "watchface.h"
 static uint8_t language,brightness=191,volume=65,idle,silent,face;
 static int saves,audio_starts,audio_stops,blips;
+static unsigned preview_refreshes;
+static uint8_t saved_face;
 static bool sensor_up=true;
 static float tx,ty,az=1;
 uint8_t settings_lang(void) {return language;}
@@ -26,10 +28,10 @@ void settings_set_idle_mode(uint8_t v) {idle=v;}
 uint8_t settings_silent(void) {return silent;}
 void settings_set_silent(uint8_t v) {silent=v;}
 void settings_set_face(uint8_t v) {face=v;}
-void settings_save(void) {++saves;}
+void settings_save(void) {++saves;saved_face=face;}
 int watchface_selected(void) {return face;}
 void watchface_select(int i) {assert(i>=0 && i<watchface_count());face=(uint8_t)i;}
-void watchface_refresh_preview(lv_obj_t *preview) {(void)preview;}
+void watchface_refresh_preview(lv_obj_t *preview) {assert(preview);++preview_refreshes;}
 void audio_out_init(void) {++audio_starts;}
 void audio_out_deinit(void) {++audio_stops;}
 void audio_out_set_volume(uint8_t v) {assert(v==volume);}
@@ -203,7 +205,7 @@ int main(int argc,char **argv) {
             char name[64];snprintf(name,sizeof name,"settings-%s",names[item]);capture(page,directory,name);check_full_text(s_panel);
             if(s_page==SETTINGS_BRIGHTNESS || s_page==SETTINGS_VOLUME) {
                 bool is_brightness=s_page==SETTINGS_BRIGHTNESS;int minimum=is_brightness?64:0,limit=is_brightness?255:100;
-                assert(s_slider && !s_aod && !s_mute && !s_face_preview && !s_scroll);
+                assert(s_slider && !s_aod && !s_mute && !s_face_picker.preview && !s_scroll);
                 assert(lv_slider_get_min_value(s_slider)==minimum && lv_slider_get_max_value(s_slider)==limit);
                 lv_slider_set_value(s_slider,minimum,LV_ANIM_OFF);lv_obj_send_event(s_slider,LV_EVENT_VALUE_CHANGED,NULL);assert(saves==stored);
                 lv_area_t slider;lv_obj_get_coords(s_slider,&slider);int y=(slider.y1+slider.y2)/2,end=slider.x2+8;
@@ -221,18 +223,18 @@ int main(int argc,char **argv) {
                 stored=saves;drag(233,320,233,285);settle();assert(!s_scroll && s_page==destinations[item] && saves==stored);
             } else if(s_page==SETTINGS_AOD || s_page==SETTINGS_MUTE) {
                 bool is_aod=s_page==SETTINGS_AOD;lv_obj_t *sw=is_aod?s_aod:s_mute;
-                assert(sw && !s_slider && !s_face_preview && !s_scroll && audio_starts==audio_stops);
+                assert(sw && !s_slider && !s_face_picker.preview && !s_scroll && audio_starts==audio_stops);
                 bool original=lv_obj_has_state(sw,LV_STATE_CHECKED);tap(sw);settle();
                 sw=is_aod?s_aod:s_mute;assert(lv_obj_has_state(sw,LV_STATE_CHECKED)!=original && saves==stored+1);
                 assert((is_aod?(idle==IDLE_AOD):(silent!=0))!=original);
                 snprintf(name,sizeof name,"settings-%s-toggled",names[item]);capture(page,directory,name);check_full_text(s_panel);
                 tap(sw);settle();assert(saves==stored+2 && (is_aod?(idle==IDLE_AOD):(silent!=0))==original);
             } else if(s_page==SETTINGS_FACE) {
-                assert(!s_scroll && s_face_preview && !s_slider && !s_aod && !s_mute);
-                lv_area_t preview;lv_obj_get_coords(s_face_preview,&preview);
+                assert(!s_scroll && s_face_picker.preview && !s_slider && !s_aod && !s_mute);
+                lv_area_t preview;lv_obj_get_coords(s_face_picker.preview,&preview);
                 assert(preview.x1==116 && preview.y1==116 && lv_area_get_width(&preview)==233 && lv_area_get_height(&preview)==233);
                 // Vertical drags leave the preview, caption and controls in place and do not select.
-                drag(233,260,233,180);settle();lv_area_t after;lv_obj_get_coords(s_face_preview,&after);
+                drag(233,260,233,180);settle();lv_area_t after;lv_obj_get_coords(s_face_picker.preview,&after);
                 assert(memcmp(&preview,&after,sizeof preview)==0 && saves==stored && face==0 && s_page==SETTINGS_FACE);
                 face=2;rebuild(NULL);tap(button_named(s_panel,"ORBIT"));settle();assert(face==7 && saves==stored+1);
                 tap(button_named(s_panel,"SHIFT"));settle();assert(face==12 && saves==stored+2);
@@ -261,7 +263,7 @@ int main(int argc,char **argv) {
                 assert(abs(first_x+last_x-465)<=1);
                 for(face=0;face<30;++face) {
                     rebuild(NULL);snprintf(name,sizeof name,"face-%u",face);capture(page,directory,name);check_full_text(s_panel);
-                    lv_obj_get_coords(s_face_preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
+                    lv_obj_get_coords(s_face_picker.preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
                 }
                 face=29;rebuild(NULL);
                 stored=saves;tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==28 && saves==stored+1);
@@ -315,9 +317,47 @@ int main(int argc,char **argv) {
     for(unsigned item=0;item<sizeof destinations/sizeof destinations[0];++item) {
         lv_obj_t *page=settings_screen();settings_enter(page);s_page=destinations[item];rebuild(NULL);queue_rebuild();
         settings_exit();lv_screen_load(stage);lv_obj_delete(page);settle();settings_tick();
-        assert(!s_panel && !s_scroll && !s_face_preview && audio_starts==audio_stops);
+        assert(!s_panel && !s_scroll && !s_face_picker.preview && audio_starts==audio_stops);
     }
-    lv_indev_delete(touch);touch=NULL;
+    // 独立入口与设置快捷入口使用同一选择服务；检查真实点击、保存、重进和待重建时退出。
+    // Exercise the standalone entry through real clicks, saving, re-entry and exit with a pending rebuild.
+    char previous_title[64];snprintf(previous_title,sizeof previous_title,"%s",lv_label_get_text(heading));
+    for(language=0;language<2;++language) {
+        face=29;int stored=saves;lv_obj_t *page=settings_screen();
+        app_watchfaces.enter(page);assert(saves==stored && !app_watchfaces.back && app_watchfaces.tick_period_ms==1000);
+        lv_obj_t *panel=lv_obj_get_child(page,0);
+        watchface_picker_t *picker=lv_obj_get_user_data(panel);
+        assert(picker && picker->panel==panel && picker->preview);
+        assert(!strcmp(lv_label_get_text(heading),language?"表盘":"Watchfaces"));
+        lv_area_t preview;lv_obj_update_layout(panel);lv_obj_get_coords(picker->preview,&preview);
+        assert(preview.x1==116 && preview.y1==116 && lv_area_get_width(&preview)==233 && lv_area_get_height(&preview)==233);
+        for(unsigned index=0;index<30;++index) {
+            stored=saves;tap(button_named(panel,LV_SYMBOL_RIGHT));settle();
+            assert(face==index && saved_face==index && saves==stored+1);
+            char name[64];snprintf(name,sizeof name,"watchfaces-face-%u",index);capture(page,directory,name);check_full_text(panel);
+            lv_area_t after;lv_obj_get_coords(picker->preview,&after);assert(!memcmp(&preview,&after,sizeof preview));
+        }
+        stored=saves;tap(button_named(panel,"HAND"));settle();assert(face==15 && saves==stored+1);
+        tap(button_named(panel,"STUDIO"));settle();assert(face==21 && saved_face==21 && saves==stored+2);
+        unsigned refreshed=preview_refreshes;app_watchfaces.tick();assert(preview_refreshes==refreshed+1);
+        capture(page,directory,"watchfaces-app");
+        // 保存先于异步重建，立即退出再进入也必须恢复本次选择。
+        // Saving precedes the deferred rebuild, so immediate exit/re-entry must retain the selection.
+        stored=saves;lv_obj_send_event(button_named(panel,LV_SYMBOL_RIGHT),LV_EVENT_CLICKED,NULL);
+        assert(face==22 && saved_face==22 && saves==stored+1);
+        app_watchfaces.exit();assert(!picker->panel && !picker->preview);
+        refreshed=preview_refreshes;app_watchfaces.tick();assert(preview_refreshes==refreshed);
+        lv_screen_load(stage);lv_obj_delete(page);
+        page=settings_screen();face=saved_face;stored=saves;app_watchfaces.enter(page);settle();
+        panel=lv_obj_get_child(page,0);picker=lv_obj_get_user_data(panel);
+        assert(face==22 && saves==stored && picker->preview);
+        // 调用者直接删除页面时也取消重建，不能让旧回调进入下一次挂载。
+        // Direct page deletion must cancel a rebuild before a subsequent mount.
+        lv_obj_send_event(button_named(panel,"STUDIO"),LV_EVENT_CLICKED,NULL);
+        lv_screen_load(stage);lv_obj_delete(page);assert(!picker->panel && !picker->preview);
+        settle();app_watchfaces.exit();app_watchfaces.tick();
+    }
+    lv_label_set_text(heading,previous_title);lv_indev_delete(touch);touch=NULL;
     // Every direction, near-vertical and inverted readings stay bounded and recover.
     language=0;lv_obj_t *page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
     level_enter(page);

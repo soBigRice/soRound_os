@@ -4,6 +4,16 @@
 
 2026-10-20：用户确认[九款设计](./artwork/watchfaces/exploration-20261020/README.md)全部接入，最初要求高还原度、保留旧款、测试发版且不烧录；事故恢复后另行授权应用烧录。STUDIO追加为ID21–29，总数30；原0–20保持名称、映射、字库及绘制逻辑。见[原生对照](./artwork/watchfaces/studio-native/README.md)，发布状态另见[发布记录](./PORTING_NOTES.md)。历史21款设备/用户证据不涵盖新款。
 
+## 独立表盘 App（2026-10-20，本地候选）
+
+启动器末尾追加第24个入口“表盘 / Watchfaces”，前23项顺序保持。设置 → 表盘保留为快捷入口；两处共同使用`watchface_picker.c`，不维护两套选择规则。当前改动尚未发布；已按用户明确授权USB安装`v1.7-beta.37-watchfaces`，通过启动自检、70秒观察和镜像/数据完整性校验，真实观感仍待用户验收。
+
+`app_watchfaces.c:watchfaces_enter → watchface_picker_mount → picker_rebuild`直接使用调用者的现有面板，保持233px预览、中心(232.5,232.5)、左右循环、五组按钮和即选即存；不增加绘制容器深度。独立App使用系统返回键/右滑回启动器；设置入口继续返回原设置列表并恢复滚动位置。
+
+`picker_face / picker_theme → watchface_select → settings_set_face → settings_save → picker_queue`先保存，再异步重建子控件，避免在按钮事件中删除事件目标。每个入口各自持有`watchface_picker_t`，实例随专用panel识别。`watchface_picker_unmount`及面板删除回调均取消待执行重建、清空预览指针；退出后tick无操作。两个入口沿用App框架每秒刷新，锁屏/覆盖时暂停，没有新增计时器、线程、存储键或分区迁移。
+
+验证入口为`settings_controls_and_level_recovery`及其设备色序版本、`launcher_bilingual_app_name_glyphs`：覆盖两语言、30款循环、分组、保存/重进、排队重建时退出/直接删页，以及真实启动器进入/锁屏/解锁/返回。原生对照和验证状态见[独立入口检查](./artwork/watchfaces/app-native-20261020/README.md)。原设置页及原水平仪基线逐帧校验，防止抽取控件时引入布局或共享夹具污染。
+
 ## STUDIO 九款与高还原绘制
 
 | NVS ID | 名称 | 活动态刷新 |
@@ -94,9 +104,10 @@ lock.c:lock_set → watchface_show/hide
   → watchface.c:snapshot → 同一时间 / Wi-Fi / power_read / weather_cached / img_store 缓存
   → watchface_ui.c:watchface_render → 主题与用途组合 → 原生LVGL绘制
 
-app_settings.c:pick_face / pick_theme
-  → watchface_select → settings_set_face → settings_save → queue_rebuild
-  → watchface_create_preview → 共用watchface_render
+app_settings.c:rebuild(SETTINGS_FACE) / app_watchfaces.c:watchfaces_enter
+  → watchface_picker_mount → picker_face / picker_theme
+  → watchface_select → settings_set_face → settings_save → picker_queue
+  → picker_rebuild → watchface_create_preview → 共用watchface_render
 ```
 
 每个表盘只有一个绘制对象，没有为每个数字/刻度创建大量控件。
@@ -166,6 +177,20 @@ CRC32 `8734e6d4`识别该静态素材，再决定是否解码。CRC调用ESP-IDF
 AOD隐藏图片；原自定义`bg.jpg`文件不会被覆盖。
 
 ## 绘制经验与回归
+
+2026-10-21追加授权：九款STUDIO正常/AOD背景改为纯黑，保留全部对象、logo/文字、坐标和动效；仅将MAZE深色墨迹改为浅绿/米白以适配黑底，月牙镂空和IRIS内孔随底色改黑。旧21款不改。[黑底原生审阅](./artwork/watchfaces/black-native-20261021/README.md)含九款及常显；这是主机实际LVGL输出，不是真机照片。
+
+第二阶段绘制优化：`wfs_span`用额外40B BSS中的四槽合并同一原语内相邻等色行；原语结束前全部提交，不跨原语改变叠层。`wfs_geometry_cache()`仅在IRIS/GROWTH使用原函数计算并复用不随时间变化的浮点路径，精度不改；13,924B显式PSRAM缓存同时适配466/233px，不是全屏位图。`watchface_select`、`watchface_hide`与`watchface_picker_unmount`释放缓存，分配失败沿用原计算路径，同一生命周期不反复申请。
+
+优化后的2160帧与未优化的黑底参考逐像素一致；禁用缓存的2160帧也相同。比较夹具显式设置与真实`surface()`相同的黑底，避免未设样式对象的默认背景污染结果。两种RGB565格式的整帧/40行双缓冲和窄区域恢复继续通过。相对原生产绘制器的黑底参考，九款全屏每帧任务减少约10%–47%（RADAR 34.61%、IRIS 12.56%、GROWTH 10.23%）；这是主机相同后端的确定性任务计数，不能换算成ESP32帧率。旧21款的任务/推送/混合计数不变。
+
+最终目标ELF仍只有2084B扫描工作区和40B行合并槽；poly/ring各304B、label368B、growth320B，LVGL栈配置仍9216B。后台保存worker另分配3072B任务栈，未以主机或静态帧大小冒充真机最低余量。完整59项主机与2项生态箱/专注检查、发布依赖ESP32-S3构建通过；本轮尚未烧录或发布，当前私有候选及摘要见[追加验证记录](./PORTING_NOTES.md#2026-10-21-全量流畅性优化与黑底表盘本地候选)。
+
+2026-10-21性能修正：`watchface_studio_draw.h::wfs_poly_opa/wfs_ring_opa`将覆盖率清零、填充和扫描限定为图形边界与当前块相交的列，保留原四次采样、覆盖率/透明度舍入及圆屏裁剪。`wfs_label`按真实字形墨迹边界跳过块外字符，保留原1/16px字宽、空格规则、字距和基线；没有增加全帧缓存、降低分辨率或减少秒动效。旧21款绘制器保持原样。
+
+新增`studio_full_frame_and_dma_tiles`使用真实controller/surface/render链，在两种RGB565格式、466/233px、正常/AOD及四组边界时间下比较288组整帧/40行双缓冲像素，再逐组清空并恢复窄区域，核对横向及非整块裁剪。独立冻结的修改前程序与最终程序还完成2160帧逐像素对照，全部一致。全套56项主机回归通过；没有以视觉正确性替代设备性能结论。
+
+ESP-IDF6.0.1/LVGL9.6.0~1最终ELF：两组poly/ring栈帧各304B（原288B），label各368B（原320B），唯一共享BSS仍2084B；配置实码仍为9216B。无大数组回栈或新增图形堆缓冲。这些静态数字不能替代完整层级的真机栈最低余量；本轮未烧录。主机重负载表盘时间下降，但不同批次有明显波动，不报告真机FPS或产品提升百分比。见[本地验证记录](./PORTING_NOTES.md#2026-10-21-流畅度修复本地未发版未烧录)。
 
 此次遗漏：原实现把所有可解码的`/img/bg.jpg`视为自定义图，未区分随旧storage分区出厂的熊猫。
 OTA保留storage，因此设备必然走旧图分支；此前主机预览直接注入三张主题图，绕开了这一真实入口。

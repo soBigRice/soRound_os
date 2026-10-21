@@ -53,7 +53,45 @@ Apple Watch Now Playing是Apple设备间的系统能力，官方说明不构成�
 
 ## 验证和发行边界
 
-- 主机测试：`tests/host`，含原输入释放/OTA/启动/天气/木鱼、录音五项与新旧图标适配；注册校验明确为23项并保留`APPS[19]==app_pixels`。
+### 2026-10-21 静止刷新修正（本地待设备验证）
+
+`app_mouse::update_media_view()`沿用`ui_text`，只在真实播放状态改变时更新符号；原20ms轮询、100ms封面旋转及HID/元数据协议保持。`app_capsules::capsules_tick()`仅在state/result改变时重画录音按钮，波形数据或录音状态改变时重画波形；列表名称颜色也只在实际改变时设置。只保存前一状态/结果，不在LVGL栈上复制包含文件目录的完整快照。
+
+共享`tools_ui::tools_label_center()`仍先完成布局、再按原坐标居中；只有对齐并非TOP_LEFT时调用样式setter，兼容启动器原TOP_MID标题。LVGL同值样式setter也会失效，不能以“数值没变”推定没有绘制。UI轮询可以继续，显示属性应按实际变化提交。
+
+新增回归先在旧实现复现音乐/胶囊静止页面持续flush，修复后通过RGB565及真机使用的RGB565_SWAPPED/40行双缓冲路径。暂停音乐100次20ms轮询、胶囊各稳定状态/列表/删除确认100次50ms轮询均零flush；播放符号、波形、秒数和状态变化仍更新。胶囊局部更新还逐像素对照完整重绘，避免取消冗余失效后漏画。
+
+同一检查发现旧录音→非录音转换只更新按钮，波形会保留红色，直到其他重绘覆盖。现在状态变化同步刷新波形，中英文“存储未配置”参考图分别纠正1104/1308个残留像素；二者均与旧绘制器强制完整重绘逐字节相同。其余548张表盘/设置/遥控/胶囊基线图保持一致。完整56项主机回归与发布依赖目标构建通过；设备流畅度、BLE和音频未在本轮重测，未烧录或发布。详细本地回执见[性能修复记录](./PORTING_NOTES.md#2026-10-21-流畅度修复本地未发版未烧录)。
+
+### 2026-10-21 后台保存与绘制升频
+
+用户已明确选择后台保存，并接受操作与落盘间短暂的断电窗口。`ui_persistence.c`只维护Settings/Garden/Focus三个32字节以内的不可变副本槽：75ms合并连续操作，最迟500ms成为可执行请求；一个低优先级worker负责NVS，槽位临界区内只复制数据，绝不执行Flash操作。500ms是调度资格上限，不承诺硬件写入一定在500ms内完成。三个命名空间分别提交，不构成跨命名空间事务；原NVS格式和键不变。
+
+调用链：`settings_save()`→8字节设置副本→`write_settings()`；`garden_shared_save()`→成长副本→原`garden_state_save()`；`focus_preferences_save_async()`→偏好副本→原`focus_preferences_save()`。后两项原同步底层函数仍是worker/存储边界测试入口，App不再直接用它们写入。设置writer只提交相对上次成功副本改变的键，所有setter/commit返回值均检查；失败不更新已提交缓存。
+
+```mermaid
+sequenceDiagram
+    participant UI as LVGL界面
+    participant Q as 三槽副本队列
+    participant W as ui_store任务
+    participant N as 原NVS接口
+    UI->>Q: 复制状态并递增generation
+    W->>Q: 取得独立副本
+    W->>N: 写入并commit
+    N-->>W: 成功或失败
+    W->>Q: 仅确认仍匹配的generation
+    UI->>Q: 只读查询精确副本是否落盘
+    Q-->>UI: 返回真实完成状态
+    UI->>UI: 清除dirty和待保存提示
+```
+
+写入期间出现新修改时，旧副本完成不能清掉新副本的dirty；最多三次尝试、失败间隔250ms，然后保留失败副本，等待下一次保存请求或退出屏障重试。创建任务失败也保留副本。`launcher::go_home()`在App exit提交最后状态后执行`ui_persistence_flush(2000)`；超时/失败记录pending并保留重试，不假报成功。worker空闲阻塞等待通知，没有常驻轮询。未完成的专注偏好在重新进页时优先从RAM副本读取，避免旧NVS覆盖本次选择；突发断电/异常复位仍可能丢失尚未落盘的操作。
+
+`focus_tick()`每次只读查询偏好与成长完成状态，及时清除提示。新增延迟完成UI用例先复现“实际保存后仍永久显示未保存”，补齐回读后通过。`persistence_tests`覆盖不可变副本、合并、写入中再次修改、创建失败、三次重试、tick回绕、退出屏障及真实设置/成长/偏好入口；已有UI/NVS边界夹具保留即时调度，另补延迟完成分支，不能把其即时适配器当作RTOS并发证明。
+
+`display.c`通过`render_power.h`在LVGL `RENDER_START`取得CPU最大频率锁、`RENDER_READY`释放，显示删除也释放资源。该事件只在存在脏区域时发生；原触摸400ms boost、DFS、AOD和熄屏策略保持。实际分块绘制/flush、空闲100轮和销毁已做真实LVGL回归。机制依据[ESP-IDF6.0电源管理](https://docs.espressif.com/projects/esp-idf/en/v6.0/esp32s3/api-reference/system/power_management.html)与本地LVGL9.6.0~1源码核对；真机频率、功耗、写入停顿和worker栈最低余量仍待验证。
+
+- 主机测试：`tests/host`，含原输入释放/OTA/启动/天气/木鱼、录音五项与新旧图标适配；原注册校验后续由独立表盘App扩为24项，保留`APPS[19]==app_pixels`。
 - 生态箱/专注：`tests/companion_apps`；真实状态流、NVS错误和原生双语渲染。
 - 媒体解析与GATT：`tests/remote_media/run.sh`；真实解析器的ASan/UBSan边界验证。
 - Mac：`mac-companion/build.sh`和产物`--self-test`；初次只读Now Playing探测曾返回`null`，后续本轮实测已能取得真实封面并连接加密服务，但ATT写失败、零图层提交ACK，仍未验证实际显示或封面吞吐。

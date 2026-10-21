@@ -1,5 +1,6 @@
 #include "focus_state.h"
 #include "nvs.h"
+#include "ui_persistence.h"
 #include <stddef.h>
 
 static int64_t elapsed(const focus_state_t *s, int64_t now) {
@@ -28,6 +29,9 @@ bool focus_state_take_completion(focus_state_t *s) {
 }
 bool focus_preferences_load(focus_preferences_t *out) {
     if (!out) return false;
+    // 失败或尚未完成的副本仍是本次运行的用户选择，重新进页不能用旧NVS覆盖它。
+    // Retain pending/failed choices across re-entry instead of overwriting them with older NVS values.
+    if(ui_persistence_pending(UI_STORE_FOCUS,out,sizeof *out))return true;
     uint32_t value = 0; nvs_handle_t h; esp_err_t err = nvs_open("focus", NVS_READONLY, &h);
     if (err == ESP_OK) { err = nvs_get_u32(h, "prefs_v1", &value); nvs_close(h); }
     if (err == ESP_ERR_NVS_NOT_FOUND) { *out = (focus_preferences_t){.scene = 1}; return true; }
@@ -44,4 +48,12 @@ bool focus_preferences_save(const focus_preferences_t *p) {
         nvs_close(h);
     }
     return err == ESP_OK;
+}
+static bool write_focus_preferences(const void *snapshot){return focus_preferences_save(snapshot);}
+bool focus_preferences_save_async(const focus_preferences_t *preferences) {
+    if(!preferences || preferences->scene<1 || preferences->scene>3)return false;
+    return ui_persistence_save(UI_STORE_FOCUS,preferences,sizeof *preferences,write_focus_preferences);
+}
+bool focus_preferences_saved(const focus_preferences_t *preferences) {
+    return preferences && ui_persistence_saved(UI_STORE_FOCUS,preferences,sizeof *preferences);
 }
