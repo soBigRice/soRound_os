@@ -1,6 +1,6 @@
 #pragma once
-// TYPE / ORBIT / SHIFT 各五款 + HAND 六款 + STUDIO 三十五款；旧 NVS ID 0..43 保持不变。
-// Five legacy kinds per TYPE/ORBIT/SHIFT, six HAND and thirty-five STUDIO; persisted IDs 0..43 stay stable.
+// TYPE / ORBIT / SHIFT 各五款 + HAND 六款 + STUDIO 四十一款；旧 NVS ID 0..55 保持不变。
+// Five legacy kinds per TYPE/ORBIT/SHIFT, six HAND and forty-one STUDIO; persisted IDs 0..55 stay stable.
 // 设置页选择；BOOT 解锁和空闲策略由 lock.c 管理。
 // Settings owns selection; lock.c owns BOOT unlock and the idle policy.
 #include "lvgl.h"

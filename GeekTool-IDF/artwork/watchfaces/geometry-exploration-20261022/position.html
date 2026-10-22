@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>几何读时 · 六款圆屏概念</title>
+  <link rel="stylesheet" href="preview.css">
+  <script src="geometry.js" defer></script><script src="preview.js" defer></script>
+</head>
+<body data-direction="position">
+  <!-- 独立概念稿：所有示例为本地时分输入。 / Independent concepts: all samples use local time inputs. -->
+  <main>
+    <header><div><p class="eyebrow">GEOMETRIC TIME / EXPLORATION 03</p><h1>让时间，成为形状。</h1><p class="intro">六款466px圆屏概念 · 图形直接对应时分</p></div><div class="current"><output id="sample-time" aria-live="polite">10:08</output><span>样例时间</span></div></header>
+    <section class="controls" aria-label="预览控制">
+      <div class="presets" role="group" aria-label="样例时间"><button type="button" data-time="10:08" aria-pressed="true">10:08</button><button type="button" data-time="00:00" aria-pressed="false">00:00</button><button type="button" data-time="06:30" aria-pressed="false">06:30</button><button type="button" data-time="23:59" aria-pressed="false">23:59</button></div>
+      <div class="scrub"><label for="hour">时 <output id="hour-value">10</output></label><input id="hour" type="range" min="0" max="23" value="10"><label for="minute">分 <output id="minute-value">08</output></label><input id="minute" type="range" min="0" max="59" value="8"></div>
+      <label class="assist"><input id="assist" type="checkbox">辅助数字</label>
+    </section>
+    <nav class="directions-nav" aria-label="设计方向"><button type="button" data-direction="all" aria-pressed="true">全部六款</button><button type="button" data-direction="position" aria-pressed="false">A / 位置</button><button type="button" data-direction="area" aria-pressed="false">B / 面积</button><button type="button" data-direction="rotation" aria-pressed="false">C / 旋转</button></nav>
+    <div id="board" class="board" data-focus="all"></div>
+    <footer>概念效果预览 · 时间可调 · 还未接入固件、官网或设备</footer>
+  </main>
+</body></html>

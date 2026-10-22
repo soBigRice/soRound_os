@@ -119,7 +119,7 @@
   },
   "studio": {
     "title": "STUDIO",
-    "description": "器械、玩物、自然与图形，三十五种时间想象。",
+    "description": "器械、玩物、自然与图形，四十一种时间想象。",
     "family": "studio",
     "kinds": [
       {
@@ -321,6 +321,42 @@
         "key": "stride",
         "label": "步幅",
         "file": "studio/active-stride.png",
+        "preview": true
+      },
+      {
+        "key": "cross",
+        "label": "坐标",
+        "file": "studio/active-cross.png",
+        "preview": true
+      },
+      {
+        "key": "balance",
+        "label": "支点",
+        "file": "studio/active-balance.png",
+        "preview": true
+      },
+      {
+        "key": "hourglass",
+        "label": "沙漏",
+        "file": "studio/active-hourglass.png",
+        "preview": true
+      },
+      {
+        "key": "quanta",
+        "label": "方量",
+        "file": "studio/active-quanta.png",
+        "preview": true
+      },
+      {
+        "key": "phase",
+        "label": "合相",
+        "file": "studio/active-phase.png",
+        "preview": true
+      },
+      {
+        "key": "aperture",
+        "label": "开合",
+        "file": "studio/active-aperture.png",
         "preview": true
       }
     ]

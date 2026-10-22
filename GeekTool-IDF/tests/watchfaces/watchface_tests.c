@@ -165,14 +165,14 @@ static void catalogue_contract(void){
         "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
         "SHIFT / dots","SHIFT / bold","SHIFT / rings","SHIFT / weather","SHIFT / image",
         "HAND / mark","HAND / arc","HAND / numeral","HAND / orbit","HAND / frame","HAND / dots"};
-    const char *const additions[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary","mono","bauhaus","seven","vinyl","prism","metro","moon-gate","orrery","stack","air","offset","column","cut","edition","activity","circuit","matrix","vector","duo","stride"};
-    assert(watchface_count()==56 && WATCHFACE_THEME_COUNT==5);
+    const char *const additions[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary","mono","bauhaus","seven","vinyl","prism","metro","moon-gate","orrery","stack","air","offset","column","cut","edition","activity","circuit","matrix","vector","duo","stride","cross","balance","hourglass","quanta","phase","aperture"};
+    assert(watchface_count()==62 && WATCHFACE_THEME_COUNT==5);
     for(int i=0;i<21;++i){
         assert(!strcmp(watchface_name(i),preserved[i]));
         assert(watchface_theme_for(i)==(i<15?i/5:3));
     }
     assert(!strcmp(watchface_theme_name(4),"STUDIO"));
-    for(int i=0;i<35;++i){
+    for(int i=0;i<41;++i){
         char name[32];snprintf(name,sizeof name,"STUDIO / %s",additions[i]);
         assert(!strcmp(watchface_name(21+i),name));
         assert(!strcmp(watchface_kind_name(21+i),additions[i]));
@@ -215,6 +215,59 @@ static void sport_time_contract(void){
     assert(pixels[384*466+120]==expected_color(0xc6e97c));
     assert(pixels[384*466+200]==expected_color(0x2a321d));
     now=saved;watchface_set_aod(aod);watchface_select(selected);capture(NULL,"restore-after-sport-semantics");
+}
+static unsigned color_area(uint32_t rgb){
+    uint16_t color=expected_color(rgb);unsigned area=0;
+    for(unsigned i=0;i<466*466;++i)area+=pixels[i]==color;
+    return area;
+}
+static void geometry_at(int index,int hour,int minute){
+    struct tm clock={.tm_year=126,.tm_mon=9,.tm_mday=22,.tm_hour=hour,.tm_min=minute,.tm_sec=15};
+    now=mktime(&clock);watchface_select(index);capture(NULL,"geometry-semantics");
+}
+static void geometry_time_contract(void){
+    // 从读时规则核验坐标、可见面积和方向；颜色计数容差只覆盖抗锯齿边界。
+    // Verify coordinates, visible areas and direction from the reading rules; area tolerance covers antialiasing edges only.
+    time_t saved=now;int selected=watchface_selected();bool aod=s_aod;
+    watchface_set_aod(false);
+    const uint16_t paper=expected_color(0xe9e6db),mint=expected_color(0x9ab8ac),slab=expected_color(0x7f998d),gold=expected_color(0xd5a36c);
+    geometry_at(56,6,30);
+    assert(pixels[150*466+174]==paper && pixels[235*466+300]==mint);
+    assert(pixels[235*466+174]==mint && pixels[150*466+233]==0);
+    geometry_at(56,18,15);
+    assert(pixels[150*466+300]==paper && pixels[300*466+160]==mint);
+    assert(pixels[300*466+300]==mint && pixels[235*466+174]==0);
+    geometry_at(57,3,15);
+    assert(pixels[243*466+377]==paper && pixels[228*466+202]==gold);
+    geometry_at(57,6,30);
+    assert(pixels[364*466+195]==paper && pixels[251*466+226]==gold);
+    for(int index=58;index<=59;index++){
+        geometry_at(index,0,0);
+        assert(color_area(0xe9e6db)==0 && color_area(0x9ab8ac)==0);
+        geometry_at(index,3,15);
+        unsigned hour_quarter=color_area(0xe9e6db),minute_quarter=color_area(0x9ab8ac);
+        geometry_at(index,6,30);
+        unsigned hour_half=color_area(0xe9e6db),minute_half=color_area(0x9ab8ac);
+        // 沙漏三角总面积15972；方量最大面积26896/16384。06:30的时/分进度如下。
+        // The hourglass triangle has area 15972; square maxima are 26896/16384. These are the 06:30 hour/minute areas.
+        double hour_area=index==58?8651.5:7284.333333,minute_area=index==58?7986.0:8192.0;
+        assert(abs((int)hour_half-(int)hour_area)<330 && abs((int)minute_half-(int)minute_area)<330);
+        assert(abs((int)hour_half-2*(int)hour_quarter)<330);
+        assert(abs((int)minute_half-2*(int)minute_quarter)<330);
+    }
+    geometry_at(60,0,0);
+    assert(pixels[110*466+233]==paper && pixels[170*466+233]==mint && pixels[340*466+233]==0);
+    geometry_at(60,6,30);
+    assert(pixels[340*466+233]==paper && pixels[280*466+233]==mint && pixels[110*466+233]==0);
+    geometry_at(61,6,0);
+    assert(pixels[224*466+160]==paper && pixels[224*466+306]==slab && pixels[224*466+233]==0);
+    geometry_at(61,6,30);
+    assert(pixels[224*466+160]==slab && pixels[224*466+306]==paper && pixels[224*466+233]==0);
+    // 24小时增加必须扩大空隙；异色双片保留完整60分钟方向，不能退化为30分钟周期。
+    // Increasing the 24-hour value widens the gap; distinct slabs preserve a full 60-minute direction, not a 30-minute alias.
+    geometry_at(61,0,0);assert(pixels[224*466+220]==paper);
+    geometry_at(61,18,0);assert(pixels[224*466+220]==0);
+    now=saved;watchface_set_aod(aod);watchface_select(selected);capture(NULL,"restore-after-geometry-semantics");
 }
 static void studio_tile_contract(void){
     // 相同真实绘制器必须在整帧与40行双缓冲中输出相同像素，包括偏移预览和常显。
@@ -267,16 +320,16 @@ int main(int argc,char **argv){
     if(tiles){studio_tile_contract();lv_deinit();return 0;}
     uint64_t hashes[WATCHFACE_COUNT];
     for(int i=0;i<WATCHFACE_COUNT;++i){watchface_select(i);char name[32];snprintf(name,sizeof name,"face-%02d",i);hashes[i]=capture(folder,name);for(int j=0;j<i;++j)assert(hashes[i]!=hashes[j]);assert(lv_obj_get_child_count(wf_content)==0);}
-    capture_studio_references(folder);sport_time_contract();
+    capture_studio_references(folder);sport_time_contract();geometry_time_contract();
     // HAND 与 STUDIO 不得按旧五款分类误读天气或图片。
     // HAND and STUDIO must not inherit legacy weather/image data sources.
     int polls=weather_polls,reads=image_reads;
     for(int i=15;i<WATCHFACE_COUNT;++i){
         watchface_select(i);uint64_t before=capture(NULL,"seconds-before");flushed=0;++now;tick(NULL);
         uint64_t after=capture(NULL,"seconds-after");
-        // FOLD/HORIZON与极简排版只依赖分钟；其他HAND/STUDIO须真实体现秒变化。
-        // FOLD/HORIZON and typography depend on minutes; other HAND/STUDIO faces visibly encode seconds.
-        bool minute_only=i==25||i==27||(i>=44&&i<50);
+        // FOLD/HORIZON、极简排版与几何六款只依赖分钟；其余HAND/STUDIO须真实体现秒变化。
+        // FOLD/HORIZON, typography and geometry depend on minutes; other HAND/STUDIO faces visibly encode seconds.
+        bool minute_only=i==25||i==27||(i>=44&&i<50)||i>=56;
         bool expected=minute_only?(before==after && flushed==0):(before!=after && flushed>0);
         if(!expected)fprintf(stderr,"second update failed: ID %d %s minute_only=%d before=%016llx after=%016llx flushed=%u\n",
             i,watchface_name(i),minute_only,(unsigned long long)before,(unsigned long long)after,flushed);
@@ -325,7 +378,7 @@ int main(int argc,char **argv){
     for(unsigned i=0;i<466*466;++i)image_pixels[0][i]=0xffff;
     lv_obj_invalidate(wf_content);capture(folder,"custom-image-bright");assert((pixels[80*466+233]&31)<=12);
     watchface_set_sleep(true);assert(!wf_timer&&watchface_visible());now+=3660;watchface_set_sleep(false);assert(wf_timer&&s_data.time.tm_hour==11&&s_data.time.tm_min==9);
-    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==55);
+    watchface_select(-1);assert(watchface_selected()==0);watchface_select(100);assert(watchface_selected()==61);
     watchface_hide();assert(!wf_timer&&!watchface_visible());watchface_select(9);watchface_show();assert(watchface_selected()==9);
     for(int i=21;i<WATCHFACE_COUNT;++i){
         watchface_select(i);capture(NULL,"studio-before-sleep");polls=weather_polls;reads=image_reads;
@@ -335,5 +388,5 @@ int main(int argc,char **argv){
         assert(weather_polls==polls && image_reads==reads);now=before;
         watchface_hide();assert(!wf_timer && !watchface_visible());watchface_show();assert(wf_timer);
     }
-    watchface_hide();lv_deinit();puts("56 distinct native faces with preserved 44 IDs, HAND/STUDIO seconds, FOLD/HORIZON/typography minute-only updates, catalogue boundaries, AOD seconds/minutes, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
+    watchface_hide();lv_deinit();puts("62 distinct native faces with preserved 56 IDs, HAND/STUDIO seconds, FOLD/HORIZON/typography/geometry minute-only updates, catalogue boundaries, AOD seconds/minutes, sleep/wake, selection, weather ranges/failure, 32-byte SSID, unavailable battery, image loading/custom priority passed.");return 0;
 }

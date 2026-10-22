@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-22",
+  "base_commit": "a73ce8ac80f2b47fc644dc4e7f020b72c00f2a20",
+  "state": {
+    "design_accepted": true,
+    "native_integrated": true,
+    "committed": false,
+    "deployed": false,
+    "flashed": false
+  },
+  "source_sha256": {
+    "GeekTool-IDF/main/watchface_geometry.c": "0de87e2a90b7afedfa381c964cce69e1c188f6bc72c2571e52740375856c99ff",
+    "GeekTool-IDF/main/watchface_geometry.h": "ecbcca7cb94cbc54b1b6c94dd7e730c59943cdabde85de99bff45919b44b4997",
+    "GeekTool-IDF/main/watchface_ui.c": "fb536dfc30d09a94461584c8b3c01d39f8b5380d8b6546961a9a8b732afbb8b9",
+    "GeekTool-IDF/main/watchface_ui.h": "931263aa4d5b1dd559557de12c6ced24e0b9d047f6dcc14ea503391a4be24036",
+    "GeekTool-IDF/main/watchface.c": "7a6e5e163df884a99ea184d0bdb58dcfb116abd44357edbdc4c80e0a66ba2d6c",
+    "GeekTool-IDF/main/watchface.h": "c44d04061c3d5f795dde92d0c3a624f997ad61832b4fb0d67f9355acb73116d0",
+    "GeekTool-IDF/main/watchface_catalog.c": "6e9096812c8a55ec7b5ddd249a5a1b02b3f0bf46b93b64a1a8e1a78fc69ca1d5",
+    "GeekTool-IDF/main/CMakeLists.txt": "783ef68020ae25102e961b7468da9accac3d6c359a787c4f5d2de7fa495dd1b2",
+    "GeekTool-IDF/tests/host/CMakeLists.txt": "06de19b2cca60e32f078328b0bd0d50e697715676674bc284e1d8bc141f945c9",
+    "GeekTool-IDF/tests/watchfaces/watchface_tests.c": "e5d1aa394fe12cbffdda730b0f287126e53ea776ae4cc7cea390dfe958bdbb1f",
+    "GeekTool-IDF/tests/host/settings_level_tests.c": "b3ef22d34fa79f4e35239025402e6fe6a8b2c53d55c603162465a676d9b6e886",
+    "site/watchfaces.json": "b6a60d6aaf701e8d7a6c35ce5262774cdb82f1ccf2db99a1dd93e4b986207b2f",
+    "site/locales/en.json": "2b4f85bb33786cd47d29c467e9121bbf47dd9d3a9dbdaec991fa4c6a0222b3d2"
+  },
+  "host": {
+    "passed": 5,
+    "failed": 0,
+    "receipt": "Test project /var/folders/cz/4vz225pd6tjc129r_fl69d3c0000gn/T/soround-geometry6-20261022.an4ebdod/host\n    Start 15: settings_controls_and_level_recovery\n1/5 Test #15: settings_controls_and_level_recovery ...   Passed    1.30 sec\n    Start 30: watchface_collection_and_power\n2/5 Test #30: watchface_collection_and_power .........   Passed    1.62 sec\n    Start 31: watchface_device_format_and_tiles\n3/5 Test #31: watchface_device_format_and_tiles ......   Passed    1.97 sec\n    Start 32: studio_full_frame_and_dma_tiles\n4/5 Test #32: studio_full_frame_and_dma_tiles ........   Passed    5.29 sec\n    Start 33: settings_device_format_and_tiles\n5/5 Test #33: settings_device_format_and_tiles .......   Passed    1.38 sec\n\n100% tests passed, 0 tests failed out of 5\n\nTotal Test time (real) =  11.57 sec\n",
+    "studio_full_frame_tile_pairs": 1312,
+    "formats": [
+      "RGB565",
+      "RGB565_SWAPPED"
+    ],
+    "sizes": [
+      466,
+      233
+    ],
+    "old_ids_preserved": 56,
+    "baseline_identical_frames": 233,
+    "six_geometry_pixel_time_contracts": true,
+    "triangle_square_visible_area_and_zero_contracts": true,
+    "minute_only_redraw_contract": true,
+    "aod_sleep_wake_and_selection_contract": true,
+    "real_233px_picker_crops": true,
+    "visual_times": [
+      "10:08",
+      "00:00",
+      "23:59"
+    ]
+  },
+  "target": {
+    "version": "v1.7-beta.37-geometry6",
+    "idf": "6.0.1",
+    "lvgl": "9.5.0",
+    "build_passed": true,
+    "binary_bytes": 5428656,
+    "binary_sha256": "1ccd610264edd5c17dd887d5c5b669fdf1d4f8965ccfdcae4c9b44a362a8f7d1",
+    "elf_sha256": "ff48135f3d415904a45fa22bc5dca79705930f8278df3d6675a450b6d2aedcb6",
+    "linked_geometry_static_frames": {
+      "semicircle_body": 320,
+      "watchface_geometry_render": 176,
+      "corners": 112,
+      "triangle_outline": 96,
+      "triangle_fill$part$0": 80,
+      "square$part$0": 80,
+      "slab": 64
+    },
+    "static_frame_limitation": "Per-function frames do not establish device task stack headroom.",
+    "ordinary_elf_no_probe_symbols": true,
+    "device_stack_ram_fps_power_subjective_acceptance": false
+  },
+  "site": {
+    "local_build_passed": true,
+    "count": 62,
+    "public_firmware_existing": 30,
+    "unreleased": 32,
+    "local_browser": {
+      "errors": [],
+      "keyboard_enter_verified": true,
+      "filters": [
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "zh"
+        },
+        {
+          "filter": "preview",
+          "count": 32,
+          "language": "zh"
+        },
+        {
+          "filter": "all",
+          "count": 62,
+          "language": "zh"
+        },
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "en"
+        },
+        {
+          "filter": "preview",
+          "count": 32,
+          "language": "en"
+        },
+        {
+          "filter": "all",
+          "count": 62,
+          "language": "en"
+        }
+      ],
+      "selections": 124,
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ],
+      "language_anchor_preserved": true
+    }
+  },
+  "scope": {
+    "first_id": 56,
+    "last_id": 61,
+    "names": [
+      "cross",
+      "balance",
+      "hourglass",
+      "quanta",
+      "phase",
+      "aperture"
+    ],
+    "active_auxiliary_digits": false,
+    "new_fonts_threads_timers_canvases_dependencies": false
+  },
+  "review_png_sha256": {
+    "selector-56-zh.png": "3817c709eeca77c65dd4862fcd4f11b99c550a285fcce609cad1437c41f5c0f4",
+    "aperture.png": "bc9fa5f4602db59969c8f171b9aa3b55c7125a5969f76d4cbe1ed299b9008157",
+    "late-overview.png": "aadbba42a4903eadc92119b8c0c50f74d27d75ca430b0b717883da6e457f4865",
+    "quanta.png": "fe70c6adb4cb1a0e53e1b18708f924dda686756b1e50fc4d3953e802138c0b5d",
+    "app-selector-61-en.png": "8253016bb6895a0d9625472cd850b4a23ee4042d93efec3889c7a327d567c091",
+    "aperture-aod.png": "9acca74d313a0ee3f421cfd3ed7e6504e10adb7af5f14a81eee3decf0115cfa1",
+    "overview.png": "f8d11b4aa3329dbe913345e9d0446b082a0b4805b221e7a2311feebafc8c6642",
+    "quanta-aod.png": "9d130c75bc125b1c58399c5467bfedf9b47041416feecead8c5e1d897b4f7123",
+    "hourglass.png": "9864d00e4da28907229b0c81e8b054ae1a2e5b32a0f7cff77d5c9bd43cae2f83",
+    "balance-aod.png": "2d943082b047d952c9c13620987414a43b29aeeb6b1a646243db70abddc88fe2",
+    "cross-aod.png": "505a620c97a3da11c195867ee3bbfffd6a68f137ae1e5d31d6c791cb43c817e8",
+    "balance.png": "fdb2f1500549fc41a468c952c533a2b7923ef16d02626234667a42c2ad336f27",
+    "cross.png": "aff75445d29ea88098bbfd997df7353667a0a9728baf175d1ee748d66c2bacdf",
+    "phase-aod.png": "cb9a092c7508a80aadf5bad23ee4dc7190cabd99ed1f3688aa79d8d1feb5b043",
+    "midnight-overview.png": "4650b6592abf0a81bedb57367482d4b4c04bca623975e19399a9dc82fa5c5a87",
+    "phase.png": "596b0c15df0df2f1b9a19135912b1c0cdedc7d0c9f78e0764ec1f0c377fe5bdf",
+    "hourglass-aod.png": "bce1b916a44d324eb39b7c1fbf12073b821205274f37b0f689913709b24ce56d",
+    "preview-overview.png": "e0bbc1becead259d52ca395c4df69b07399323045223ab072835a8b45fceca4e"
+  },
+  "authorization": "User accepted all six concepts and explicitly requested library integration, code submission, website deployment and device installation on 2026-10-22."
+}

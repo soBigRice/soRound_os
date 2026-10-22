@@ -4,7 +4,7 @@
 static const char *const themes[]={"TYPE","ORBIT","SHIFT","HAND","STUDIO"};
 static const char *const kinds[]={"dots","bold","rings","weather","image"};
 static const char *const hands[]={"mark","arc","numeral","orbit","frame","dots"};
-static const char *const studio[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary","mono","bauhaus","seven","vinyl","prism","metro","moon-gate","orrery","stack","air","offset","column","cut","edition","activity","circuit","matrix","vector","duo","stride"};
+static const char *const studio[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary","mono","bauhaus","seven","vinyl","prism","metro","moon-gate","orrery","stack","air","offset","column","cut","edition","activity","circuit","matrix","vector","duo","stride","cross","balance","hourglass","quanta","phase","aperture"};
 static const char *const names[]={
     "TYPE / dots","TYPE / bold","TYPE / rings","TYPE / weather","TYPE / image",
     "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
@@ -15,15 +15,17 @@ static const char *const names[]={
     "STUDIO / sector","STUDIO / solar","STUDIO / grid","STUDIO / petal","STUDIO / ribbon","STUDIO / binary",
     "STUDIO / mono","STUDIO / bauhaus","STUDIO / seven","STUDIO / vinyl","STUDIO / prism","STUDIO / metro","STUDIO / moon-gate","STUDIO / orrery",
     "STUDIO / stack","STUDIO / air","STUDIO / offset","STUDIO / column","STUDIO / cut","STUDIO / edition",
-    "STUDIO / activity","STUDIO / circuit","STUDIO / matrix","STUDIO / vector","STUDIO / duo","STUDIO / stride"
+    "STUDIO / activity","STUDIO / circuit","STUDIO / matrix","STUDIO / vector","STUDIO / duo","STUDIO / stride",
+    "STUDIO / cross","STUDIO / balance","STUDIO / hourglass","STUDIO / quanta","STUDIO / phase","STUDIO / aperture"
 };
-// 目录顺序即 NVS ID，新增组不得重新排列既有的 0..43。
-// Catalogue order is the persisted NVS ID; keep existing indices 0..43 stable.
+// 目录顺序即 NVS ID，新增组不得重新排列既有的 0..55。
+// Catalogue order is the persisted NVS ID; keep existing indices 0..55 stable.
 _Static_assert(sizeof names/sizeof names[0]==WATCHFACE_COUNT,"watchface catalogue/count mismatch");
 _Static_assert(sizeof studio/sizeof studio[0]==WATCHFACE_STUDIO_COUNT,"studio catalogue/count mismatch");
 _Static_assert(WATCHFACE_STUDIO_START==WATCHFACE_LEGACY_COUNT+WATCHFACE_HAND_COUNT,"persisted ID boundary changed");
 _Static_assert(WATCHFACE_TYPE_START+WATCHFACE_TYPE_COUNT==WATCHFACE_SPORT_START,"typography boundary mismatch");
-_Static_assert(WATCHFACE_SPORT_START+WATCHFACE_SPORT_COUNT==WATCHFACE_COUNT,"sport boundary mismatch");
+_Static_assert(WATCHFACE_SPORT_START+WATCHFACE_SPORT_COUNT==WATCHFACE_GEOMETRY_START,"sport boundary mismatch");
+_Static_assert(WATCHFACE_GEOMETRY_START+WATCHFACE_GEOMETRY_COUNT==WATCHFACE_COUNT,"geometry boundary mismatch");
 _Static_assert(WATCHFACE_STUDIO_START+WATCHFACE_STUDIO_COUNT==WATCHFACE_COUNT,"studio boundary mismatch");
 int watchface_count(void){return WATCHFACE_COUNT;}
 const char *watchface_name(int index){return index>=0&&index<WATCHFACE_COUNT?names[index]:"";}

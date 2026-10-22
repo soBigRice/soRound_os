@@ -29,10 +29,11 @@ static bool snapshot(bool force) {
     time_t now=time(NULL);struct tm t;localtime_r(&now,&t);
     time_t minute=now/60;bool minute_changed=minute!=s_last_minute;
     bool legacy=s_idx<WATCHFACE_LEGACY_COUNT;
-    // FOLD/HORIZON和极简字体只依赖时分，避免冗余重绘及额外秒动效。
-    // FOLD/HORIZON and minimal typography depend on minutes, avoiding redundant draws and invented second motion.
+    // FOLD/HORIZON、极简字体和几何六款只依赖时分，避免冗余重绘及额外秒动效。
+    // FOLD/HORIZON, typography and six geometry faces depend on minutes, avoiding redundant draws and invented second motion.
     bool minute_only=s_idx==WATCHFACE_STUDIO_START+4||s_idx==WATCHFACE_STUDIO_START+6
-        ||(s_idx>=WATCHFACE_TYPE_START&&s_idx<WATCHFACE_SPORT_START);
+        ||(s_idx>=WATCHFACE_TYPE_START&&s_idx<WATCHFACE_SPORT_START)
+        ||s_idx>=WATCHFACE_GEOMETRY_START;
     bool seconds=(!legacy&&!minute_only)||(legacy&&s_idx%WATCHFACE_KIND_COUNT==0);
     bool dirty=force||minute_changed||(!s_aod&&seconds&&t.tm_sec!=s_data.time.tm_sec);
     s_data.time=t;s_data.aod=s_aod;

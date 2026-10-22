@@ -1,0 +1,117 @@
+{
+  "date": "2026-10-22",
+  "base_commit": "a73ce8ac80f2b47fc644dc4e7f020b72c00f2a20",
+  "state": {
+    "concept_preview": true,
+    "user_accepted": true,
+    "committed": false,
+    "firmware_integrated": true,
+    "website_deployed": false,
+    "device_flashed": false
+  },
+  "browser": {
+    "errors": [],
+    "layouts": [
+      {
+        "width": 1518,
+        "overflow": false
+      },
+      {
+        "width": 768,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "width": 320,
+        "overflow": false
+      }
+    ],
+    "samples": [
+      {
+        "stamp": "00:00",
+        "faces": 6
+      },
+      {
+        "stamp": "06:30",
+        "faces": 6
+      },
+      {
+        "stamp": "23:59",
+        "faces": 6
+      },
+      {
+        "stamp": "10:08",
+        "faces": 6
+      }
+    ],
+    "filters": [
+      {
+        "count": 2,
+        "direction": "position"
+      },
+      {
+        "count": 2,
+        "direction": "area"
+      },
+      {
+        "count": 2,
+        "direction": "rotation"
+      },
+      {
+        "count": 6,
+        "direction": "all"
+      }
+    ],
+    "assist_toggle": true,
+    "offline_preview_verified": true,
+    "keyboard_slider": true,
+    "direction_pages_verified": 3
+  },
+  "geometry_checks": {
+    "all_hour_minute_states_finite": 8640,
+    "triangle_visible_area_from_actual_svg_polygon_passed": true,
+    "square_visible_area_from_actual_svg_dimensions_passed": true,
+    "sample_times": [
+      "10:08",
+      "00:00",
+      "06:30",
+      "23:59"
+    ],
+    "auxiliary_digits_default": false,
+    "hour_modes": {
+      "cross": 24,
+      "balance": 12,
+      "hourglass": 12,
+      "quanta": 24,
+      "phase": 12,
+      "aperture": 24
+    }
+  },
+  "rendering": "Browser SVG concepts, not LVGL or device screenshots",
+  "reviewed": [
+    "overview.png",
+    "midnight-overview.png",
+    "late-overview.png"
+  ],
+  "source_sha256": {
+    "geometry.js": "05ad00bb0e4bdda9cde94e0defaae7692e639bcbc91cdd38c89e62fddc6a35b6",
+    "preview.js": "a7f3dce919fb15d3b568e1f131f5fb1870e79577801ffbd9a8075b643f221236",
+    "preview.css": "1401dba50e7e2f0e842d0795f36d1f3ffdab63f1033d58f294f738f6775e26ef",
+    "index.html": "ce10ecfd1e7815d3c854f5ff931debeda57085efb94e0db356c1f287cd356b11",
+    "render.mjs": "073824e0a074a8ec4083c1c41de3ca96ae30e618f77c8448ea6b8039b37153c0",
+    "preview.html": "ba8ff546ee61dd3612548ff75e9aca64a93a2662ea795440cd470aeffa66ba53"
+  },
+  "png_sha256": {
+    "overview.png": "7d8cb83251fe0d1a20c50e909175bfe6a1e713027848c1e644a71535b20ed715",
+    "midnight-overview.png": "41d9352dc6ae59a81242cdc7d6e88ac94731fc6522a29e3e6d03ebb476a7f381",
+    "late-overview.png": "dd9cbc91c1fdc89c8a09d355ee02ebedf936b034d8a27cf43e0c7b6eb73faa23"
+  },
+  "cleanup": "Own local preview server and browser scratch page closed after review; final source, offline preview and review images retained.",
+  "followup": {
+    "native_directory": "../geometry-native-20261022",
+    "status": "User accepted all six; native integration passed, deployment and device validation in progress."
+  }
+}
