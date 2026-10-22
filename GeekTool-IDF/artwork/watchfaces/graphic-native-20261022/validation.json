@@ -1,0 +1,50 @@
+{
+  "date": "2026-10-22",
+  "state": "design_accepted_deployment_and_device_install_authorized",
+  "fixture": "2026-10-20 10:08:36",
+  "renderer": "production LVGL host RGB565",
+  "device_verified": false,
+  "deployed": false,
+  "source_sha256": {
+    "GeekTool-IDF/main/watchface_graphic.c": "7720b00c6b8f302c364a6443bbbc129301a6b856a6edeeab3820dc5dde32152b",
+    "GeekTool-IDF/main/watchface_ui.c": "84807ad9ea3aebc78cc374b68cfdc104b07bace21ca4ab9b2e28691cbf39e1f1",
+    "GeekTool-IDF/main/watchface_catalog.c": "3836f6efb52122bb2350a28c5425b6947d295fe905a30cb789d6bb51ae800d1e",
+    "site/watchfaces.json": "f6fa92fb19198bd22ce78c208d6a462faadae96c704f70c487199150d12a4141",
+    "site/script.js": "aeaefb686d9a1b69afb965d9dcf46c85932475c441d0b13e073482ab690b0b2b",
+    "site/styles.css": "8a315206a0c5499eccd760fb3b82b9db8bcb8168819868cd416d27c76a1911c8",
+    "scripts/build_site.py": "71ea9a76cfcae14d8c1d974f2312f2713734b1f2cde9d0b6fdb7acf5d6daf0a0",
+    "scripts/render_site_watchfaces.py": "4bc441d5a326a3b19ec4658436a1a514e3b28cb7b64a7bb4caae7c368c436506"
+  },
+  "host_checks": {
+    "passed": 5,
+    "failed": 0,
+    "studio_full_frame_and_40row_pairs": 480,
+    "preserved_original_frame_comparisons": 78,
+    "original_frames_changed": 0
+  },
+  "target": {
+    "name": "ESP32-S3",
+    "build": "passed",
+    "binary_bytes": 5235472,
+    "graphic_max_static_function_frame_bytes": 848,
+    "device_task_stack_measured": false
+  },
+  "browser": {
+    "engine": "Tabbit",
+    "languages": [
+      "zh-CN",
+      "en"
+    ],
+    "selections": 72,
+    "viewport_widths": [
+      1380,
+      390,
+      320
+    ],
+    "horizontal_overflow": false,
+    "errors": [],
+    "filters": "36 / 30 / 6",
+    "keyboard_enter": "passed"
+  },
+  "cleanup": "temporary PPMs automatically removed; task host build, website output and preview server removed after verification"
+}

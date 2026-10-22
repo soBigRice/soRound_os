@@ -6,6 +6,25 @@
 本目录只维护产品官网，现有 `web/` 仍是独立的 GeekTwin 蓝牙校准器。
 官网不请求设备权限，也不连接设备；表盘展示使用固定样例数据。
 
+## 2026-10-22 完整表盘图鉴（设计已确认，部署待完成）
+
+保留大图切换，增加五组完整缩略图，共30款已有表盘与6款未发布新设计。支持全部/已有/新设计筛选、缩略图点击放大和标准按钮键盘操作；桌面六列、较窄屏幕四列、手机三列，360px以下两列。无JavaScript时全部图鉴仍可见。新款标记“本地新设计 · 尚未发布”，不把本地实现当作公开固件能力；用户已确认设计并授权部署；实际部署结果另行记录。
+
+`watchfaces.json`是官网主题描述、样式名称、图片与候选状态的唯一目录。`build_site.py:watchface_gallery`按目录生成HTML，并与`GeekTool-IDF/main/watchface_catalog.c:names`逐项比较；缺项、错序、重复ID、缺失原生图或翻译均拒绝构建。`script.js`读取构建注入的`#watchface-catalog`，大图、样式按钮、缩略图选中态与筛选共用同一状态；切换语言继续保留当前section锚点。
+
+旧三组合辑和HAND图继续使用既有原生素材。STUDIO十五款由当前生产绘制器直接导出，包含已在本地实现的九款黑底样式和六款图形新设计；样例时刻2026-10-20 10:08:36。不要用旧合辑裁切坐标处理这些独立466px PNG。
+
+```bash
+cmake -S GeekTool-IDF/tests/host -B /tmp/soround-face-export -DCMAKE_BUILD_TYPE=Debug
+cmake --build /tmp/soround-face-export --target watchface_tests -j 6
+python3 -B scripts/render_site_watchfaces.py --faces /tmp/soround-face-export/watchface_tests
+python3 -B scripts/build_site.py
+```
+
+导出脚本在临时目录运行真实夹具，只将PPM转为PNG，不缩放或重画固件像素；PPM自动删除。结束后删除本次`/tmp/soround-face-export`并关闭本地预览服务，不清理其他任务的构建。`--review <folder>`可额外保存六款正常/AOD和审阅合览。
+
+2026-10-22核对：中英文构建/资源/目录/翻译和JS语法通过；Tabbit实际完成两语言各36次选择、30/6筛选、Enter键操作，1380×844、390×844、320×844无横向溢出，无页面错误。已查看原生六款、桌面图鉴及手机图鉴。固件另有5项相关主机回归和ESP32-S3构建通过；新款真机观感、任务栈余量、流畅度及功耗仍未实测。
+
 ## 中英文内容
 
 `index.html` 是两种语言共用的唯一结构，中文为默认入口，`locales/en.json` 按原文维护英文文案。

@@ -20,6 +20,39 @@ HAN = re.compile(r"[\u3400-\u9fff]")
 COPY_ATTRIBUTES = {"content", "alt", "aria-label", "data-description"}
 
 
+def watchface_gallery(catalog):
+    # 目录与固件持久化ID逐项对照，避免官网遗漏旧款或贴错名称。
+    # Match every item against persisted firmware IDs to catch missing faces and mislabeled images.
+    source = (ROOT / "GeekTool-IDF/main/watchface_catalog.c").read_text()
+    names = re.findall(r'"([^"]+)"', source.split("static const char *const names[]={", 1)[1].split("};", 1)[0])
+    expected = [f"{group['title']} / {face['key']}" for group in catalog.values() for face in group["kinds"]]
+    if names != expected:
+        raise ValueError("Website catalog differs from firmware watch face IDs")
+    coordinates = ((60, 145), (607, 145), (1154, 145), (334, 709), (881, 709))
+    groups, index = [], 0
+    for key, group in catalog.items():
+        cards = []
+        for kind, face in enumerate(group["kinds"]):
+            state = "preview" if face.get("preview") else "existing"
+            if group["family"] == "legacy":
+                x, y = coordinates[kind]
+                picture = (f'<img class="native-sheet" src="assets/{key}.png" width="1680" height="1220" '
+                           f'style="--crop-x: {-x / 466 * 100:.8f}%; --crop-y: {-y / 466 * 100:.8f}%;"')
+            else:
+                picture = f'<img class="native-face" src="assets/{face["file"]}" width="466" height="466"'
+            selected = str(key == "orbit" and kind == 2).lower()
+            badge = '<span class="face-card-status">本地新设计 · 尚未发布</span>' if state == "preview" else ""
+            cards.append(f'<button type="button" class="face-card" data-face-id="{index}" data-face-theme="{key}" '
+                         f'data-face-kind="{kind}" data-face-state="{state}" aria-pressed="{selected}" '
+                         f'aria-controls="face-preview"><span class="native-screen">{picture} alt="" loading="lazy" '
+                         f'decoding="async"></span><span class="face-card-name">{html.escape(face["label"])}</span>{badge}</button>')
+            index += 1
+        groups.append(f'<section class="face-group" data-face-group="{key}" aria-label="{group["title"]}">'
+                      f'<div class="face-group-heading"><h4>{group["title"]}</h4><span>{len(cards):02d} DESIGNS</span></div>'
+                      f'<div class="face-grid">{"".join(cards)}</div></section>')
+    return "\n".join(groups)
+
+
 class EnglishPage(HTMLParser):
     """Translate a single template; fail when new Chinese copy has no English entry."""
     def __init__(self, messages):
@@ -121,11 +154,14 @@ class PageCheck(HTMLParser):
         self.app_ids = []
         self.theme_ids = []
         self.available_theme_ids = []
+        self.face_ids = []
         self.copy = []
         self.skip_copy = False
 
     def handle_starttag(self, tag, attributes):
         attrs = dict(attributes)
+        if "data-face-id" in attrs:
+            self.face_ids.append(int(attrs["data-face-id"]))
         if tag == "script" or attrs.get("class") == "language-switch":
             self.skip_copy = True
         self.copy.extend(value for key, value in attributes if key in COPY_ATTRIBUTES and value)
@@ -185,6 +221,10 @@ def validate_page(output, language):
         raise ValueError("All five watch face groups must be enabled")
     if "studio-status" not in check.ids:
         raise ValueError("Website must disclose STUDIO release and verification status")
+    catalog = json.loads((SOURCE / "watchfaces.json").read_text())
+    count = sum(len(group["kinds"]) for group in catalog.values())
+    if check.face_ids != list(range(count)):
+        raise ValueError("The gallery must display each firmware watch face exactly once")
     expected_apps = {"weather", "calendar", "countdown", "stopwatch", "settings", "ota", "wifi",
                      "i2c", "system", "audio", "level", "remote", "twin", "maze", "fluid", "dice",
                      "answers", "zodiac", "merit"}
@@ -205,16 +245,17 @@ def validate(output):
         data = (output / f"assets/{theme}.png").read_bytes()
         if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (1680, 1220):
             raise ValueError(f"Native {theme} contact-sheet coordinates no longer match; update web crops")
-    # 新两组是完整原生图；不得按旧三组的合辑坐标裁切。
-    # The two new groups contain complete native faces, not legacy contact-sheet crops.
-    groups = {"hands": ("hand-", ("mark", "arc", "numeral", "orbit", "frame", "dots")),
-              "studio": ("active-", ("radar", "tape", "iris", "maze", "fold", "pixel-camp", "horizon", "tide", "growth"))}
-    for group, (prefix, faces) in groups.items():
-        for face in faces:
-            data = (output / f"assets/{group}/{prefix}{face}.png").read_bytes()
+    # HAND/STUDIO使用完整原生图，校验同一目录中的每款资源，不维护第二份列表。
+    # HAND/STUDIO use complete native frames; validate the shared catalog rather than a second list.
+    catalog = json.loads((SOURCE / "watchfaces.json").read_text())
+    for group in catalog.values():
+        for face in group["kinds"]:
+            if "file" not in face:
+                continue
+            data = (output / "assets" / face["file"]).read_bytes()
             if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (466, 466):
-                raise ValueError(f"Native {group}/{face} preview must preserve 466 × 466 pixels")
-    print("30 native watch faces verified across five enabled groups")
+                raise ValueError(f"Native {face['file']} preview must preserve 466 × 466 pixels")
+    print("36 native watch faces verified across five enabled groups")
     css = (output / "styles.css").read_text()
     for asset in re.findall(r'url\("([^\"]+)"\)', css):
         if not (output / asset).is_file():
@@ -248,9 +289,15 @@ def main():
     for file in ("styles.css", "script.js"):
         shutil.copy2(SOURCE / file, output / file)
     page = (SOURCE / "index.html").read_text()
+    catalog = json.loads((SOURCE / "watchfaces.json").read_text())
+    page = page.replace("{{face_gallery}}", watchface_gallery(catalog))
     for key, value in replacements.items():
         page = page.replace("{{" + key + "}}", html.escape(value, quote=True))
     messages = json.loads((SOURCE / "locales/en.json").read_text())
+    for group in catalog.values():
+        for value in [group["description"], *(face["label"] for face in group["kinds"])]:
+            if HAN.search(value) and value not in messages:
+                raise ValueError(f"Missing English watch face translation: {value}")
     if not all(isinstance(value, str) and value and not HAN.search(value) for value in messages.values()):
         raise ValueError("English messages must be nonempty English strings")
     for message, translation in messages.items():
@@ -265,9 +312,11 @@ def main():
     english = EnglishPage(messages)
     english.feed(page)
     encoded_messages = json.dumps(messages, ensure_ascii=False).replace("<", "\\u003c")
+    encoded_catalog = json.dumps(catalog, ensure_ascii=True).replace("<", "\\u003c")
+    page = page.replace("{{watchface_catalog}}", encoded_catalog)
     (output / "index.html").write_text(page.replace("{{site_messages}}", "{}"))
     (output / "en").mkdir()
-    (output / "en/index.html").write_text("".join(english.parts).replace("{{site_messages}}", encoded_messages))
+    (output / "en/index.html").write_text("".join(english.parts).replace("{{watchface_catalog}}", encoded_catalog).replace("{{site_messages}}", encoded_messages))
     (output / ".nojekyll").touch()
     (output / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'

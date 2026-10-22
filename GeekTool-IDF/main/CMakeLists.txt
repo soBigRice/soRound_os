@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_catalog.c" "watchface_ui.c" "font_watchface.c" "font_watchface_hands.c" "font_watchface_studio.c" "watchface_instrument.c" "watchface_scenes.c" "watchface_studio_draw.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
+    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_catalog.c" "watchface_ui.c" "font_watchface.c" "font_watchface_hands.c" "font_watchface_studio.c" "watchface_instrument.c" "watchface_scenes.c" "watchface_graphic.c" "watchface_studio_draw.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
          "quickpanel.c" "tools_ui.c" "font_tools.c" "launcher_icons.c" "control_ui.c" "font_control.c" "identity_ui.c" "font_identity.c"
          "startup.c" "startup_network.c" "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
          "weather_ui.c" "weather_artwork.c" "font_weather_16.c" "font_weather_20.c"

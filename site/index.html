@@ -16,6 +16,7 @@
   <link rel="icon" type="image/svg+xml" href="assets/mark.svg">
   <link rel="stylesheet" href="styles.css">
   <script src="script.js" defer></script>
+  <script type="application/json" id="watchface-catalog">{{watchface_catalog}}</script>
   <script type="application/json" id="site-messages">{{site_messages}}</script>
   <title>soRound OS · 把灵感，装进圆里。</title>
 </head>
@@ -58,7 +59,7 @@
     <dl class="spec-strip wrap" aria-label="系统概览">
       <div><dt>466 × 466</dt><dd>圆形 AMOLED</dd></div>
       <div><dt>19</dt><dd>内置应用</dd></div>
-      <div><dt>30</dt><dd>风格表盘</dd></div>
+      <div><dt>30 + 6</dt><dd>表盘与新设计</dd></div>
       <div><dt>ESP32-S3</dt><dd>专为这块开发板</dd></div>
     </dl>
 
@@ -66,7 +67,7 @@
       <div class="wrap">
         <div class="section-lead">
           <h2 id="showcase-title">小小屏幕，<br>认真表达。</h2>
-          <p>五组视觉语言，三十款表盘。<br>让时间有自己的样子。</p>
+          <p>30 款已有表盘，6 款新设计。<br>让时间有自己的样子。</p>
         </div>
         <div class="face-explorer">
           <figure class="face-visual">
@@ -83,7 +84,8 @@
               <button type="button" data-theme="studio" aria-pressed="false" aria-describedby="studio-status">STUDIO</button>
             </div>
             <div class="face-description" aria-live="polite" aria-atomic="true">
-              <h3 id="face-title">ORBIT</h3>
+              <h3 id="face-title">ORBIT / 环形</h3>
+              <span class="face-state" id="face-state">已有表盘</span>
               <p id="face-description">环形刻度，把时间放回轨道。</p>
             </div>
             <div class="kind-picker" role="group" aria-label="选择表盘样式">
@@ -94,10 +96,23 @@
               <button type="button" data-kind="4" aria-pressed="false">图片</button>
             </div>
             <p class="preview-note">界面为原生渲染，示例数据不代表实时设备状态。</p>
-            <p class="preview-note" id="studio-status">STUDIO 九款已随 beta.37 发布，保留原 21 款；真机轮测与公开包安装校验通过。beta.36 保持撤回。<a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">查看当前内测发布说明</a></p>
+            <p class="preview-note" id="studio-status">已有 30 款保留原编号；新增 6 款为本地设计预览，尚未随固件发布。<a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">查看当前内测发布说明</a></p>
             <p class="preview-error" id="preview-error" role="status" hidden>预览图片暂时无法加载，请切换其他主题或刷新页面。</p>
-            <noscript><p class="preview-note">启用 JavaScript 后可切换全部三十款表盘。</p></noscript>
+            <noscript><p class="preview-note">下方图鉴无需 JavaScript 即可浏览；启用后可筛选并放大查看。</p></noscript>
           </div>
+        </div>
+
+        <div class="face-collection" aria-labelledby="collection-title">
+          <div class="collection-heading">
+            <div><p class="eyebrow">THE COLLECTION</p><h3 id="collection-title">每一款，都有自己的样子。</h3><p>全部展开，慢慢挑。点击表盘，查看大图。</p></div>
+            <div class="collection-filters" role="group" aria-label="筛选表盘">
+              <button type="button" data-face-filter="all" aria-pressed="true">全部 · 36</button>
+              <button type="button" data-face-filter="existing" aria-pressed="false">已有 · 30</button>
+              <button type="button" data-face-filter="preview" aria-pressed="false">新设计 · 6</button>
+            </div>
+          </div>
+          <div id="face-gallery">{{face_gallery}}</div>
+          <p class="preview-note">所有图片由固件原生渲染器导出。新设计与当前本地黑底样式的设备效果仍待验收。</p>
         </div>
 
         <div class="feature-columns">

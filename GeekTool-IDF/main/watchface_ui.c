@@ -4,6 +4,7 @@
 #include "tools_ui.h"
 #include "watchface_instrument.h"
 #include "watchface_scenes.h"
+#include "watchface_graphic.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -390,7 +391,8 @@ void watchface_render(lv_layer_t *layer,const lv_area_t *area,const watchface_da
         // Full/preview surfaces already provide black; avoid thousands of sampled rows for a redundant black disc.
         int studio=index-WATCHFACE_STUDIO_START;
         if(studio<3)watchface_instrument_render(layer,area,data,studio,preview);
-        else watchface_scenes_render(layer,area,data,studio-3,preview);
+        else if(studio<9)watchface_scenes_render(layer,area,data,studio-3,preview);
+        else watchface_graphic_render(layer,area,data,studio-9,preview);
         return;
     }
     if(index>=WATCHFACE_LEGACY_COUNT&&index<WATCHFACE_STUDIO_START){hand_face(&d,data,index-WATCHFACE_LEGACY_COUNT);return;}

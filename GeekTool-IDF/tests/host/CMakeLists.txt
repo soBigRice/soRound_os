@@ -29,7 +29,7 @@ target_compile_options(studio_cache_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME studio_geometry_cache_lifecycle COMMAND studio_cache_tests)
 add_test(NAME performance_regressions COMMAND performance_tests)
 add_executable(play_tests play_tests.c ../../main/maze_levels.c ../../main/glyph.c
-               ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
+               ../../main/watchface_ui.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_graphic.c ../../main/watchface_studio_draw.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(play_tests PRIVATE stubs ../ota/stubs ../../main)
@@ -88,7 +88,7 @@ add_executable(settings_level_tests settings_level_tests.c ../../main/glyph.c ..
 target_include_directories(settings_level_tests PRIVATE ../weather/stubs stubs ../ota/stubs ../../main)
 target_link_libraries(settings_level_tests PRIVATE lvgl m)
 add_test(NAME settings_controls_and_level_recovery COMMAND settings_level_tests)
-target_sources(settings_level_tests PRIVATE ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
+target_sources(settings_level_tests PRIVATE ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_graphic.c ../../main/watchface_studio_draw.c
                ../../main/identity_ui.c ../../main/font_identity.c)
 add_executable(identity_ui_tests identity_ui_tests.c ../../main/identity_ui.c ../../main/font_identity.c)
 target_include_directories(identity_ui_tests PRIVATE ../../main)
@@ -117,7 +117,7 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/launcher.c ../../main/launcher_icons.c ../../main/lock.c ../../main/watchface.c
     ../../main/startup.c ../../main/identity_ui.c ../../main/font_identity.c ../../main/glyph.c
     ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
-    ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c ../../main/tools_ui.c
+    ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_graphic.c ../../main/watchface_studio_draw.c ../../main/tools_ui.c
     ../../main/font_tools.c ../../main/weather_artwork.c ../../main/companion_icons.c ../../main/font_companion.c
     ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/control_ui.c ../../main/font_control.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
@@ -132,7 +132,7 @@ add_test(NAME startup_studio_last_flow COMMAND startup_flow_tests 29 0)
 add_test(NAME startup_home_dma_failure_rolls_back COMMAND startup_flow_tests 0 0 stall)
 add_test(NAME startup_ui_lock_failure_rolls_back COMMAND startup_flow_tests 0 0 lock-stall)
 add_test(NAME launcher_bilingual_app_name_glyphs COMMAND startup_flow_tests 0 1 launcher)
-add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_studio_draw.c
+add_executable(watchface_tests ../watchfaces/watchface_tests.c ../../main/watchface_ui.c ../../main/watchface_catalog.c ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/font_watchface_studio.c ../../main/watchface_instrument.c ../../main/watchface_scenes.c ../../main/watchface_graphic.c ../../main/watchface_studio_draw.c
                ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c
                ../../main/i18n.c ../../main/font_cn16.c)
 target_include_directories(watchface_tests PRIVATE ../watchfaces/stubs ../../main)

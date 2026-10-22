@@ -1,4 +1,16 @@
-# 锁屏表盘：beta.37恢复30款
+# 锁屏表盘：已发布30款，本地候选36款
+
+## 2026-10-22 图形六款与官网完整图鉴（设计已确认，部署/烧录待完成）
+
+用户要求增加表盘设计，并在官网展示已有表盘。追加STUDIO ID30–35：`sector / solar / grid / petal / ribbon / binary`，既有0–29编号、名称和绘制不变；仍为五组，不扩展NVS格式、分区、计时器或数据服务。用户已确认设计并授权提交、官网部署及设备烧录；执行状态随后记录。本轮不创建公开固件Release，不能用下方beta.37历史设备记录证明新款真机效果。
+
+`watchface_ui.c:watchface_render`按STUDIO组内序号分发：0–2→`watchface_instrument_render`，3–8→`watchface_scenes_render`，9–14→`watchface_graphic.c:watchface_graphic_render`。六款读取同一`watchface_data_t`时间快照，正屏466px与预览233px共用现有原语；扇区弧、日轮标记、网格扫描、花瓣秒点、色带刻度和二进制行都由真实秒数驱动。日轮不提供真实日出/日落或天气信息，二进制按左高右低的32/16/8/4/2/1权值显示24小时、分钟和秒，并保留十进制读数。
+
+新款的AOD在装饰绘制前返回`wfs_aod`，保持同分钟静止、下一分钟刷新；隐藏/熄屏取消计时器，唤醒补画的原控制器逻辑保持。无新线程、常驻全屏画布、网络请求或自定义素材写入。新款数字仅用已有成对字库；不可把只作为72px半尺寸存在的36px字体当作一对36/18px使用，未定义的18px会落回14px。`studio_font_contract`显式检查新款30/15、96/48、144/72字体匹配，避免仅用渲染hash掩盖比例变化。
+
+官网单一目录为`site/watchfaces.json`。`scripts/build_site.py:watchface_gallery`逐项核对固件`watchface_catalog.c:names`，生成无需JavaScript也能看到的36款缩略图；大图、样式按钮、筛选和中英翻译使用同一目录。六款新设计显式标记未发布，STUDIO九款图片同步当前本地黑底实现。网站预览不读取或连接设备。维护与导出入口见[官网说明](../site/README.md#2026-10-22-完整表盘图鉴本地待验收)。
+
+验证：5项相关主机回归通过，覆盖36款目录/选择/保存、AOD、隐藏和休眠唤醒；STUDIO共480组全帧/40行双缓冲比较在RGB565和RGB565_SWAPPED、466/233px、四组边界时刻下相同。修改前后旧表盘78张正常/AOD/固定参考帧逐字节一致。ESP32-S3构建通过，未做新款设备任务栈余量、触摸、流畅度或功耗实测。中英文网站各36款点击（72次）及1380/390/320px无横向溢出检查通过，无页面错误；筛选与键盘Enter通过。[六款原生审阅](./artwork/watchfaces/graphic-native-20261022/README.md)保留正常/AOD图与回执。设计图与官网效果已由用户确认；新款设备体验待烧录后验证。
 
 > **2026-10-20发布状态**：[beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37)已发布，恢复STUDIO九款并保留原21款；beta.36继续撤回。9216B配置的probe3已完成九款全屏/预览/AOD与生命周期轮测，最低可用栈2952B。精确CI发布包USB安装通过，普通生产固件70秒观察无fault，启动选择新鲜读回VALID，原数据及beta.35恢复槽校验保持。恢复与验证见[事故记录](./PORTING_NOTES.md#2026-10-20-beta36撤回与旧槽恢复)及[beta.37组合记录](./PORTING_NOTES.md#2026-10-20-beta37组合修复与验证)。
 

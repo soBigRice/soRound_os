@@ -1,0 +1,208 @@
+{
+  "type": {
+    "title": "TYPE",
+    "description": "让数字，直接成为主角。",
+    "family": "legacy",
+    "kinds": [
+      {
+        "key": "dots",
+        "label": "点阵"
+      },
+      {
+        "key": "bold",
+        "label": "大字"
+      },
+      {
+        "key": "rings",
+        "label": "环形"
+      },
+      {
+        "key": "weather",
+        "label": "天气"
+      },
+      {
+        "key": "image",
+        "label": "图片"
+      }
+    ]
+  },
+  "orbit": {
+    "title": "ORBIT",
+    "description": "环形刻度，把时间放回轨道。",
+    "family": "legacy",
+    "kinds": [
+      {
+        "key": "dots",
+        "label": "点阵"
+      },
+      {
+        "key": "bold",
+        "label": "大字"
+      },
+      {
+        "key": "rings",
+        "label": "环形"
+      },
+      {
+        "key": "weather",
+        "label": "天气"
+      },
+      {
+        "key": "image",
+        "label": "图片"
+      }
+    ]
+  },
+  "shift": {
+    "title": "SHIFT",
+    "description": "错位之间，找到时间的节奏。",
+    "family": "legacy",
+    "kinds": [
+      {
+        "key": "dots",
+        "label": "点阵"
+      },
+      {
+        "key": "bold",
+        "label": "大字"
+      },
+      {
+        "key": "rings",
+        "label": "环形"
+      },
+      {
+        "key": "weather",
+        "label": "天气"
+      },
+      {
+        "key": "image",
+        "label": "图片"
+      }
+    ]
+  },
+  "hand": {
+    "title": "HAND",
+    "description": "六种指针表达，让时间自成风景。",
+    "family": "hand",
+    "kinds": [
+      {
+        "key": "mark",
+        "label": "刻度",
+        "file": "hands/hand-mark.png"
+      },
+      {
+        "key": "arc",
+        "label": "弧线",
+        "file": "hands/hand-arc.png"
+      },
+      {
+        "key": "numeral",
+        "label": "数字",
+        "file": "hands/hand-numeral.png"
+      },
+      {
+        "key": "orbit",
+        "label": "轨道",
+        "file": "hands/hand-orbit.png"
+      },
+      {
+        "key": "frame",
+        "label": "框架",
+        "file": "hands/hand-frame.png"
+      },
+      {
+        "key": "dots",
+        "label": "圆点",
+        "file": "hands/hand-dots.png"
+      }
+    ]
+  },
+  "studio": {
+    "title": "STUDIO",
+    "description": "器械、玩物、自然与图形，十五种时间想象。",
+    "family": "studio",
+    "kinds": [
+      {
+        "key": "radar",
+        "label": "雷达",
+        "file": "studio/active-radar.png"
+      },
+      {
+        "key": "tape",
+        "label": "磁带",
+        "file": "studio/active-tape.png"
+      },
+      {
+        "key": "iris",
+        "label": "光圈",
+        "file": "studio/active-iris.png"
+      },
+      {
+        "key": "maze",
+        "label": "迷宫秒",
+        "file": "studio/active-maze.png"
+      },
+      {
+        "key": "fold",
+        "label": "翻页",
+        "file": "studio/active-fold.png"
+      },
+      {
+        "key": "pixel",
+        "label": "像素夜营",
+        "file": "studio/active-pixel-camp.png"
+      },
+      {
+        "key": "horizon",
+        "label": "地平线",
+        "file": "studio/active-horizon.png"
+      },
+      {
+        "key": "tide",
+        "label": "潮汐",
+        "file": "studio/active-tide.png"
+      },
+      {
+        "key": "growth",
+        "label": "年轮",
+        "file": "studio/active-growth.png"
+      },
+      {
+        "key": "sector",
+        "label": "扇区",
+        "file": "studio/active-sector.png",
+        "preview": true
+      },
+      {
+        "key": "solar",
+        "label": "日轮",
+        "file": "studio/active-solar.png",
+        "preview": true
+      },
+      {
+        "key": "grid",
+        "label": "网格",
+        "file": "studio/active-grid.png",
+        "preview": true
+      },
+      {
+        "key": "petal",
+        "label": "花瓣",
+        "file": "studio/active-petal.png",
+        "preview": true
+      },
+      {
+        "key": "ribbon",
+        "label": "色带",
+        "file": "studio/active-ribbon.png",
+        "preview": true
+      },
+      {
+        "key": "binary",
+        "label": "二进制",
+        "file": "studio/active-binary.png",
+        "preview": true
+      }
+    ]
+  }
+}

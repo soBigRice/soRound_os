@@ -14,8 +14,8 @@ typedef struct {
 
 enum { WATCHFACE_LEGACY_THEME_COUNT = 3, WATCHFACE_KIND_COUNT = 5,
        WATCHFACE_LEGACY_COUNT = 15, WATCHFACE_HAND_COUNT = 6,
-       WATCHFACE_STUDIO_START = 21, WATCHFACE_STUDIO_COUNT = 9,
-       WATCHFACE_THEME_COUNT = 5, WATCHFACE_COUNT = 30 };
+       WATCHFACE_STUDIO_START = 21, WATCHFACE_STUDIO_COUNT = 15,
+       WATCHFACE_THEME_COUNT = 5, WATCHFACE_COUNT = 36 };
 void watchface_render(lv_layer_t *layer, const lv_area_t *area,
                       const watchface_data_t *data, int index, bool preview);
 LV_FONT_DECLARE(font_wf_7);

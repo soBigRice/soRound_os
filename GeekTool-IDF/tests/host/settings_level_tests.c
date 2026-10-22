@@ -240,9 +240,9 @@ int main(int argc,char **argv) {
                 tap(button_named(s_panel,"SHIFT"));settle();assert(face==12 && saves==stored+2);
                 tap(button_named(s_panel,"HAND"));settle();assert(face==15 && saves==stored+3);
                 tap(button_named(s_panel,"STUDIO"));settle();assert(face==21 && saves==stored+4);
-                face=29;rebuild(NULL);tap(button_named(s_panel,"STUDIO"));settle();assert(face==29 && saves==stored+5);
+                face=35;rebuild(NULL);tap(button_named(s_panel,"STUDIO"));settle();assert(face==35 && saves==stored+5);
                 tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==0 && saves==stored+6);
-                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==29 && saves==stored+7);
+                tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==35 && saves==stored+7);
                 face=20;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==21 && saves==stored+8);
                 tap(button_named(s_panel,LV_SYMBOL_LEFT));settle();assert(face==20 && saves==stored+9);
                 face=14;rebuild(NULL);tap(button_named(s_panel,LV_SYMBOL_RIGHT));settle();assert(face==15 && saves==stored+10);
@@ -261,7 +261,7 @@ int main(int argc,char **argv) {
                     last_x=a.x2;
                 }
                 assert(abs(first_x+last_x-465)<=1);
-                for(face=0;face<30;++face) {
+                for(face=0;face<watchface_count();++face) {
                     rebuild(NULL);snprintf(name,sizeof name,"face-%u",face);capture(page,directory,name);check_full_text(s_panel);
                     lv_obj_get_coords(s_face_picker.preview,&after);assert(memcmp(&preview,&after,sizeof preview)==0);
                 }
@@ -323,7 +323,7 @@ int main(int argc,char **argv) {
     // Exercise the standalone entry through real clicks, saving, re-entry and exit with a pending rebuild.
     char previous_title[64];snprintf(previous_title,sizeof previous_title,"%s",lv_label_get_text(heading));
     for(language=0;language<2;++language) {
-        face=29;int stored=saves;lv_obj_t *page=settings_screen();
+        face=35;int stored=saves;lv_obj_t *page=settings_screen();
         app_watchfaces.enter(page);assert(saves==stored && !app_watchfaces.back && app_watchfaces.tick_period_ms==1000);
         lv_obj_t *panel=lv_obj_get_child(page,0);
         watchface_picker_t *picker=lv_obj_get_user_data(panel);
@@ -331,7 +331,7 @@ int main(int argc,char **argv) {
         assert(!strcmp(lv_label_get_text(heading),language?"表盘":"Watchfaces"));
         lv_area_t preview;lv_obj_update_layout(panel);lv_obj_get_coords(picker->preview,&preview);
         assert(preview.x1==116 && preview.y1==116 && lv_area_get_width(&preview)==233 && lv_area_get_height(&preview)==233);
-        for(unsigned index=0;index<30;++index) {
+        for(unsigned index=0;index<(unsigned)watchface_count();++index) {
             stored=saves;tap(button_named(panel,LV_SYMBOL_RIGHT));settle();
             assert(face==index && saved_face==index && saves==stored+1);
             char name[64];snprintf(name,sizeof name,"watchfaces-face-%u",index);capture(page,directory,name);check_full_text(panel);
@@ -403,5 +403,5 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 30-face selection with five safe groups and persistent studio return, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
+    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 36-face selection with five safe groups and persistent studio return, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
 }
