@@ -3,9 +3,9 @@
   "base_commit": "aafe5858a134e0af6acb9d56ee19dafa9e5723a1",
   "scope": "Local native designs IDs 36..43; prior IDs and rendering preserved",
   "state": {
-    "committed": false,
-    "deployed": false,
-    "installed_on_device": false,
+    "committed": true,
+    "deployed": true,
+    "installed_on_device": true,
     "user_accepted": true
   },
   "source_sha256": {
@@ -58,7 +58,9 @@
     "binary_bytes": 5251872,
     "binary_sha256": "0ea82aecc1e9baf25038e3785572fc411df8282acd4377b55403c3f65849f20e",
     "elf_sha256": "7ba3b8e9c0beba0c0275ca325f0a2b7c3e707a16c0c1b22975008d8690c6eb0f",
-    "device_tested": false
+    "device_tested": true,
+    "idf": "6.0.1",
+    "lvgl": "9.5.0, checked against actual lock/header and production/probe paths"
   },
   "site": {
     "local_build_passed": true,
@@ -135,5 +137,103 @@
     "vinyl-aod.png": "a3cdac2b7e6ea834e286c73876377a464c94a33e8d74b62843153d3b861ad2b1",
     "vinyl.png": "2a9b9457d974f33bf5570093d68e0e1b41d98dfb0bf97e650fa861ae89ba7511"
   },
-  "authorization": "User accepted all eight and requested commit, website deployment and device installation on 2026-10-22."
+  "authorization": "User accepted all eight and requested commit, website deployment and device installation on 2026-10-22.",
+  "release": {
+    "feature_commit": "3e7122e8eb51e38bc9672505f035acf725aaac70",
+    "pages_workflow": 39724945016,
+    "public_files_byte_identical": 83,
+    "browser": {
+      "errors": [],
+      "filters": [
+        44,
+        30,
+        14
+      ],
+      "selections": 88,
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ]
+    },
+    "device_installation": "completed"
+  },
+  "device_probe": {
+    "version": "v1.7-beta.37-atelier8-probe",
+    "monitor": {
+      "seconds": 173.6044569578953,
+      "phase_done": true,
+      "fault_seen": false,
+      "serial_closed": true
+    },
+    "full_screen_visits": 16,
+    "watchface_app_preview_visits": 16,
+    "settings_preview_visits": 16,
+    "aod_faces": 8,
+    "aod_minute_and_sleep_wake_completed": true,
+    "minimum_lvgl_free_stack_bytes": 3016
+  },
+  "device_install": {
+    "version": "v1.7-beta.37-atelier8",
+    "boot_observation_seconds": 70.06016966700554,
+    "ordinary_firmware_no_probe": true,
+    "startup_core_and_check_ok": true,
+    "home_first_frame_completed": true,
+    "fresh_verification": {
+      "active": {
+        "sector": 4096,
+        "sequence": 56,
+        "state": 2,
+        "slot": 1
+      },
+      "records": [
+        {
+          "sector": 0,
+          "sequence": 55,
+          "state": 2,
+          "slot": 0
+        },
+        {
+          "sector": 4096,
+          "sequence": 56,
+          "state": 2,
+          "slot": 1
+        }
+      ],
+      "image_device_md5_verified": true,
+      "image_sha256": "0ea82aecc1e9baf25038e3785572fc411df8282acd4377b55403c3f65849f20e",
+      "bootloader_partition_beta35_storage_unchanged": true,
+      "nvs_byte_identical_to_preinstall": true,
+      "verification_wrote_no_flash": true
+    },
+    "subjective_device_touch_power_fps_acceptance": false,
+    "all_nvs_snapshots_byte_identical": true
+  }
 }
