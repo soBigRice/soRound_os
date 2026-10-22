@@ -24,6 +24,8 @@ CSS不预先隐藏区块；JS、Observer或动画API不可用时正文保持可�
 
 本地中英文构建通过：62款与固件目录顺序一致、19张原生应用预览及资源/翻译检查通过；5项网站单元测试、JavaScript语法和补丁空白检查通过。新增回归核对62/30/32分组以及新增徽标不含“尚未发布”。浏览器交互与上线结果以本轮发布回执为准，不继承以下历史浏览器结果。
 
+动效回归补充：动态切换减少动态时，必须以与普通声明同等特异性的10个选择器显式设置`transition:none`，只将duration变量归零不会取消已启动的过渡。`scripts/build_site.py:asset_version`以CSS/JS内容共同计算12位SHA256版本，两语言的资源URL共享`?v=`，避免新脚本配上旧缓存样式；`EnglishPage`保留query及父目录前缀，`PageCheck`仅用URL path核对磁盘资源。实体文件名不变，无发布workflow或依赖变化。8项构建回归及最终本地18项浏览器检查通过，包含原80ms动态切换条件和computed transition:none。
+
 ## 2026-10-22 极简几何六款（已部署及安装）
 
 目录追加56–61：坐标、支点、沙漏、方量、合相和开合，总62款（公开固件已有30、未公开32）、五组及STUDIO41款。保留旧ID和图片，统计仍从`watchfaces.json`派生。新六张`assets/studio/active-*.png`来自实际LVGL绘制器，读时规则与原生审阅见[表盘说明](../GeekTool-IDF/WATCHFACES_UI.md)。

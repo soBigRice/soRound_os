@@ -2493,3 +2493,8 @@ R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitH
 验证脚本经验：以含点号的主机名作为Path基名时，直接`with_suffix`会把域名尾段及通道后缀一起替换，导致并行stable/beta临时文件同名交叉读取；首次“段数据截断”为此本地验证路径错误，不是已确认服务器故障。改为显式host+channel+扩展名、先断言四路径唯一后，四份完整包与两处Range检查通过。以后多通道并行核验先检查临时路径唯一性。
 
 本轮不访问USB、不安装设备、不迁移或格式化分区；候选设备观察不扩大为本次精确CI包的网络OTA、自动故障回滚、主观手感/观感、帧率或功耗验收。准确bin/ELF/map/config/依赖锁保留在忽略目录`build/releases/v1.7-beta.38/`，最小回执和截图在`build/flash-records/beta38-release-20261022/`。官网实际部署与公开资源验证结果在完成后补充。
+
+
+官网首轮`91a3660`的[Pages39738130559](https://github.com/soBigRice/soRound_os/actions/runs/39738130559)success。线上同条件回归发现动态启用减少动态后仍存在180ms CSS Transition（80ms采样时进度约75ms），虽然WAAPI已取消、duration变量已归零，但通配符`transition:none`特异性不足，已有CSS过渡继续。第1轮产品修复改为10个与普通声明同等特异性的明确选择器，立即移除过渡。
+
+本地复测又读到初版0.2s按钮样式及旧reduce CSSOM，而源码、构建产物与带新查询的HTTP内容SHA一致，确认是新脚本/旧样式缓存混用，不能据此否定第1轮CSS修复。第2轮为CSS/JS加入共享内容哈希查询版本（当前`96ef8dceafef`），保持实体文件名、图片、布局和工作流；补双语前缀及URL path校验。8项官网测试通过；最终本地18项浏览器检查在原80ms条件下记录reduce=true、所有交互transitionProperty=none、活动动画空，正常模式的圆形/滚动/切换动画仍通过。没有用加延时或弱化减少动态断言绕过该缺陷。线上资源核验范围收束为改动的双语HTML/CSS/JS及代表性原生图；`.nojekyll`是构建标记，不当成必须公开的资源。最终部署与线上回归结果见下段。

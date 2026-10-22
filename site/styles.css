@@ -323,6 +323,10 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 @media (prefers-reduced-motion: reduce) {
   :root { --motion-fast: 0ms; }
   html { scroll-behavior: auto; }
+  /* 显式撤销过渡，立即终止切换偏好前已启动的效果；仅将时长设零不足以取消它们。
+     Remove transitions explicitly to cancel effects already running when the preference changes. */
+  .button, .kind-picker button, .collection-filters button, .app-picker button, .face-card,
+  .text-link, .release-links a, .site-header nav a, .footer-main nav a, .button .arrow { transition: none; }
   .button:is(:hover, :focus-visible), .button:is(:hover, :focus-visible) .arrow, .face-card:hover,
   .kind-picker button:active, .collection-filters button:active, .app-picker button:active { transform: none; }
 }

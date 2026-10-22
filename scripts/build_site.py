@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build only the public website; optionally refresh public GitHub Release links."""
 import argparse
+import hashlib
 import html
 import json
 import os
@@ -9,6 +10,7 @@ import re
 import shutil
 import struct
 from html.parser import HTMLParser
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -18,6 +20,13 @@ RELEASE_URL = f"https://github.com/{REPO}/releases/tag/"
 SITE_URL = "https://sobigrice.github.io/soRound_os/"
 HAN = re.compile(r"[\u3400-\u9fff]")
 COPY_ATTRIBUTES = {"content", "alt", "aria-label", "data-description"}
+
+
+def asset_version():
+    # CSS/JS共用内容版本，避免升级访问混用新脚本与旧样式。
+    # Version CSS and JS together so returning visitors cannot mix a new script with stale styles.
+    content = b"\0".join((SOURCE / name).read_bytes() for name in ("styles.css", "script.js"))
+    return hashlib.sha256(content).hexdigest()[:12]
 
 
 def watchface_gallery(catalog):
@@ -83,7 +92,7 @@ class EnglishPage(HTMLParser):
             if key in {"href", "src"}:
                 if value.startswith("assets/apps/"):
                     attrs[key] = "../assets/apps/en/" + value.removeprefix("assets/apps/")
-                elif value.startswith("assets/") or value in {"styles.css", "script.js"}:
+                elif value.startswith("assets/") or urlsplit(value).path in {"styles.css", "script.js"}:
                     attrs[key] = "../" + value
         if tag == "html":
             attrs["lang"] = "en"
@@ -183,7 +192,8 @@ class PageCheck(HTMLParser):
             if value.startswith("#") and len(value) > 1:
                 self.fragments.append(value[1:])
             elif value and not value.startswith(("https://", "#")):
-                self.local_files.append(value)
+                # 查询版本不属于磁盘文件名。 / Cache-version queries are not part of the on-disk filename.
+                self.local_files.append(urlsplit(value).path)
         if attrs.get("target") == "_blank" and "noopener" not in attrs.get("rel", "").split():
             raise ValueError("External tab link lacks noopener")
 
@@ -275,7 +285,7 @@ def main():
     if output != ROOT / "build/site" or (ROOT / "build").is_symlink() or (ROOT / "build/site").is_symlink():
         parser.error("--out must point to this repository's build/site directory")
     snapshot = release_snapshot() if args.refresh_releases else json.loads((SOURCE / "releases.json").read_text())
-    replacements = {}
+    replacements = {"asset_version": asset_version()}
     for channel in ("stable", "beta"):
         release = snapshot[channel]
         if not re.fullmatch(r"v[0-9][A-Za-z0-9.+-]*", release["tag"]):
