@@ -1,10 +1,10 @@
 {
   "date": "2026-10-22",
-  "state": "design_accepted_deployment_and_device_install_authorized",
+  "state": "committed_deployed_device_installed_design_accepted",
   "fixture": "2026-10-20 10:08:36",
   "renderer": "production LVGL host RGB565",
-  "device_verified": false,
-  "deployed": false,
+  "device_verified": true,
+  "deployed": true,
   "source_sha256": {
     "GeekTool-IDF/main/watchface_graphic.c": "7720b00c6b8f302c364a6443bbbc129301a6b856a6edeeab3820dc5dde32152b",
     "GeekTool-IDF/main/watchface_ui.c": "84807ad9ea3aebc78cc374b68cfdc104b07bace21ca4ab9b2e28691cbf39e1f1",
@@ -27,7 +27,7 @@
     "build": "passed",
     "binary_bytes": 5235472,
     "graphic_max_static_function_frame_bytes": 848,
-    "device_task_stack_measured": false
+    "device_task_stack_measured": true
   },
   "browser": {
     "engine": "Tabbit",
@@ -46,5 +46,86 @@
     "filters": "36 / 30 / 6",
     "keyboard_enter": "passed"
   },
-  "cleanup": "temporary PPMs automatically removed; task host build, website output and preview server removed after verification"
+  "cleanup": "temporary PPMs automatically removed; task host build, website output and preview server removed after verification",
+  "feature_commit": "83ba596ad04f8ca86fbdd0d7b091adf89bcd2c8e",
+  "device_visual_subjective_acceptance": false,
+  "public_firmware_release_created": false,
+  "deployment": {
+    "url": "https://sobigrice.github.io/soRound_os/",
+    "workflow_run": 39722087908,
+    "public_files_verified": 75,
+    "all_public_bytes_match": true
+  },
+  "device_probe": {
+    "version": "v1.7-beta.37-faces6-probe",
+    "seconds": 174.14479320799,
+    "normal_frames_and_both_real_picker_passes": 2,
+    "faces": [
+      30,
+      31,
+      32,
+      33,
+      34,
+      35
+    ],
+    "phase_reports": 47,
+    "aod_minute_and_sleep_wake": "passed",
+    "original_runtime_selection_restored": 21,
+    "lowest_ui_stack_free_bytes": 3064,
+    "lowest_internal_free_bytes": 82499,
+    "faults_seen": false,
+    "no_settings_save_calls": true
+  },
+  "production_boot": {
+    "version": "v1.7-beta.37-faces6",
+    "normal_production_firmware": true,
+    "seconds": 70.08900354197249,
+    "startup_core": "OK",
+    "startup_check": "OK",
+    "home_frame_completed": true,
+    "faults_seen": false,
+    "lowest_observed_startup_ui_stack_free_bytes": 3240,
+    "serial_closed": true,
+    "device_visual_subjective_acceptance": false
+  },
+  "installed_image": {
+    "version": "v1.7-beta.37-faces6",
+    "bytes": 5235472,
+    "sha256": "cd6fd9d0ed29fcb9e1e151ba170136c7125774ffae6ed1ce46f8a67aba4d5b98",
+    "probe_symbols_absent": true
+  },
+  "device_verification": {
+    "active": {
+      "sector": 4096,
+      "sequence": 52,
+      "state": 2,
+      "slot": 1
+    },
+    "records": [
+      {
+        "sector": 0,
+        "sequence": 51,
+        "state": 2,
+        "slot": 0
+      },
+      {
+        "sector": 4096,
+        "sequence": 52,
+        "state": 2,
+        "slot": 1
+      }
+    ],
+    "image_device_md5_verified": true,
+    "image_sha256": "cd6fd9d0ed29fcb9e1e151ba170136c7125774ffae6ed1ce46f8a67aba4d5b98",
+    "bootloader_partition_beta35_storage_unchanged": true,
+    "nvs_byte_identical_to_preinstall": true,
+    "verification_wrote_no_flash": true
+  },
+  "nvs_baseline": {
+    "backup_face": 28,
+    "latest_preinstall_face": 21,
+    "change_occurred_before_first_probe_install": true,
+    "probe_and_production_install_preserved_latest_nvs": true,
+    "restored_obsolete_backup": false
+  }
 }
