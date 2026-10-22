@@ -214,5 +214,18 @@
   "所有图片由固件原生渲染器导出。STUDIO 采用纯黑背景；图片不代表真机照片或帧率，本次公开包的设备安装仍待验证。": "Every image comes from the native firmware renderer. STUDIO uses black backgrounds. These are not device photos or frame-rate evidence; installation of this public image still awaits device verification.",
   "24 个内置应用，精选 19 个界面展示。": "24 built-in apps. Explore 19 selected interfaces.",
   "当前内测需要双 8 MiB 应用槽；录音存储需单独初始化，普通 OTA 不迁移或格式化分区。升级前核对": "The current beta requires two 8 MiB app slots. Recording storage needs separate initialization; normal OTA does not migrate or format partitions. Before updating, read the ",
-  "当前内测包含全部 {{watchface_total}} 款表盘，本次新增 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。": "The current beta includes all {{watchface_total}} faces, with {{watchface_new}} new additions. Existing IDs and saved selection are retained. Choose faces directly from the launcher or through Settings. Beta.36 remains withdrawn; do not install it."
+  "当前内测包含全部 {{watchface_total}} 款表盘，本次新增 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。": "The current beta includes all {{watchface_total}} faces, with {{watchface_new}} new additions. Existing IDs and saved selection are retained. Choose faces directly from the launcher or through Settings. Beta.36 remains withdrawn; do not install it.",
+  "上一款表盘": "Previous watch face",
+  "下一款表盘": "Next watch face",
+  "打开下方图鉴，即可浏览全部表盘。": "Open the collection below to browse every watch face.",
+  "找到属于你的那一款。": "Find the one that feels like you.",
+  "五个系列，{{watchface_total}} 种时间表达。": "Five collections. {{watchface_total}} expressions of time.",
+  "浏览全部 {{watchface_total}} 款": "Explore all {{watchface_total}} faces",
+  "表盘图鉴": "The watch face collection",
+  "按系列浏览，选一款放大看看。": "Browse by collection. Choose a face for a closer look.",
+  "关闭表盘图鉴": "Close watch face collection",
+  "暂停自动播放": "Pause slideshow",
+  "开始自动播放": "Play slideshow",
+  "暂停": "Pause",
+  "播放": "Play"
 }

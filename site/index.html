@@ -81,7 +81,7 @@
               <button type="button" data-theme="orbit" aria-pressed="true">ORBIT</button>
               <button type="button" data-theme="shift" aria-pressed="false">SHIFT</button>
               <button type="button" data-theme="hand" aria-pressed="false">HAND</button>
-              <button type="button" data-theme="studio" aria-pressed="false" aria-describedby="studio-status">STUDIO</button>
+              <button type="button" data-theme="studio" aria-pressed="false">STUDIO</button>
             </div>
             <div class="face-description" aria-live="polite" aria-atomic="true">
               <h3 id="face-title">ORBIT / 环形</h3>
@@ -95,25 +95,45 @@
               <button type="button" data-kind="3" aria-pressed="false">天气</button>
               <button type="button" data-kind="4" aria-pressed="false">图片</button>
             </div>
+            <div class="face-pagination" hidden>
+              <span class="mono" id="face-position" aria-live="polite" aria-atomic="true">03 / 05</span>
+              <div>
+                <button type="button" class="face-playback" id="face-playback" aria-label="暂停自动播放" hidden>
+                  <svg data-playback-pause viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14M16 5v14"/></svg>
+                  <svg data-playback-play viewBox="0 0 24 24" aria-hidden="true" hidden><path d="m8 5 11 7-11 7Z"/></svg>
+                  <span>暂停</span>
+                </button>
+                <button type="button" data-face-step="-1" aria-label="上一款表盘"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button>
+                <button type="button" data-face-step="1" aria-label="下一款表盘"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button>
+              </div>
+            </div>
+            <div class="face-playback-progress" aria-hidden="true" hidden><span></span></div>
             <p class="preview-note">界面为原生渲染，示例数据不代表实时设备状态。</p>
-            <p class="preview-note" id="studio-status">当前内测包含全部 {{watchface_total}} 款表盘，本次新增 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。<a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">查看当前内测发布说明</a></p>
             <p class="preview-error" id="preview-error" role="status" hidden>预览图片暂时无法加载，请切换其他主题或刷新页面。</p>
-            <noscript><p class="preview-note">下方图鉴无需 JavaScript 即可浏览；启用后可筛选并放大查看。</p></noscript>
+            <noscript><p class="preview-note">打开下方图鉴，即可浏览全部表盘。</p></noscript>
           </div>
         </div>
 
-        <div class="face-collection" aria-labelledby="collection-title">
-          <div class="collection-heading">
-            <div><p class="eyebrow">THE COLLECTION</p><h3 id="collection-title">每一款，都有自己的样子。</h3><p>全部展开，慢慢挑。点击表盘，查看大图。</p></div>
+        <details class="face-collection" id="face-library">
+          <summary class="collection-trigger" aria-controls="collection-panel">
+            <span><strong>找到属于你的那一款。</strong><span>五个系列，{{watchface_total}} 种时间表达。</span></span>
+            <span class="collection-trigger-action">浏览全部 {{watchface_total}} 款<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></span>
+          </summary>
+          <div class="collection-panel" id="collection-panel">
+            <div class="collection-heading">
+              <div><h3 id="collection-title">表盘图鉴</h3><p>按系列浏览，选一款放大看看。</p></div>
+              <button type="button" class="collection-close" aria-label="关闭表盘图鉴" hidden><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+            </div>
             <div class="collection-filters" role="group" aria-label="筛选表盘">
               <button type="button" data-face-filter="all" aria-pressed="true">全部 · {{watchface_total}}</button>
               <button type="button" data-face-filter="existing" aria-pressed="false">已有 · {{watchface_existing}}</button>
               <button type="button" data-face-filter="new" aria-pressed="false">本次新增 · {{watchface_new}}</button>
             </div>
+            <div id="face-gallery">{{face_gallery}}</div>
+            <p class="preview-note" id="studio-status">当前内测包含全部 {{watchface_total}} 款表盘，本次新增 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。<a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">查看当前内测发布说明</a></p>
+            <p class="preview-note">所有图片由固件原生渲染器导出。STUDIO 采用纯黑背景；图片不代表真机照片或帧率，本次公开包的设备安装仍待验证。</p>
           </div>
-          <div id="face-gallery">{{face_gallery}}</div>
-          <p class="preview-note">所有图片由固件原生渲染器导出。STUDIO 采用纯黑背景；图片不代表真机照片或帧率，本次公开包的设备安装仍待验证。</p>
-        </div>
+        </details>
 
         <div class="feature-columns">
           <article>

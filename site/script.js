@@ -92,25 +92,135 @@ const siteMotion = (() => {
   const error = document.querySelector("#preview-error");
   const themeButtons = [...document.querySelectorAll("[data-theme]")];
   const kindPicker = document.querySelector(".kind-picker");
+  const gallery = document.querySelector("#face-gallery");
+  const collection = document.querySelector(".face-collection");
+  const collectionTrigger = document.querySelector(".collection-trigger");
+  const collectionPanel = document.querySelector(".collection-panel");
+  const collectionClose = document.querySelector(".collection-close");
+  const steps = [...document.querySelectorAll("[data-face-step]")];
+  const explorer = document.querySelector(".face-explorer");
+  const playback = document.querySelector("#face-playback");
+  const progress = document.querySelector(".face-playback-progress > span");
+  let dialog;
+  // 原生对话框负责焦点与Escape；不支持时保留默认收起的details，无JS也可浏览。
+  // Native dialog handles focus and Escape; collapsed details remains the no-JS/older-browser fallback.
+  if (typeof HTMLDialogElement !== "undefined" && typeof HTMLDialogElement.prototype.showModal === "function") {
+    dialog = document.createElement("dialog");
+    dialog.className = "face-dialog";
+    dialog.id = "face-library-dialog";
+    dialog.setAttribute("aria-labelledby", "collection-title");
+    collectionClose.hidden = false;
+    collectionClose.autofocus = true;
+    dialog.append(collectionPanel);
+    document.body.append(dialog);
+    collectionTrigger.setAttribute("aria-controls", dialog.id);
+    collectionTrigger.setAttribute("aria-haspopup", "dialog");
+    collectionTrigger.setAttribute("aria-expanded", "false");
+    collectionTrigger.addEventListener("click", event => {
+      event.preventDefault();
+      pausePlayback();
+      dialog.showModal();
+      document.documentElement.classList.add("face-library-open");
+      collectionTrigger.setAttribute("aria-expanded", "true");
+    });
+    collectionClose.addEventListener("click", () => dialog.close());
+    dialog.addEventListener("click", event => {
+      const bounds = dialog.getBoundingClientRect();
+      if (event.target === dialog && (event.clientX < bounds.left || event.clientX > bounds.right ||
+          event.clientY < bounds.top || event.clientY > bounds.bottom)) dialog.close();
+    });
+    dialog.addEventListener("close", () => {
+      document.documentElement.classList.toggle("face-library-open", dialog.open);
+      collectionTrigger.setAttribute("aria-expanded", String(dialog.open));
+    });
+  }
+  document.querySelector(".face-pagination").hidden = false;
   let theme = "orbit";
   let kind = 2;
-  let renderedFamily = "legacy";
+  let renderedPage = "";
   let animateImage = false;
+  let automaticTransition = false;
+  const motionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const sequence = Object.entries(themes).filter(([, group]) => group.available !== false)
+    .flatMap(([key, group]) => group.kinds.map((_, index) => ({theme: key, kind: index})));
+  let wantsPlayback = !motionPreference.matches;
+  let inView = false;
+  let hovering = false;
+  let pageActive = true;
+  let playbackTimer;
+  let progressAnimation;
+  let playbackObserver;
+  playback.hidden = false;
+  progress.parentElement.hidden = false;
 
-  function render(animate = true) {
+  function clearPlaybackCycle() {
+    window.clearTimeout(playbackTimer);
+    playbackTimer = undefined;
+    progressAnimation?.cancel();
+    progressAnimation = undefined;
+  }
+  function syncPlayback() {
+    clearPlaybackCycle();
+    playback.dataset.playing = String(wantsPlayback);
+    playback.setAttribute("aria-label", translate(wantsPlayback ? "暂停自动播放" : "开始自动播放"));
+    playback.querySelector("span").textContent = translate(wantsPlayback ? "暂停" : "播放");
+    playback.querySelector("[data-playback-pause]").toggleAttribute("hidden", !wantsPlayback);
+    playback.querySelector("[data-playback-play]").toggleAttribute("hidden", wantsPlayback);
+    const active = wantsPlayback && inView && pageActive && !hovering && !document.hidden &&
+      !dialog?.open && !collection.open && sheet.complete && sheet.naturalWidth > 0;
+    // 自动轮播不反复播报标题；手动浏览仍保留原有的礼貌播报。
+    // Suppress repetitive announcements during rotation; retain polite updates for manual browsing.
+    document.querySelector(".face-description").setAttribute("aria-live", wantsPlayback ? "off" : "polite");
+    document.querySelector("#face-position").setAttribute("aria-live", wantsPlayback ? "off" : "polite");
+    if (!active || sequence.length < 2) return;
+    if (!motionPreference.matches && typeof progress.animate === "function") {
+      progressAnimation = progress.animate([{transform: "scaleX(0)"}, {transform: "scaleX(1)"}],
+        {duration: 5000, easing: "linear", fill: "forwards"});
+    }
+    // 单个有界计时器在图片就绪后计时；隐藏、离屏或用户操作时立即释放。
+    // One bounded timer starts only after image readiness and is released on hiding or interaction.
+    playbackTimer = window.setTimeout(() => {
+      const index = sequence.findIndex(face => face.theme === theme && face.kind === kind);
+      const next = sequence[(index + 1) % sequence.length];
+      theme = next.theme;
+      kind = next.kind;
+      render(true, true);
+    }, 5000);
+  }
+  function pausePlayback() {
+    wantsPlayback = false;
+    syncPlayback();
+  }
+  function revealPreview() {
+    if (automaticTransition) {
+      siteMotion.play(preview, [{opacity: .25, transform: "translateX(14px) scale(.985)"},
+        {opacity: 1, transform: "translateX(0) scale(1)"}], {duration: 600});
+    } else siteMotion.screen(preview);
+  }
+
+  function render(animate = true, automatic = false) {
     const selected = themes[theme];
     // 保留暂停开放时的保护，已启用组照常渲染。 / Keep the availability guard for a temporarily disabled group.
     if (selected.available === false) return;
-    if (selected.family !== renderedFamily) {
-      const buttons = selected.kinds.map((item, index) => {
+    // 首页只显示当前系列的五张缩略图；图鉴复用同一原生素材与选择状态。
+    // Show at most five thumbnails on the homepage, sharing native artwork and state with the library.
+    const start = Math.min(Math.floor(kind / 5) * 5, Math.max(0, selected.kinds.length - 5));
+    const pageKey = `${theme}:${start}`;
+    if (pageKey !== renderedPage) {
+      const buttons = selected.kinds.slice(start, start + 5).map((item, offset) => {
+        const index = start + offset;
         const button = document.createElement("button");
         button.type = "button";
         button.dataset.kind = String(index);
-        button.textContent = translate(item.label);
+        button.setAttribute("aria-controls", "face-preview");
+        const screen = gallery.querySelector(`[data-face-theme="${theme}"][data-face-kind="${index}"] .native-screen`).cloneNode(true);
+        const name = document.createElement("span");
+        name.textContent = translate(item.label);
+        button.append(screen, name);
         return button;
       });
       kindPicker.replaceChildren(...buttons);
-      renderedFamily = selected.family;
+      renderedPage = pageKey;
     }
     if (selected.family === "legacy") {
       const [x, y] = coordinates[kind];
@@ -139,18 +249,25 @@ const siteMotion = (() => {
     description.textContent = translate(selected.description);
     themeButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.theme === theme)));
     [...kindPicker.children].forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.kind) === kind)));
+    document.querySelector("#face-position").textContent = `${String(kind + 1).padStart(2, "0")} / ${String(selected.kinds.length).padStart(2, "0")}`;
+    steps.forEach(button => { button.disabled = Number(button.dataset.faceStep) < 0 ? kind === 0 : kind === selected.kinds.length - 1; });
     error.hidden = true;
     siteMotion.cancel(preview);
     animateImage = animate;
+    automaticTransition = automatic;
     if (animateImage && sheet.complete && sheet.naturalWidth) {
-      siteMotion.screen(preview);
+      revealPreview();
       animateImage = false;
     }
+    if (automatic) siteMotion.play(document.querySelector(".face-description"),
+      [{opacity: .4, transform: "translateY(8px)"}, {opacity: 1, transform: "translateY(0)"}], {duration: 500});
+    syncPlayback();
   }
 
   themeButtons.forEach(button => button.addEventListener("click", () => {
     const next = button.dataset.theme;
     if (button.disabled || themes[next].available === false) return;
+    pausePlayback();
     if (themes[next].family !== themes[theme].family) kind = 0;
     theme = next;
     render();
@@ -158,19 +275,28 @@ const siteMotion = (() => {
   kindPicker.addEventListener("click", event => {
     const button = event.target.closest("[data-kind]");
     if (!button || !kindPicker.contains(button)) return;
+    pausePlayback();
     kind = Number(button.dataset.kind);
     render();
   });
+  steps.forEach(button => button.addEventListener("click", () => {
+    pausePlayback();
+    kind += Number(button.dataset.faceStep);
+    render();
+  }));
   // 图鉴与大图共用一份目录和选择状态，不另外维护表盘绘制。
   // The gallery and large preview share one catalog and selection state, with no parallel renderer.
-  document.querySelector("#face-gallery").addEventListener("click", event => {
+  gallery.addEventListener("click", event => {
     const card = event.target.closest("[data-face-id]");
     if (!card) return;
+    pausePlayback();
     theme = card.dataset.faceTheme;
     kind = Number(card.dataset.faceKind);
     render();
+    if (dialog?.open) dialog.close();
+    collection.open = false;
     document.querySelector(".face-explorer").scrollIntoView({block: "start", behavior: "instant"});
-    themeButtons.find(button => button.dataset.theme === theme).focus({preventScroll: true});
+    kindPicker.querySelector('[aria-pressed="true"]').focus({preventScroll: true});
   });
   const filters = [...document.querySelectorAll("[data-face-filter]")];
   filters.forEach(button => button.addEventListener("click", () => {
@@ -188,12 +314,55 @@ const siteMotion = (() => {
         {opacity: 1, transform: "translateY(0)"}], {duration: 240});
     });
   }));
+  playback.addEventListener("click", () => {
+    wantsPlayback = !wantsPlayback;
+    // 明确点击播放立即生效，随后再次移入展示区才触发悬停暂停。
+    // An explicit play request takes effect immediately; a later pointer entry pauses again.
+    hovering = false;
+    syncPlayback();
+  });
+  explorer.addEventListener("pointerenter", event => {
+    if (event.pointerType !== "mouse") return;
+    hovering = true;
+    syncPlayback();
+  });
+  explorer.addEventListener("pointerleave", event => {
+    if (event.pointerType !== "mouse") return;
+    hovering = false;
+    syncPlayback();
+  });
+  explorer.addEventListener("focusin", event => {
+    if (!playback.contains(event.target)) pausePlayback();
+  });
+  collection.addEventListener("toggle", () => { if (collection.open) pausePlayback(); });
+  document.addEventListener("visibilitychange", syncPlayback);
+  motionPreference.addEventListener("change", event => {
+    if (event.matches) pausePlayback();
+  });
+  if (typeof IntersectionObserver === "function") {
+    playbackObserver = new IntersectionObserver(entries => {
+      inView = entries[0].isIntersecting && entries[0].intersectionRatio >= .25;
+      syncPlayback();
+    }, {threshold: .25});
+    playbackObserver.observe(explorer);
+  } else inView = true;
+  window.addEventListener("pagehide", () => {
+    pageActive = false;
+    clearPlaybackCycle();
+    playbackObserver?.disconnect();
+  });
+  window.addEventListener("pageshow", () => {
+    pageActive = true;
+    playbackObserver?.observe(explorer);
+    syncPlayback();
+  });
   render(false);
-  sheet.addEventListener("error", () => { error.hidden = false; });
+  sheet.addEventListener("error", () => { pausePlayback(); error.hidden = false; });
   sheet.addEventListener("load", () => {
     error.hidden = true;
-    if (animateImage) siteMotion.screen(preview);
+    if (animateImage) revealPreview();
     animateImage = false;
+    syncPlayback();
   });
 })();
 
