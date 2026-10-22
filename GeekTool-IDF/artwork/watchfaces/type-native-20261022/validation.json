@@ -3,9 +3,9 @@
   "base_commit": "5cc6ead326e05b5538f71db4eb6de97aed274725",
   "state": {
     "native_candidate_accepted": true,
-    "committed": false,
-    "deployed": false,
-    "flashed": false
+    "committed": true,
+    "deployed": true,
+    "flashed": true
   },
   "source_sha256": {
     "GeekTool-IDF/main/watchface.c": "5f12fa9bda054e36cbdc1568fa6ff2d7dbcd4fd54d45577595d3eb1229bee722",
@@ -137,7 +137,7 @@
     "keyboard_enter_verified": true
   },
   "new_compressed_glyph_bitmap_bytes": 133433,
-  "temporary_build_and_ppm_cleanup": "Completed before delivery; retained final source and review PNGs only.",
+  "temporary_build_and_ppm_cleanup": "Own host/PPM, isolated probe project, generated website output and browser scratch page cleaned; serial closed. Private backup and exact ordinary candidate retained.",
   "scope": {
     "first_id": 44,
     "last_id": 49,
@@ -163,5 +163,117 @@
     "stack-aod.png": "ba90b0f2952b7b9f18e356da9aa8dbfb52f13f16be02b463408212c7e11142a2",
     "stack.png": "926e994d600d11a39ef2f049b56c2ef6508ee9fba8097c765f0d4899502da126"
   },
-  "authorization": "User accepted all twelve designs and requested code submission, website deployment and device installation on 2026-10-22."
+  "authorization": "User accepted all twelve designs and requested code submission, website deployment and device installation on 2026-10-22.",
+  "publication": {
+    "feature_commit": "3bc1963f68d199d198234a5e2489ce7ad8dcd6bd",
+    "github_pages_workflow": "https://github.com/soBigRice/soRound_os/actions/runs/39727908403",
+    "public_files_sha256_identical": 95,
+    "live_browser": {
+      "errors": [],
+      "keyboard_enter_verified": true,
+      "filters": [
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "zh"
+        },
+        {
+          "filter": "preview",
+          "count": 26,
+          "language": "zh"
+        },
+        {
+          "filter": "all",
+          "count": 56,
+          "language": "zh"
+        },
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "en"
+        },
+        {
+          "filter": "preview",
+          "count": 26,
+          "language": "en"
+        },
+        {
+          "filter": "all",
+          "count": 56,
+          "language": "en"
+        }
+      ],
+      "selections": 112,
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ],
+      "language_anchor_preserved": true,
+      "url": "https://sobigrice.github.io/soRound_os/"
+    },
+    "public_firmware_release_created": false
+  },
+  "device": {
+    "version": "v1.7-beta.37-type-sport12",
+    "ordinary_image_sha256": "107775ec420976226dc47e6329a823933b36cd57e1d2e6697969738665c0a3d5",
+    "ordinary_image_bytes": 5417840,
+    "ordinary_elf_no_probe_symbols": true,
+    "production_lvgl_stack_bytes": 9216,
+    "probe_seconds": 233.86,
+    "probe_full_screen_visits": 24,
+    "probe_watchface_app_preview_visits": 24,
+    "probe_settings_preview_visits": 24,
+    "probe_aod_faces": 12,
+    "probe_aod_minute_and_sleep_wake_completed": true,
+    "probe_minimum_lvgl_free_stack_bytes": 3000,
+    "probe_minimum_internal_heap_bytes": 82503,
+    "probe_minimum_largest_internal_block_bytes": 31744,
+    "ordinary_boot_observation_seconds": 70.19,
+    "startup_core_check_home_first_frame_verified": true,
+    "fresh_active_ota": {
+      "sector": 4096,
+      "sequence": 60,
+      "state": 2,
+      "slot": 1
+    },
+    "both_ota_record_crc_verified": true,
+    "image_device_md5_verified": true,
+    "nvs_byte_identical_through_probe_and_ordinary_install": true,
+    "bootloader_partition_beta35_storage_unchanged": true,
+    "full_flash_backup_verified_bytes": 33554432,
+    "limitations": {
+      "decode_peak_ram_measured": false,
+      "fps_measured": false,
+      "power_measured": false,
+      "subjective_device_display_touch_acceptance": false
+    }
+  }
 }
