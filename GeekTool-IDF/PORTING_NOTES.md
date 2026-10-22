@@ -2498,3 +2498,8 @@ R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitH
 官网首轮`91a3660`的[Pages39738130559](https://github.com/soBigRice/soRound_os/actions/runs/39738130559)success。线上同条件回归发现动态启用减少动态后仍存在180ms CSS Transition（80ms采样时进度约75ms），虽然WAAPI已取消、duration变量已归零，但通配符`transition:none`特异性不足，已有CSS过渡继续。第1轮产品修复改为10个与普通声明同等特异性的明确选择器，立即移除过渡。
 
 本地复测又读到初版0.2s按钮样式及旧reduce CSSOM，而源码、构建产物与带新查询的HTTP内容SHA一致，确认是新脚本/旧样式缓存混用，不能据此否定第1轮CSS修复。第2轮为CSS/JS加入共享内容哈希查询版本（当前`96ef8dceafef`），保持实体文件名、图片、布局和工作流；补双语前缀及URL path校验。8项官网测试通过；最终本地18项浏览器检查在原80ms条件下记录reduce=true、所有交互transitionProperty=none、活动动画空，正常模式的圆形/滚动/切换动画仍通过。没有用加延时或弱化减少动态断言绕过该缺陷。线上资源核验范围收束为改动的双语HTML/CSS/JS及代表性原生图；`.nojekyll`是构建标记，不当成必须公开的资源。最终部署与线上回归结果见下段。
+
+
+最终官网源码`b2a53531dd82d7a47fca29b0a36f23f7837fb875`的[Pages39739102093](https://github.com/soBigRice/soRound_os/actions/runs/39739102093)success。线上中英文HTML、带`96ef8dceafef`内容版本的CSS/JS、旧TYPE及首末新增原生图共7个代表性资源均HTTP成功且与最终本地构建逐字节一致。线上1380×950/390×844重新通过18项浏览器检查：原80ms减少动态条件下所有交互transitionProperty=none、reduce=true、活动动画空；普通模式圆形揭幕150ms中间态、滚动显现、切换、62/30/32筛选、连续选择及语言/移动端均通过，页面异常与控制台错误/警告均为0。真实线上最终桌面和英文手机截图已查看。公开资源与UI回执分别为`website-verification.json`、`browser-live-qa.json`，截图以`live-`前缀保留。
+
+本轮测试浏览器与临时HTTP预览服务已关闭；生成的预览输出、临时验证脚本、原始过程日志与本轮快照缓存清理，仅保留准确发行文件、最小JSON回执及有用的前后/中间态截图。地图、小红书与并行演示代码/测试/渲染器改动保持原工作区状态，未纳入任何本轮提交；没有访问USB或更改设备。本节至此完成，无继续开发待办。
