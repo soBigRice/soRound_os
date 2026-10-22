@@ -4,9 +4,9 @@
   "state": {
     "design_accepted": true,
     "native_integrated": true,
-    "committed": false,
-    "deployed": false,
-    "flashed": false
+    "committed": true,
+    "deployed": true,
+    "flashed": true
   },
   "source_sha256": {
     "GeekTool-IDF/main/watchface_geometry.c": "0de87e2a90b7afedfa381c964cce69e1c188f6bc72c2571e52740375856c99ff",
@@ -180,5 +180,121 @@
     "hourglass-aod.png": "bce1b916a44d324eb39b7c1fbf12073b821205274f37b0f689913709b24ce56d",
     "preview-overview.png": "e0bbc1becead259d52ca395c4df69b07399323045223ab072835a8b45fceca4e"
   },
-  "authorization": "User accepted all six concepts and explicitly requested library integration, code submission, website deployment and device installation on 2026-10-22."
+  "authorization": "User accepted all six concepts and explicitly requested library integration, code submission, website deployment and device installation on 2026-10-22.",
+  "publication": {
+    "feature_commit": "cc08558f9949d9ec660c3207c9d44a486d109073",
+    "pages_workflow": "https://github.com/soBigRice/soRound_os/actions/runs/39732510280",
+    "public_files_identical": 101,
+    "live_browser": {
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ],
+      "errors": [],
+      "filters": [
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "zh"
+        },
+        {
+          "filter": "preview",
+          "count": 32,
+          "language": "zh"
+        },
+        {
+          "filter": "all",
+          "count": 62,
+          "language": "zh"
+        },
+        {
+          "filter": "existing",
+          "count": 30,
+          "language": "en"
+        },
+        {
+          "filter": "preview",
+          "count": 32,
+          "language": "en"
+        },
+        {
+          "filter": "all",
+          "count": 62,
+          "language": "en"
+        }
+      ],
+      "selections": 124,
+      "default_root_initially_cached_count": 56,
+      "version": "cc08558",
+      "cache_busted_for_browser": true,
+      "keyboard_enter_verified": true,
+      "language_anchor_preserved": true
+    },
+    "canonical_root_and_index_62_sha_equal": true,
+    "public_firmware_release_created": false
+  },
+  "device": {
+    "version": "v1.7-beta.37-geometry6",
+    "ordinary_image_sha256": "1ccd610264edd5c17dd887d5c5b669fdf1d4f8965ccfdcae4c9b44a362a8f7d1",
+    "ordinary_image_bytes": 5428656,
+    "ordinary_elf_no_probe_symbols": true,
+    "production_lvgl_stack_bytes": 9216,
+    "probe_seconds": 173.37,
+    "full_screen_visits": 12,
+    "watchface_app_preview_visits": 12,
+    "settings_preview_visits": 12,
+    "aod_faces": 6,
+    "aod_minute_and_sleep_wake_completed": true,
+    "minimum_lvgl_free_stack_bytes": 3064,
+    "probe_minimum_internal_heap_bytes": 83191,
+    "probe_minimum_largest_internal_block_bytes": 31744,
+    "ordinary_boot_observation_seconds": 70.2,
+    "startup_core_check_home_first_frame_verified": true,
+    "fresh_active_ota": {
+      "sector": 4096,
+      "sequence": 64,
+      "state": 2,
+      "slot": 1
+    },
+    "both_ota_record_crc_verified": true,
+    "image_device_md5_verified": true,
+    "nvs_byte_identical_through_probe_and_ordinary_install": true,
+    "bootloader_partition_beta35_storage_unchanged": true,
+    "full_flash_backup_verified_bytes": 33554432,
+    "limitations": {
+      "decode_peak_ram_measured": false,
+      "fps_measured": false,
+      "power_measured": false,
+      "subjective_device_display_touch_acceptance": false
+    }
+  },
+  "cleanup": "Own host/baseline builds, raw PPMs, isolated probe project, generated website and browser scratch page removed; preview server and serial closed. Private backup and exact ordinary candidate retained."
 }

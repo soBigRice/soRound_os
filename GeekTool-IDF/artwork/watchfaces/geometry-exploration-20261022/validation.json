@@ -4,10 +4,10 @@
   "state": {
     "concept_preview": true,
     "user_accepted": true,
-    "committed": false,
+    "committed": true,
     "firmware_integrated": true,
-    "website_deployed": false,
-    "device_flashed": false
+    "website_deployed": true,
+    "device_flashed": true
   },
   "browser": {
     "errors": [],
@@ -100,9 +100,9 @@
     "geometry.js": "05ad00bb0e4bdda9cde94e0defaae7692e639bcbc91cdd38c89e62fddc6a35b6",
     "preview.js": "a7f3dce919fb15d3b568e1f131f5fb1870e79577801ffbd9a8075b643f221236",
     "preview.css": "1401dba50e7e2f0e842d0795f36d1f3ffdab63f1033d58f294f738f6775e26ef",
-    "index.html": "ce10ecfd1e7815d3c854f5ff931debeda57085efb94e0db356c1f287cd356b11",
+    "index.html": "6ece23b1c416f4fc2bd8fded1c86ba32982ff7acc4d3efd178888a0c73b07eda",
     "render.mjs": "073824e0a074a8ec4083c1c41de3ca96ae30e618f77c8448ea6b8039b37153c0",
-    "preview.html": "ba8ff546ee61dd3612548ff75e9aca64a93a2662ea795440cd470aeffa66ba53"
+    "preview.html": "4e5024a836ccf8bc0096802e3d0a82cfa673847a0ff466f06bdee16ff40e19a3"
   },
   "png_sha256": {
     "overview.png": "7d8cb83251fe0d1a20c50e909175bfe6a1e713027848c1e644a71535b20ed715",
@@ -112,6 +112,8 @@
   "cleanup": "Own local preview server and browser scratch page closed after review; final source, offline preview and review images retained.",
   "followup": {
     "native_directory": "../geometry-native-20261022",
-    "status": "User accepted all six; native integration passed, deployment and device validation in progress."
+    "status": "All six integrated, committed, deployed and installed; current receipts in native directory.",
+    "feature_commit": "cc08558f9949d9ec660c3207c9d44a486d109073",
+    "device_version": "v1.7-beta.37-geometry6"
   }
 }
