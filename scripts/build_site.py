@@ -255,7 +255,8 @@ def validate(output):
             data = (output / "assets" / face["file"]).read_bytes()
             if data[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", data[16:24]) != (466, 466):
                 raise ValueError(f"Native {face['file']} preview must preserve 466 × 466 pixels")
-    print("36 native watch faces verified across five enabled groups")
+    count = sum(len(group["kinds"]) for group in catalog.values())
+    print(f"{count} native watch faces verified across five enabled groups")
     css = (output / "styles.css").read_text()
     for asset in re.findall(r'url\("([^\"]+)"\)', css):
         if not (output / asset).is_file():
@@ -291,6 +292,12 @@ def main():
     page = (SOURCE / "index.html").read_text()
     catalog = json.loads((SOURCE / "watchfaces.json").read_text())
     page = page.replace("{{face_gallery}}", watchface_gallery(catalog))
+    # 展示数量由目录计算，避免追加表盘后标题、筛选和统计各自过期。
+    # Derive display counts from the catalog so headings, filters and statistics cannot drift apart.
+    all_faces = [face for group in catalog.values() for face in group["kinds"]]
+    preview_count = sum(bool(face.get("preview")) for face in all_faces)
+    counts = {"watchface_total": len(all_faces), "watchface_preview": preview_count,
+              "watchface_existing": len(all_faces) - preview_count}
     for key, value in replacements.items():
         page = page.replace("{{" + key + "}}", html.escape(value, quote=True))
     messages = json.loads((SOURCE / "locales/en.json").read_text())
@@ -314,9 +321,14 @@ def main():
     encoded_messages = json.dumps(messages, ensure_ascii=False).replace("<", "\\u003c")
     encoded_catalog = json.dumps(catalog, ensure_ascii=True).replace("<", "\\u003c")
     page = page.replace("{{watchface_catalog}}", encoded_catalog)
+    english_page = "".join(english.parts).replace("{{watchface_catalog}}", encoded_catalog)
+    for key, count in counts.items():
+        page = page.replace("{{" + key + "}}", str(count))
+        english_page = english_page.replace("{{" + key + "}}", str(count))
+        encoded_messages = encoded_messages.replace("{{" + key + "}}", str(count))
     (output / "index.html").write_text(page.replace("{{site_messages}}", "{}"))
     (output / "en").mkdir()
-    (output / "en/index.html").write_text("".join(english.parts).replace("{{watchface_catalog}}", encoded_catalog).replace("{{site_messages}}", encoded_messages))
+    (output / "en/index.html").write_text(english_page.replace("{{site_messages}}", encoded_messages))
     (output / ".nojekyll").touch()
     (output / "sitemap.xml").write_text(
         '<?xml version="1.0" encoding="UTF-8"?>\n'

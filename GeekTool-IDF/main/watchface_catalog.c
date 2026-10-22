@@ -4,7 +4,7 @@
 static const char *const themes[]={"TYPE","ORBIT","SHIFT","HAND","STUDIO"};
 static const char *const kinds[]={"dots","bold","rings","weather","image"};
 static const char *const hands[]={"mark","arc","numeral","orbit","frame","dots"};
-static const char *const studio[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary"};
+static const char *const studio[]={"radar","tape","iris","maze","fold","pixel","horizon","tide","growth","sector","solar","grid","petal","ribbon","binary","mono","bauhaus","seven","vinyl","prism","metro","moon-gate","orrery"};
 static const char *const names[]={
     "TYPE / dots","TYPE / bold","TYPE / rings","TYPE / weather","TYPE / image",
     "ORBIT / dots","ORBIT / bold","ORBIT / rings","ORBIT / weather","ORBIT / image",
@@ -12,10 +12,11 @@ static const char *const names[]={
     "HAND / mark","HAND / arc","HAND / numeral","HAND / orbit","HAND / frame","HAND / dots",
     "STUDIO / radar","STUDIO / tape","STUDIO / iris","STUDIO / maze","STUDIO / fold",
     "STUDIO / pixel","STUDIO / horizon","STUDIO / tide","STUDIO / growth",
-    "STUDIO / sector","STUDIO / solar","STUDIO / grid","STUDIO / petal","STUDIO / ribbon","STUDIO / binary"
+    "STUDIO / sector","STUDIO / solar","STUDIO / grid","STUDIO / petal","STUDIO / ribbon","STUDIO / binary",
+    "STUDIO / mono","STUDIO / bauhaus","STUDIO / seven","STUDIO / vinyl","STUDIO / prism","STUDIO / metro","STUDIO / moon-gate","STUDIO / orrery"
 };
-// 目录顺序即 NVS ID，新增组不得重新排列既有的 0..29。
-// Catalogue order is the persisted NVS ID; keep existing indices 0..29 stable.
+// 目录顺序即 NVS ID，新增组不得重新排列既有的 0..35。
+// Catalogue order is the persisted NVS ID; keep existing indices 0..35 stable.
 _Static_assert(sizeof names/sizeof names[0]==WATCHFACE_COUNT,"watchface catalogue/count mismatch");
 _Static_assert(sizeof studio/sizeof studio[0]==WATCHFACE_STUDIO_COUNT,"studio catalogue/count mismatch");
 _Static_assert(WATCHFACE_STUDIO_START==WATCHFACE_LEGACY_COUNT+WATCHFACE_HAND_COUNT,"persisted ID boundary changed");

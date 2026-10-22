@@ -189,5 +189,19 @@
   "网格": "Grid",
   "花瓣": "Petal",
   "色带": "Ribbon",
-  "二进制": "Binary"
+  "二进制": "Binary",
+  "器械、玩物、自然与图形，二十三种时间想象。": "Instruments, play, nature and graphics. Twenty-three ways to imagine time.",
+  "{{watchface_existing}} 款已有表盘，{{watchface_preview}} 款新设计。": "{{watchface_existing}} existing faces. {{watchface_preview}} new designs.",
+  "已有款式保留原编号；新设计为本地预览，尚未随公开固件发布。": "Existing faces keep their IDs. New designs are local previews, not yet included in a public firmware release.",
+  "全部 · {{watchface_total}}": "All · {{watchface_total}}",
+  "已有 · {{watchface_existing}}": "Existing · {{watchface_existing}}",
+  "新设计 · {{watchface_preview}}": "New designs · {{watchface_preview}}",
+  "留白": "Mono",
+  "构成": "Bauhaus",
+  "电子": "Seven",
+  "唱片": "Vinyl",
+  "棱镜": "Prism",
+  "线路": "Metro",
+  "月门": "Moon Gate",
+  "星仪": "Orrery"
 }

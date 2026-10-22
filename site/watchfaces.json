@@ -119,7 +119,7 @@
   },
   "studio": {
     "title": "STUDIO",
-    "description": "器械、玩物、自然与图形，十五种时间想象。",
+    "description": "器械、玩物、自然与图形，二十三种时间想象。",
     "family": "studio",
     "kinds": [
       {
@@ -201,6 +201,54 @@
         "key": "binary",
         "label": "二进制",
         "file": "studio/active-binary.png",
+        "preview": true
+      },
+      {
+        "key": "mono",
+        "label": "留白",
+        "file": "studio/active-mono.png",
+        "preview": true
+      },
+      {
+        "key": "bauhaus",
+        "label": "构成",
+        "file": "studio/active-bauhaus.png",
+        "preview": true
+      },
+      {
+        "key": "seven",
+        "label": "电子",
+        "file": "studio/active-seven.png",
+        "preview": true
+      },
+      {
+        "key": "vinyl",
+        "label": "唱片",
+        "file": "studio/active-vinyl.png",
+        "preview": true
+      },
+      {
+        "key": "prism",
+        "label": "棱镜",
+        "file": "studio/active-prism.png",
+        "preview": true
+      },
+      {
+        "key": "metro",
+        "label": "线路",
+        "file": "studio/active-metro.png",
+        "preview": true
+      },
+      {
+        "key": "moon-gate",
+        "label": "月门",
+        "file": "studio/active-moon-gate.png",
+        "preview": true
+      },
+      {
+        "key": "orrery",
+        "label": "星仪",
+        "file": "studio/active-orrery.png",
         "preview": true
       }
     ]

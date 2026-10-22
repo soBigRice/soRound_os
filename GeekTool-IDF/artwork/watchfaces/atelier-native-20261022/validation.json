@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-22",
+  "base_commit": "aafe5858a134e0af6acb9d56ee19dafa9e5723a1",
+  "scope": "Local native designs IDs 36..43; prior IDs and rendering preserved",
+  "state": {
+    "committed": false,
+    "deployed": false,
+    "installed_on_device": false,
+    "user_accepted": true
+  },
+  "source_sha256": {
+    "GeekTool-IDF/main/watchface_atelier.c": "d5e8b0ece047fc3d88d4b4c4778a6585e91efdb29c5226b67f1ce981d5d51c7f",
+    "GeekTool-IDF/main/watchface_atelier.h": "7364b413c7b31b45fa5d0deead2e0849b88eca0cb778b77cddba65706d481bbc",
+    "GeekTool-IDF/main/watchface_catalog.c": "9a5d1f26440fb867d581fc79f5fb59af5ce147c0b33ad922714de275f5945264",
+    "GeekTool-IDF/main/watchface_ui.c": "c499bef3e052d9fbafce5e0947a7908ffd198adaa5267beea05854e70f6793b3",
+    "GeekTool-IDF/main/watchface_ui.h": "07765bcb1913191b81a5a0f64302d8c68343cef88f2eea8e5af8998c670840c9",
+    "GeekTool-IDF/tests/watchfaces/watchface_tests.c": "c65f71138d4d149be8baeff8fd0f7ceef96fe2617a7c339dbcff3b643f079b60",
+    "GeekTool-IDF/tests/host/settings_level_tests.c": "8c9c0340766dbf0c02561498d7300d6d38a82836b7ce3de5a816be0f909cc823",
+    "scripts/build_site.py": "65d7ed76f553e09982a67496ceac621d5be8646400f7c63cd04c8f46dfae9f93",
+    "scripts/render_site_watchfaces.py": "e8b4b86d579c15c9b1a3a42f84b1f858271e168369f3ef7df6cffa5e3ce15b6d",
+    "site/watchfaces.json": "a635d671f6c36f9bae718dcbf165daca8c57259072aeb57f1a8d11cf90a16a3e",
+    "site/locales/en.json": "bd2179041f991452fc7f63ab39965aece44ba6a63ec2d3bf0dfdd9bfee771d6a",
+    "site/index.html": "6b849ca29ba9725e2d59f18b6fea99d3c0680943222ca3e470394c66f393a53d"
+  },
+  "host": {
+    "passed": 5,
+    "failed": 0,
+    "tests": [
+      "settings_controls_and_level_recovery",
+      "watchface_collection_and_power",
+      "watchface_device_format_and_tiles",
+      "studio_full_frame_and_dma_tiles",
+      "settings_device_format_and_tiles"
+    ],
+    "full_frame_tile_pairs": 736,
+    "preserved_old_faces": 36,
+    "identical_baseline_frames": 102,
+    "formats": [
+      "RGB565",
+      "RGB565_SWAPPED"
+    ],
+    "sizes": [
+      466,
+      233
+    ],
+    "aod_and_sleep_wake": true,
+    "visual_review_times": [
+      "10:08:36",
+      "00:00:00",
+      "23:59:59"
+    ],
+    "limitation": "Host renders and regression checks do not establish device stack headroom, power, frame rate or subjective acceptance"
+  },
+  "target_build": {
+    "version": "v1.7-beta.37-atelier8",
+    "target": "ESP32-S3",
+    "build_passed": true,
+    "binary_bytes": 5251872,
+    "binary_sha256": "0ea82aecc1e9baf25038e3785572fc411df8282acd4377b55403c3f65849f20e",
+    "elf_sha256": "7ba3b8e9c0beba0c0275ca325f0a2b7c3e707a16c0c1b22975008d8690c6eb0f",
+    "device_tested": false
+  },
+  "site": {
+    "local_build_passed": true,
+    "catalog_total": 44,
+    "existing": 30,
+    "unreleased_designs": 14,
+    "browser": "Tabbit",
+    "browser_result": {
+      "errors": [],
+      "filters": [
+        44,
+        30,
+        14
+      ],
+      "selections": 16,
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ]
+    },
+    "keyboard_enter_filter_passed": true,
+    "deployed": false
+  },
+  "test_receipt": "Test project /tmp/soround-design8-20261022.9K9NRy/host\n    Start 15: settings_controls_and_level_recovery\n1/5 Test #15: settings_controls_and_level_recovery ...   Passed    1.81 sec\n    Start 30: watchface_collection_and_power\n2/5 Test #30: watchface_collection_and_power .........   Passed    1.20 sec\n    Start 31: watchface_device_format_and_tiles\n3/5 Test #31: watchface_device_format_and_tiles ......   Passed    0.94 sec\n    Start 32: studio_full_frame_and_dma_tiles\n4/5 Test #32: studio_full_frame_and_dma_tiles ........   Passed    3.26 sec\n    Start 33: settings_device_format_and_tiles\n5/5 Test #33: settings_device_format_and_tiles .......   Passed    1.19 sec\n\n100% tests passed, 0 tests failed out of 5\n\nTotal Test time (real) =   8.41 sec",
+  "review_png_sha256": {
+    "bauhaus-aod.png": "ae7a1e33c9f9a7bd12cf5b84a50665f8580096d6b1d1d74c6cc82eb4c888e5de",
+    "bauhaus.png": "3b9db884a4460a5402d59898ad6a516d70d7f22296626ed6236d6e7bd4b77337",
+    "late-overview.png": "1d6c95c73a17f2ac2a1b3cda17d3a9df9076bd9561783ec71c39457b3a75e47b",
+    "metro-aod.png": "d6b53503ef98ea9fbdc0799c798139808badb55a30c6bcdd247453b1eb5e26e8",
+    "metro.png": "d9293e2d62e8c9efeab1670e3a71d5e6b21342b4f77d7c7497a6ecd8d4bd61fe",
+    "midnight-overview.png": "f9de87eb4719f1e833f2f4cd1dbd39c85149f0244a4b3fadc31e373459a90f52",
+    "mono-aod.png": "019e09e4ba93c74c934ef3ec759c9c36720ced91e2b8530946eba387a5c0651e",
+    "mono.png": "398be8274c11a5e87d3bb323c399b82922d8d262ec67489e51e33c4261a1ed04",
+    "moon-gate-aod.png": "fbf6a8cb4bd4a116f8a540033496b3331bac5b1ed527749e80f79db57f170d65",
+    "moon-gate.png": "d2407869f3c7856855149999aa25fd22b0fcff4a7fc7d843ae214d9cffc9fa8a",
+    "orrery-aod.png": "ea66886cc02d50c7a064735c36ca409bad5cf20826b0e8291073cd35b3be86fc",
+    "orrery.png": "94b96065e4e4c4674b51e6e7bf050ec7b3ef7cc80df52710ffe50c25ef246449",
+    "overview.png": "32f4a36425909140929039d214ffa0e5dceb4c9e0a805748c22f9292e3d9289f",
+    "preview-overview.png": "91f64e026455c530e2da6b8a38b8004863ffa7bb0bb298a6cb0f535f1e7bb369",
+    "prism-aod.png": "0847a4609aa8bdec2badff1b3bcc00aea7b67d09ae33c9cb553b6e081f582b55",
+    "prism.png": "f7ecd905dcedbe3ddee496c5976a20425055879547c8e4e03e6cbcd3a9b73b4e",
+    "selector-36-zh.png": "6501bdcb82989c908dc0e93bb3477f9e265c5e3308cebb9f1424e9ce562c06de",
+    "selector-43-en.png": "fd831d8e7ceb9a7fca9ccaa21b17e21de27a5b034e53a76984308a2d46e39a1d",
+    "seven-aod.png": "0f72a188e34c891fa060e85f9410b7823c0cb5addbaf4b24bdcfc2cd3d826631",
+    "seven.png": "dad2352ec671fbdda55c9ec3ced3ddd3c851f6cd8ae79ebe86feeaa6dc2788b0",
+    "vinyl-aod.png": "a3cdac2b7e6ea834e286c73876377a464c94a33e8d74b62843153d3b861ad2b1",
+    "vinyl.png": "2a9b9457d974f33bf5570093d68e0e1b41d98dfb0bf97e650fa861ae89ba7511"
+  },
+  "authorization": "User accepted all eight and requested commit, website deployment and device installation on 2026-10-22."
+}
