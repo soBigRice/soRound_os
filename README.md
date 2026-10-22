@@ -9,7 +9,11 @@
 ESP-IDF 固件为主线，提供圆屏启动器、表盘与锁屏、网络与传感器工具、音频、小游戏、
 BLE 数字孪生以及双分区云 OTA。
 
-**当前内测：[v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) 已发布。**
+**当前内测：[v1.7-beta.38](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.38)。**
+五组共62款表盘，本次新增32款，STUDIO共41款并采用纯黑背景；保留已有表盘编号和保存选择，新增独立表盘App。更新还包含遥控台、声音胶囊与迷宫的重复绘制修正、绘制期间升频，以及设置、生态箱成长和专注偏好的后台保存。尚未落盘的操作在突发断电时可能丢失；不据主机测试宣称真机帧率或功耗提升。
+本版不包含地图App。需要双8MiB应用槽；录音存储仍需单独初始化，普通OTA不迁移或格式化分区。本次发布未执行设备安装、分区迁移或设备验收；此前本地候选的设备记录不代表本次公开包已安装。发布检查和分发结果见[版本说明](GeekTool-IDF/RELEASE_NOTES.md)与[发布记录](GeekTool-IDF/PORTING_NOTES.md)。
+
+**此前：[v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) 已发布。**
 本版合并木鱼、新表盘与星座网络诊断更新，恢复五组30款表盘，保留原21款ID和已保存选择。CI的53项主机、2项配套功能、媒体sanitizer和14项镜像检查通过；真机候选经实际启动器链约283秒测试未出现fault，覆盖九款全屏/常显、预览与熄屏唤醒。
 白羊座五次请求均HTTP200且日期正确；历史失败未复现，根因未确认，不宣称已修复未知根因。R2/国内完整包与CI及Release资产摘要一致，条件Range通过，正式v1.7字节未变；精确CI包已通过USB安装、启动自检与VALID回读，设置、文件区及beta.35回退槽完整保留。具体范围见[发布记录](GeekTool-IDF/PORTING_NOTES.md)、[版本说明](GeekTool-IDF/RELEASE_NOTES.md)及[星座/木鱼说明](GeekTool-IDF/ZODIAC_MERIT_UI.md)。
 
@@ -46,7 +50,7 @@ GitHub故障期间标签运行状态可能延迟回写，发布与包校验分�
 启动动画至少4秒；完成公共初始化、核心检查与表盘实际刷新后才确认新OTA固件有效，核心失败且可回退时回滚。
 联网检查失败记录并提示，允许离线启动；天气、答案之书、星座与OTA保留联网恢复修正。
 
-当前仓库 `main` 包含 beta.37 的组合修复，真实设备与公开分发验证状态见顶部。主线开发使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
+当前仓库 `main` 包含 beta.38 的非地图更新，真实设备与公开分发验证状态见顶部。主线开发使用 `GeekTool-IDF/`；Arduino工程用于早期原型与硬件压力测试。
 v1.7正式发布时，本地34组回归和发布CI的9组启动检查通过；当时正式依赖候选的表盘、解锁、设置已由用户确认。
 beta.36 的真机 panic 已推翻该版“仅待验收”的状态；后续候选仍须分别记录真实设备结果，不能将主机测试或原生预览通过当作设备验收。原beta.30白屏触发点尚未复现。
 
@@ -84,8 +88,8 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 
 - 466 x 466 圆形 AMOLED UI，以黑/白/红点阵为主，天气图标使用克制配色，基于 LVGL 9。
 - 径向启动器、快捷面板、锁屏表盘、亮度/音量/常显模式与 NVS 持久化。
-- 当前源码含23个内置 App：Wi-Fi、I2C、系统信息、天气、日历、倒计时、秒表、设置、OTA、
-  音频可视化、水平仪、迷宫、流体、骰子、BLE 遥控台（鼠标 / 演示 / 音乐）、数字孪生、答案之书、星座运势、木鱼、方块、生态箱、专注和声音胶囊。
+- 当前源码含24个内置 App：Wi-Fi、I2C、系统信息、天气、日历、倒计时、秒表、设置、OTA、
+  音频可视化、水平仪、迷宫、流体、骰子、BLE 遥控台（鼠标 / 演示 / 音乐）、数字孪生、答案之书、星座运势、木鱼、方块、生态箱、专注、声音胶囊和独立表盘App。
   [方块像素场](GeekTool-IDF/PIXELS_UI.md)已包含在beta.33中，真机体验待验收。
 - AXP2101 电源与电量管理，QMI8658 IMU，ES7210 麦克风输入和 ES8311 音频输出。
 - Wi-Fi 自动重连、SNTP 校时、Open-Meteo 天气数据。
@@ -125,13 +129,13 @@ beta.24 已发布至 GitHub/R2/国内 OTA，三个完整包哈希一致。真机
 | `.github/workflows/firmware.yml` | Tag 构建、GitHub Release 和 R2 上传 | 发布流程 |
 | `.github/workflows/pages.yml` | 官网构建和 GitHub Pages 部署 | 网站发布 |
 
-官网本地预览、十九个应用 UI、五组共三十款表盘交互（beta.37）、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
+官网本地预览、十九个应用 UI、五组共62款表盘交互（beta.38）、微雪设备图和自动部署说明见 [site/README.md](./site/README.md)。
 
 流畅性调度、动画和资源生命周期的当前调用链及验证方式见
 [性能实现记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化)。
 音频点阵能量渐变、水平仪靶盘/读数分区及原生渲染回归见
 [音频与水平仪设计实现](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md)。
-beta.37恢复 TYPE / ORBIT / SHIFT / HAND / STUDIO 共三十款锁屏表盘，保留原21款行为；真实设备与精确发布包结果分别记录。
+beta.38包含 TYPE / ORBIT / SHIFT / HAND / STUDIO 五组共62款锁屏表盘，保留已有编号与选择；新增32款和独立表盘App，真实设备与精确发布包结果分别记录。
 真实缩略图、默认/自定义背景和常显状态见[锁屏表盘](./GeekTool-IDF/WATCHFACES_UI.md)。HAND六款的内测发布见
 [beta.32记录](./GeekTool-IDF/PORTING_NOTES.md#2026-10-08-v17-beta32-指针表盘流体双模式与固定迷宫关卡)，真机效果待验收。
 流体当前仅保留原粒子（2026-10-13按用户卡顿反馈移除染料）和三章十二个固定迷宫关卡见[小游戏实现](./GeekTool-IDF/PLAY_UI.md)。

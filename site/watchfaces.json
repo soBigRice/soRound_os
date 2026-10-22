@@ -171,193 +171,193 @@
         "key": "sector",
         "label": "扇区",
         "file": "studio/active-sector.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "solar",
         "label": "日轮",
         "file": "studio/active-solar.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "grid",
         "label": "网格",
         "file": "studio/active-grid.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "petal",
         "label": "花瓣",
         "file": "studio/active-petal.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "ribbon",
         "label": "色带",
         "file": "studio/active-ribbon.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "binary",
         "label": "二进制",
         "file": "studio/active-binary.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "mono",
         "label": "留白",
         "file": "studio/active-mono.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "bauhaus",
         "label": "构成",
         "file": "studio/active-bauhaus.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "seven",
         "label": "电子",
         "file": "studio/active-seven.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "vinyl",
         "label": "唱片",
         "file": "studio/active-vinyl.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "prism",
         "label": "棱镜",
         "file": "studio/active-prism.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "metro",
         "label": "线路",
         "file": "studio/active-metro.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "moon-gate",
         "label": "月门",
         "file": "studio/active-moon-gate.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "orrery",
         "label": "星仪",
         "file": "studio/active-orrery.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "stack",
         "label": "叠字",
         "file": "studio/active-stack.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "air",
         "label": "细字",
         "file": "studio/active-air.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "offset",
         "label": "错位",
         "file": "studio/active-offset.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "column",
         "label": "分栏",
         "file": "studio/active-column.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "cut",
         "label": "切字",
         "file": "studio/active-cut.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "edition",
         "label": "刊物",
         "file": "studio/active-edition.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "activity",
         "label": "律动",
         "file": "studio/active-activity.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "circuit",
         "label": "赛道",
         "file": "studio/active-circuit.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "matrix",
         "label": "阵列",
         "file": "studio/active-matrix.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "vector",
         "label": "矢量",
         "file": "studio/active-vector.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "duo",
         "label": "双环",
         "file": "studio/active-duo.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "stride",
         "label": "步幅",
         "file": "studio/active-stride.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "cross",
         "label": "坐标",
         "file": "studio/active-cross.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "balance",
         "label": "支点",
         "file": "studio/active-balance.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "hourglass",
         "label": "沙漏",
         "file": "studio/active-hourglass.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "quanta",
         "label": "方量",
         "file": "studio/active-quanta.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "phase",
         "label": "合相",
         "file": "studio/active-phase.png",
-        "preview": true
+        "new": true
       },
       {
         "key": "aperture",
         "label": "开合",
         "file": "studio/active-aperture.png",
-        "preview": true
+        "new": true
       }
     ]
   }

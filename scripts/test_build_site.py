@@ -45,5 +45,18 @@ class ReleaseChannels(unittest.TestCase):
         self.assertEqual(snapshot['stable'], snapshot['beta'])
 
 
+class PublishedWatchFaces(unittest.TestCase):
+    def test_beta38_new_faces_are_published_and_filterable(self):
+        catalog = json.loads((build_site.SOURCE / 'watchfaces.json').read_text())
+        gallery = build_site.watchface_gallery(catalog)
+        # 新增分组不能再被标成未发布。 / A new release cohort must not be labeled unreleased.
+        self.assertEqual(gallery.count('data-face-id='), 62)
+        self.assertEqual(gallery.count('data-face-state="existing"'), 30)
+        self.assertEqual(gallery.count('data-face-state="new"'), 32)
+        self.assertEqual(gallery.count('本次新增 · beta.38'), 32)
+        self.assertNotIn('尚未发布', gallery)
+        self.assertNotIn('data-face-state="preview"', gallery)
+
+
 if __name__ == '__main__':
     unittest.main()

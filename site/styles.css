@@ -12,6 +12,8 @@
   --dark: #131416;
   --font: "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", system-ui, sans-serif;
   --gutter: clamp(24px, 6.8vw, 100px);
+  --motion-fast: 180ms;
+  --motion-ease: cubic-bezier(.22, 1, .36, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -47,7 +49,7 @@ html[lang="en"] .section-lead h2 { font-family: var(--font); line-height: 1.1; l
 h1 { font-family: RoundDisplay, var(--font); font-size: clamp(54px, 7vw, 104px); font-weight: 900; line-height: 1.24; letter-spacing: -.075em; }
 .hero-copy > p { margin-top: 32px; font-size: clamp(16px, 1.55vw, 22px); line-height: 1.9; color: #5c5e64; }
 .actions { display: flex; align-items: center; flex-wrap: wrap; gap: 40px; margin-top: 44px; }
-.button { min-height: 64px; display: inline-flex; align-items: center; justify-content: center; gap: 28px; padding: 14px 32px; border: 1px solid var(--ink); border-radius: 4px; background: var(--ink); color: white; font-size: 18px; font-weight: 600; line-height: 1.5; transition: background .2s, border-color .2s, transform .2s; }
+.button { min-height: 64px; display: inline-flex; align-items: center; justify-content: center; gap: 28px; padding: 14px 32px; border: 1px solid var(--ink); border-radius: 4px; background: var(--ink); color: white; font-size: 18px; font-weight: 600; line-height: 1.5; }
 .button:hover { background: #35373a; border-color: #35373a; transform: translateY(-2px); }
 .text-link { padding-block: 6px; border-bottom: 1px solid currentColor; font-size: 16px; font-weight: 600; }
 .text-link:hover { color: var(--red); }
@@ -214,6 +216,21 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
 .footer-bottom a { text-decoration: underline; text-underline-offset: 3px; }
 .footer-bottom a:hover { color: var(--red); }
 
+/* 只对操作反馈做短过渡；页面入场由JS增强，CSS不隐藏内容。
+   Keep interaction feedback brief; JS enhances entrances without hiding content in CSS. */
+.button, .kind-picker button, .collection-filters button, .app-picker button, .face-card {
+  transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast), border-color var(--motion-fast), color var(--motion-fast);
+}
+.text-link, .release-links a, .site-header nav a, .footer-main nav a { transition: color var(--motion-fast); }
+.button .arrow { transition: transform var(--motion-fast) var(--motion-ease); }
+.button:is(:hover, :focus-visible) .arrow { transform: translateX(3px); }
+.button:focus-visible { transform: translateY(-2px); }
+.face-card:focus-visible { background: #24262a; border-color: #92978c; }
+.kind-picker button:active, .collection-filters button:active, .app-picker button:active { transform: translateY(1px); }
+@media (hover: hover) and (pointer: fine) {
+  .face-card:hover { transform: translateY(-3px); }
+}
+
 @media (max-width: 1100px) {
   .hero { gap: 36px; padding-block: 76px 58px; }
   .hero-orbit { border-width: 14px; }
@@ -304,6 +321,8 @@ h2 { font-size: clamp(36px, 4.7vw, 70px); font-weight: 700; line-height: 1.3; le
   .footer-bottom { margin-top: 22px; font-size: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
+  :root { --motion-fast: 0ms; }
   html { scroll-behavior: auto; }
-  *, *::before, *::after { transition: none; }
+  .button:is(:hover, :focus-visible), .button:is(:hover, :focus-visible) .arrow, .face-card:hover,
+  .kind-picker button:active, .collection-filters button:active, .app-picker button:active { transform: none; }
 }

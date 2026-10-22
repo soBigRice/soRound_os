@@ -11,6 +11,75 @@ document.querySelector(".language-switch").addEventListener("click", event => {
   event.currentTarget.hash = window.location.hash;
 });
 
+const siteMotion = (() => {
+  const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const active = new Map();
+  let observer;
+
+  function cancel(element) {
+    active.get(element)?.cancel();
+  }
+  function play(element, frames, options = {}) {
+    cancel(element);
+    if (preference.matches || !element?.animate) return;
+    // 内容默认可见；动画只临时覆盖样式，取消或API不可用时仍可操作。
+    // Content stays visible by default; temporary effects never gate access to the page.
+    let animation;
+    try {
+      animation = element.animate(frames, {duration: 440, easing: "cubic-bezier(.22, 1, .36, 1)", ...options});
+    } catch (error) {
+      console.warn("Optional motion is unavailable; content remains visible.", error);
+      return;
+    }
+    active.set(element, animation);
+    const release = () => {
+      if (active.get(element) === animation) active.delete(element);
+      animation.onfinish = animation.oncancel = null;
+      animation.cancel();
+    };
+    animation.onfinish = animation.oncancel = release;
+  }
+  function screen(element) {
+    play(element, [{opacity: .45, clipPath: "circle(47% at 50% 50%)"},
+      {opacity: 1, clipPath: "circle(50% at 50% 50%)"}], {duration: 280});
+  }
+  function stop() {
+    observer?.disconnect();
+    [...active.values()].forEach(animation => animation.cancel());
+  }
+  preference.addEventListener("change", event => { if (event.matches) stop(); });
+  window.addEventListener("pagehide", stop, {once: true});
+
+  if (!preference.matches && typeof Element.prototype.animate === "function") {
+    play(document.querySelector(".hero-copy"), [{opacity: 0, transform: "translateY(18px)"},
+      {opacity: 1, transform: "translateY(0)"}], {duration: 680});
+    // 以圆形裁切展开外圈和红点，保持原生截图的比例与像素内容。
+    // Reveal the ring and red dot with a circular mask without warping the native screen image.
+    play(document.querySelector(".hero-orbit"), [{opacity: .25, clipPath: "circle(42% at 50% 50%)"},
+      {opacity: 1, clipPath: "circle(74% at 50% 50%)"}], {duration: 900});
+    if (typeof window.IntersectionObserver === "function") {
+      const targets = document.querySelectorAll(".spec-strip, .section-lead, .face-explorer, .face-collection, .feature-columns, .app-explorer, .start-grid, .author-grid");
+      let remaining = targets.length;
+      try {
+        observer = new IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            observer.unobserve(entry.target);
+            play(entry.target, [{opacity: 0, transform: "translateY(16px)"},
+              {opacity: 1, transform: "translateY(0)"}], {duration: 560});
+            if (--remaining === 0) observer.disconnect();
+          });
+        }, {threshold: .08});
+        targets.forEach(target => observer.observe(target));
+      } catch (error) {
+        observer?.disconnect();
+        console.warn("Optional scroll entrances are unavailable; content remains visible.", error);
+      }
+    }
+  }
+  return {play, cancel, screen};
+})();
+
 (() => {
   const themes = JSON.parse(document.querySelector("#watchface-catalog").textContent);
   // 旧三组只使用既有合辑坐标；HAND/STUDIO 各自加载完整原生 PNG。
@@ -26,8 +95,9 @@ document.querySelector(".language-switch").addEventListener("click", event => {
   let theme = "orbit";
   let kind = 2;
   let renderedFamily = "legacy";
+  let animateImage = false;
 
-  function render() {
+  function render(animate = true) {
     const selected = themes[theme];
     // 保留暂停开放时的保护，已启用组照常渲染。 / Keep the availability guard for a temporarily disabled group.
     if (selected.available === false) return;
@@ -62,7 +132,7 @@ document.querySelector(".language-switch").addEventListener("click", event => {
       theme: selected.title, kind: translate(selected.kinds[kind].label),
     }));
     title.textContent = `${selected.title} / ${translate(selected.kinds[kind].label)}`;
-    document.querySelector("#face-state").textContent = translate(selected.kinds[kind].preview ? "本地新设计 · 尚未发布" : "已有表盘");
+    document.querySelector("#face-state").textContent = translate(selected.kinds[kind].new ? "本次新增 · beta.38" : "已发布表盘");
     document.querySelectorAll("[data-face-id]").forEach(button => {
       button.setAttribute("aria-pressed", String(button.dataset.faceTheme === theme && Number(button.dataset.faceKind) === kind));
     });
@@ -70,6 +140,12 @@ document.querySelector(".language-switch").addEventListener("click", event => {
     themeButtons.forEach(button => button.setAttribute("aria-pressed", String(button.dataset.theme === theme)));
     [...kindPicker.children].forEach(button => button.setAttribute("aria-pressed", String(Number(button.dataset.kind) === kind)));
     error.hidden = true;
+    siteMotion.cancel(preview);
+    animateImage = animate;
+    if (animateImage && sheet.complete && sheet.naturalWidth) {
+      siteMotion.screen(preview);
+      animateImage = false;
+    }
   }
 
   themeButtons.forEach(button => button.addEventListener("click", () => {
@@ -106,11 +182,19 @@ document.querySelector(".language-switch").addEventListener("click", event => {
       const visible = group.querySelectorAll("[data-face-id]:not([hidden])").length;
       group.hidden = visible === 0;
       group.querySelector(".face-group-heading span").textContent = `${String(visible).padStart(2, "0")} DESIGNS`;
+      const grid = group.querySelector(".face-grid");
+      siteMotion.cancel(grid);
+      if (visible) siteMotion.play(grid, [{opacity: .35, transform: "translateY(6px)"},
+        {opacity: 1, transform: "translateY(0)"}], {duration: 240});
     });
   }));
-  render();
+  render(false);
   sheet.addEventListener("error", () => { error.hidden = false; });
-  sheet.addEventListener("load", () => { error.hidden = true; });
+  sheet.addEventListener("load", () => {
+    error.hidden = true;
+    if (animateImage) siteMotion.screen(preview);
+    animateImage = false;
+  });
 })();
 
 (() => {
@@ -120,6 +204,7 @@ document.querySelector(".language-switch").addEventListener("click", event => {
   const description = document.querySelector("#app-description");
   const position = document.querySelector("#app-position");
   const error = document.querySelector("#app-error");
+  let animateImage = false;
 
   function select(button, index) {
     screen.src = `${appRoot}${button.dataset.app}.png`;
@@ -129,6 +214,12 @@ document.querySelector(".language-switch").addEventListener("click", event => {
     position.textContent = `${String(index + 1).padStart(2, "0")} / ${buttons.length}`;
     buttons.forEach(item => item.setAttribute("aria-pressed", String(item === button)));
     error.hidden = true;
+    siteMotion.cancel(screen);
+    animateImage = true;
+    if (screen.complete && screen.naturalWidth) {
+      siteMotion.screen(screen);
+      animateImage = false;
+    }
   }
   buttons.forEach((button, index) => button.addEventListener("click", () => {
     select(button, index);
@@ -141,5 +232,9 @@ document.querySelector(".language-switch").addEventListener("click", event => {
     select(buttons[index], index);
   }));
   screen.addEventListener("error", () => { error.hidden = false; });
-  screen.addEventListener("load", () => { error.hidden = true; });
+  screen.addEventListener("load", () => {
+    error.hidden = true;
+    if (animateImage) siteMotion.screen(screen);
+    animateImage = false;
+  });
 })();

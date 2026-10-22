@@ -8,7 +8,11 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**Current beta: [v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) is published.**
+**Current beta: [v1.7-beta.38](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.38).**
+Five groups contain 62 watch faces, including 32 additions and 41 STUDIO faces with black backgrounds. Existing IDs and saved selection are retained, with a separate Watch Faces app. Updates also remove redundant drawing in Remote, Voice Capsules and Maze, hold the CPU frequency boost during rendering, and move Settings, Garden growth and Focus preferences to background saving. Sudden power loss can discard changes not yet written. Host tests do not establish device frame-rate or power gains.
+This version excludes the Map app. Two 8 MiB app slots are required. Recording storage still needs separate initialization; normal OTA does not migrate or format partitions. This release session did not install the image, migrate partitions or establish device acceptance. Earlier local-candidate device records do not prove installation of this public image. See the [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [verification record](./GeekTool-IDF/PORTING_NOTES.md) for release checks and distribution results.
+
+**Previously: [v1.7-beta.37](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.37) was published.**
 Wooden Fish, watch face and horoscope diagnostics updates restore 30 faces across five groups while preserving the original 21 IDs and saved selection. CI passed 53 host tests, two companion tests, media sanitizer checks and 14 mirror tests. A device candidate ran the real launcher path for about 283 seconds without a fault, covering nine active/AOD faces, previews and sleep/wake.
 Five Aries requests returned HTTP 200 with the correct date. The historical failure was not reproduced and its root cause is unconfirmed. Complete R2/domestic images match the CI and Release asset digest, conditional Range checks passed, and stable v1.7 bytes are unchanged. The exact CI image passed USB installation, startup checks and VALID-state readback; settings, stored files and the beta.35 recovery slot were preserved. See the [verification record](./GeekTool-IDF/PORTING_NOTES.md), [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [Horoscope / Wooden Fish notes](./GeekTool-IDF/ZODIAC_MERIT_UI.md) for the exact scope.
 
@@ -56,7 +60,7 @@ the revealed watch-face frame must pass before a new OTA image is confirmed. Cor
 roll back when a recovery image exists. Network-check failures allow offline startup;
 network recovery for Weather, Answers, Zodiac and OTA is retained.
 
-Use `GeekTool-IDF/` for current development. `main` contains the beta.37 combined changes; see the device and public distribution status above.
+Use `GeekTool-IDF/` for current development. `main` contains the beta.38 updates excluding Map; see the device and public distribution status above.
 At the v1.7 stable release, all 34 local regressions and nine startup CI checks passed; its release-dependency candidate's watch face, unlock and Settings were accepted on the device.
 The beta.36 device panic supersedes that version's earlier pending-acceptance status. Subsequent candidates must record device results separately; host tests and native previews cannot establish device acceptance. The original beta.30 white-screen trigger has not been reproduced.
 
@@ -107,9 +111,9 @@ screen or PWR key, with an explicit fallback label when requests fail.
   dot-matrix elements and restrained colors for weather icons.
 - Radial launcher, quick panel, lock-screen watch faces, brightness, volume, always-on
   display and persistent settings in NVS.
-- **23 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
+- **24 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
   Settings, OTA updates, Audio visualizer, Level, Maze, Fluid, Dice & coin, Bluetooth
-  remote (mouse / slides / music), Digital twin, Book of Answers, Horoscope, Wooden Fish, Pixels, Garden, Focus and Voice Capsules.
+  remote (mouse / slides / music), Digital twin, Book of Answers, Horoscope, Wooden Fish, Pixels, Garden, Focus, Voice Capsules and Watch Faces.
   [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is included in beta.33; physical-device acceptance remains pending.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.
@@ -119,7 +123,7 @@ screen or PWR key, with an explicit fallback label when requests fail.
   Web Bluetooth. Its 3D scene loads separately; failed connection attempts clean up the GATT session.
 
 The [website gallery](https://sobigrice.github.io/soRound_os/en/#explore) includes native
-English app previews, thirty watch faces and the official Waveshare board photo.
+English app previews, 62 watch faces and the official Waveshare board photo.
 Preview readings are fixed fixtures; the website does not connect to a device.
 The firmware supports Chinese and English controls. Horoscope readings retain the
 provider's Chinese original in both languages, as indicated by the `CN` label.
@@ -166,7 +170,7 @@ Direct implementation references:
 | --- | --- |
 | Scheduling, animation and resource lifetime | [Performance record](./GeekTool-IDF/PORTING_NOTES.md#2026-10-01-流畅性与动画优化) |
 | Audio spectrum and level layout | [Audio / Level design](./GeekTool-IDF/AUDIO_LEVEL_DESIGN.md) |
-| Thirty watch faces in beta.37, images and always-on state; device candidate and exact release-image results recorded separately | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
+| 62 watch faces in beta.38, images and always-on state; local-candidate and public-image device results recorded separately | [Watch faces](./GeekTool-IDF/WATCHFACES_UI.md) |
 | Original particles + color dye fluid modes and twelve fixed maze levels; device acceptance pending | [Play implementation](./GeekTool-IDF/PLAY_UI.md) |
 | Coin drawing, animation, pause and exit | [Coin implementation](./GeekTool-IDF/PORTING_NOTES.md#2026-10-04-抛硬币外观与抛掷动画) |
 | Memory statistics and System info pages | [System UI](./GeekTool-IDF/SYSTEM_UI.md) |

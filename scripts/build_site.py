@@ -33,7 +33,8 @@ def watchface_gallery(catalog):
     for key, group in catalog.items():
         cards = []
         for kind, face in enumerate(group["kinds"]):
-            state = "preview" if face.get("preview") else "existing"
+            # 新增是本次发布分组，不代表未发布状态。 / New marks the release cohort, not availability.
+            state = "new" if face.get("new") else "existing"
             if group["family"] == "legacy":
                 x, y = coordinates[kind]
                 picture = (f'<img class="native-sheet" src="assets/{key}.png" width="1680" height="1220" '
@@ -41,7 +42,7 @@ def watchface_gallery(catalog):
             else:
                 picture = f'<img class="native-face" src="assets/{face["file"]}" width="466" height="466"'
             selected = str(key == "orbit" and kind == 2).lower()
-            badge = '<span class="face-card-status">本地新设计 · 尚未发布</span>' if state == "preview" else ""
+            badge = '<span class="face-card-status">本次新增 · beta.38</span>' if state == "new" else ""
             cards.append(f'<button type="button" class="face-card" data-face-id="{index}" data-face-theme="{key}" '
                          f'data-face-kind="{kind}" data-face-state="{state}" aria-pressed="{selected}" '
                          f'aria-controls="face-preview"><span class="native-screen">{picture} alt="" loading="lazy" '
@@ -295,9 +296,9 @@ def main():
     # 展示数量由目录计算，避免追加表盘后标题、筛选和统计各自过期。
     # Derive display counts from the catalog so headings, filters and statistics cannot drift apart.
     all_faces = [face for group in catalog.values() for face in group["kinds"]]
-    preview_count = sum(bool(face.get("preview")) for face in all_faces)
-    counts = {"watchface_total": len(all_faces), "watchface_preview": preview_count,
-              "watchface_existing": len(all_faces) - preview_count}
+    new_count = sum(bool(face.get("new")) for face in all_faces)
+    counts = {"watchface_total": len(all_faces), "watchface_new": new_count,
+              "watchface_existing": len(all_faces) - new_count}
     for key, value in replacements.items():
         page = page.replace("{{" + key + "}}", html.escape(value, quote=True))
     messages = json.loads((SOURCE / "locales/en.json").read_text())
