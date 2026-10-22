@@ -1,6 +1,6 @@
 # 声音胶囊与共享音频
 
-核对日期：2026-10-19。软件更新、录音存储初始化和真机录音分别验收；当前尚无录音分区迁移完成或声音胶囊录音/回放真机验收证据。
+核对日期：2026-10-22。软件更新、录音存储初始化和真机录音分别验收；本台设备已完成录音存储迁移及逐段写入校验，启动检查通过。用户已真机确认录音、回放正常，重启后录音保留，回执见下文。
 
 `app_capsules.c` 只构建 LVGL 控件并读取 `capsule_recorder_snapshot()`。录音按钮发送请求，
 `capsule_recorder.c::recorder_worker` 在独立任务中挂载、扫描、删除、录音和请求回放。
@@ -89,6 +89,34 @@ capsules 不自动加入 `FLASH_IN_PROJECT`，普通构建不会生成或写入�
 4. **再做真机验收**：确认已有表盘文件仍在，录音可保存和回放，重启后列表保留，退出/取消和错误状态正常。
    软件构建、OTA成功、离线镜像生成和meta校验通过，均不能代替这些验收。
 
+### 2026-10-22 本机迁移回执
+
+用户再次反馈“存储未配置”并明确要求处理后，直接读回连接设备，确认仍为旧表：
+`storage=0x1020000/0xfe0000`，没有 `capsule_meta`、`capsules`。此处已有设备证据，
+区别于上文2026-10-19仅依据界面反馈的候选原因；当前固件为 `v1.7-beta.37-geometry6`。
+
+- 完整32MiB Flash备份与设备整片MD5一致；备份以私有权限保存在本地，未提交、未上传。
+- 从真实资源卷提取 `BG.JPG`、`PANDA.PNG`、`README.TXT`，合计1,189,639字节。
+  使用ESP-IDF 6.0.1生成较小资源镜像并重新解析，三个文件路径、大小和SHA-256全部一致。
+- 使用现有 `prepare_capsule_storage.py` 生成独立空录音卷与meta；SDK能解析带WL的录音卷，
+  生产 `capsule_store.c` 的meta及两份WL头guard也通过。host检查里的SDK挂载仍为模拟，不能冒充真机挂载或录音。
+- 受控写入顺序为资源卷、录音卷、分区表、meta；每段写入均通过设备MD5核验，
+  每段之后再次确认bootloader、NVS/otadata/phy与两份完整OTA槽未改变。没有重建、替换或刷写应用固件。
+- 重启日志确认新分区标签和上述原固件版本，原资源卷成功挂载、原厂背景识别正常，
+  `startup core=OK`、`startup home frame=1 completed=1`、`startup check=OK`，22秒观察无panic/看门狗卡死。
+- 重启后再次以只读方式核对设备：四个迁移区域与待写镜像一致，实际meta及两份WL头一致；
+  bootloader、两个应用槽、NVS、otadata及phy/间隙字节均与迁移前保留值一致。检查结束回到原固件并关闭串口。
+
+本地回执在 `build/flash-records/capsule-storage-20261022/`：`backup-verification.json`、
+`preparation-verification.json`、`image-guard-verification.json`、`migration-progress.json`、
+`device-boot.log`、`boot-observation.json`、`device-verification.json`。完整备份及迁移镜像是恢复材料，不作为测试缓存删除；临时测试二进制、roundtrip目录和本次Python缓存已清理，无遗留测试或串口进程。
+若必须恢复旧布局，应在下载模式下从已核对完整备份恢复原资源区 `0x1020000/0xfe0000`，
+校验后恢复原 `0x8000/0x1000` 分区表；不整片擦除，也不覆盖NVS或应用槽。
+
+2026-10-22用户完成真机验收并明确确认：“录音回放正常，重启后也还在”。
+本次录音存储启用、保存回放和正常重启持久化目标已验收；异常断电与错误恢复未专项验证。
+用户确认记录保存在同目录 `user-acceptance.json`，与自动读回校验的 `device-verification.json` 分开记录。
+
 官方依据（本地SDK 6.0.1已核对）：
 [FatFS与离线生成器](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/storage/fatfs.html)、
 [磨损均衡](https://docs.espressif.com/projects/esp-idf/en/v6.0.1/esp32s3/api-reference/storage/wear-levelling.html)。
@@ -103,5 +131,6 @@ capsules 不自动加入 `FLASH_IN_PROJECT`，普通构建不会生成或写入�
 旧 `merit_audio_tests` 对告警、提示音、木鱼、连续敲击、idle DMA与退出仍通过。
 原生截图保存在 `artwork/companion-apps/native/capsules-*.png`；截图录音状态为测试fixture，不是真机录音证据。
 
-这些检查不等于真机录音/扬声器效果、实际分区迁移、掉电恢复或主观UI验收。
-下一步必须先审查真实设备备份和迁移计划，再按用户另行授权执行烧录；随后验证录音与回放、重启后列表、错误提示及已有表盘文件。
+这些本地检查不等于真机录音/扬声器效果、掉电恢复或主观UI验收。
+本台分区迁移与设备启动证据见上节，用户已确认录音、回放和正常重启后保留；异常断电与错误恢复未专项验证。
+其他尚未迁移的设备仍须先审查真实备份和迁移计划，再按相应用户授权执行，不能继承本台的完成状态。
