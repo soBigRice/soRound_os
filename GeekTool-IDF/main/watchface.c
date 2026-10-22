@@ -1,5 +1,5 @@
-// 原 21 款保持 NVS ID，STUDIO 九款追加；目录管理各组边界。
-// Preserve the original 21 NVS IDs and append nine STUDIO faces; the catalogue owns group boundaries.
+// 新款只追加，目录管理各组边界，旧NVS编号保持。
+// Append new faces through the catalogue while preserving all persisted IDs.
 // BOOT 解锁与省电策略属于 lock.c。BOOT unlock and power policy belong to lock.c.
 #include "watchface.h"
 #include "watchface_ui.h"
@@ -29,9 +29,10 @@ static bool snapshot(bool force) {
     time_t now=time(NULL);struct tm t;localtime_r(&now,&t);
     time_t minute=now/60;bool minute_changed=minute!=s_last_minute;
     bool legacy=s_idx<WATCHFACE_LEGACY_COUNT;
-    // 获批的 FOLD/HORIZON 只依赖时分，避免额外重绘或擅自引入秒动效。
-    // Approved FOLD/HORIZON depend on hours/minutes; avoid redundant draws or invented second motion.
-    bool minute_only=s_idx==WATCHFACE_STUDIO_START+4||s_idx==WATCHFACE_STUDIO_START+6;
+    // FOLD/HORIZON和极简字体只依赖时分，避免冗余重绘及额外秒动效。
+    // FOLD/HORIZON and minimal typography depend on minutes, avoiding redundant draws and invented second motion.
+    bool minute_only=s_idx==WATCHFACE_STUDIO_START+4||s_idx==WATCHFACE_STUDIO_START+6
+        ||(s_idx>=WATCHFACE_TYPE_START&&s_idx<WATCHFACE_SPORT_START);
     bool seconds=(!legacy&&!minute_only)||(legacy&&s_idx%WATCHFACE_KIND_COUNT==0);
     bool dirty=force||minute_changed||(!s_aod&&seconds&&t.tm_sec!=s_data.time.tm_sec);
     s_data.time=t;s_data.aod=s_aod;

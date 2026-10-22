@@ -1,0 +1,84 @@
+{
+  "date": "2026-10-22",
+  "kind": "SVG typography concepts rendered in Chromium, not native firmware",
+  "accepted": false,
+  "integrated": false,
+  "deployed": false,
+  "flashed": false,
+  "checks": {
+    "rects": [
+      {
+        "y": 119.5,
+        "decoded": true,
+        "key": "stack",
+        "x": 28,
+        "width": 466,
+        "height": 466
+      },
+      {
+        "y": 119.5,
+        "decoded": true,
+        "key": "air",
+        "x": 526,
+        "width": 466,
+        "height": 466
+      },
+      {
+        "y": 119.5,
+        "decoded": true,
+        "key": "offset",
+        "x": 1024,
+        "width": 466,
+        "height": 466
+      },
+      {
+        "y": 647.5,
+        "decoded": true,
+        "key": "column",
+        "x": 28,
+        "width": 466,
+        "height": 466
+      },
+      {
+        "y": 647.5,
+        "decoded": true,
+        "key": "cut",
+        "x": 526,
+        "width": 466,
+        "height": 466
+      },
+      {
+        "y": 647.5,
+        "decoded": true,
+        "key": "edition",
+        "x": 1024,
+        "width": 466,
+        "height": 466
+      }
+    ],
+    "decodedImages": 18,
+    "widths": [
+      {
+        "width": 1518,
+        "overflow": false
+      },
+      {
+        "width": 390,
+        "overflow": false
+      },
+      {
+        "width": 320,
+        "overflow": false
+      }
+    ],
+    "keyboardControls": true
+  },
+  "keyboard": {
+    "enterSwitchedAllSixAtThreeTimes": true,
+    "allEighteenImagesLoaded": true
+  },
+  "proof_sha256": "477d0a748afa760dc9b95984535c56828f9c70ff97d9e0fb22d1f4f1f6f48ac1",
+  "source_sha256": "100454a5e6f63d9f81fb4516b0ba6d79167fc1568d832bbe1ba3dd76c18d60b0",
+  "fonts": "Existing Barlow Regular / SemiBold / Black, OFL 1.1; embedded WOFF subsets",
+  "interaction_fix": "Assign all six image sources synchronously; browser owns loading. Do not await per-image decode in a UI event or let cancelled decode promises become page errors."
+}

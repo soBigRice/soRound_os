@@ -91,11 +91,11 @@ static inline unsigned wfs_codepoint(const char *value,unsigned *bytes){
     if((p[0]&0xe0)==0xc0&&p[1]){*bytes=2;return ((p[0]&31u)<<6)|(p[1]&63u);}
     return 0;
 }
-static inline void wfs_label(const wfs_draw_t *d,const char *value,float x,float baseline,int size,uint32_t color,float spacing,bool heavy){
+static inline void wfs_label_font(const wfs_draw_t *d,const char *value,float x,float baseline,const lv_font_t *font,uint32_t color,float spacing){
     // SVG折叠连续空格；保留字体原始1/16px字宽，避免逐字整数进位拉宽时间。 / Match SVG whitespace and retain 1/16px advances instead of rounding each character.
     char normalized[96];unsigned length=0;bool space=false;
     for(const char *p=value;*p&&length+1<sizeof normalized;p++){if(*p==' '&&space)continue;normalized[length++]=*p;space=*p==' ';}normalized[length]=0;
-    const lv_font_t *font=wfs_font(d,size,heavy);float scale=d->size/466.0f,gap=spacing*scale,total=0;
+    float scale=d->size/466.0f,gap=spacing*scale,total=0;
     for(unsigned i=0;i<length;){unsigned bytes;unsigned code=wfs_codepoint(normalized+i,&bytes);total+=wfs_glyph_advance(font,code)+gap;i+=bytes;}
     float left=d->x+x*scale-total*.5f,advance=0;int top=d->y+wfs_scaled(d,baseline)-font->line_height+font->base_line;
     for(unsigned i=0;i<length;){unsigned bytes;unsigned code=wfs_codepoint(normalized+i,&bytes);char glyph[3]={0};memcpy(glyph,normalized+i,bytes);
@@ -115,6 +115,9 @@ static inline void wfs_label(const wfs_draw_t *d,const char *value,float x,float
         advance+=wfs_glyph_advance(font,code)+gap;i+=bytes;
     }
 }
+// 显式字体入口复用同一字形定位；旧调用仍解析原字库，像素契约保持。
+// Explicit fonts share glyph placement; existing callers still resolve their original fonts and pixel contract.
+static inline void wfs_label(const wfs_draw_t *d,const char *value,float x,float baseline,int size,uint32_t color,float spacing,bool heavy){wfs_label_font(d,value,x,baseline,wfs_font(d,size,heavy),color,spacing);}
 static inline void wfs_text(const wfs_draw_t *d,const char *value,float x,float baseline,int size,uint32_t color,float spacing){wfs_label(d,value,x,baseline,size,color,spacing,false);}
 static inline void wfs_heavy_text(const wfs_draw_t *d,const char *value,float x,float baseline,int size,uint32_t color,float spacing){wfs_label(d,value,x,baseline,size,color,spacing,true);}
 static inline void wfs_time(const watchface_data_t *data,char *buffer,size_t size){snprintf(buffer,size,"%02d:%02d",data->time.tm_hour,data->time.tm_min);}

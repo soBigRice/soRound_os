@@ -6,6 +6,8 @@
 #include "watchface_scenes.h"
 #include "watchface_graphic.h"
 #include "watchface_atelier.h"
+#include "watchface_type.h"
+#include "watchface_sport.h"
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -394,7 +396,9 @@ void watchface_render(lv_layer_t *layer,const lv_area_t *area,const watchface_da
         if(studio<3)watchface_instrument_render(layer,area,data,studio,preview);
         else if(studio<9)watchface_scenes_render(layer,area,data,studio-3,preview);
         else if(studio<15)watchface_graphic_render(layer,area,data,studio-9,preview);
-        else watchface_atelier_render(layer,area,data,studio-15,preview);
+        else if(index<WATCHFACE_TYPE_START)watchface_atelier_render(layer,area,data,studio-15,preview);
+        else if(index<WATCHFACE_SPORT_START)watchface_type_render(layer,area,data,index-WATCHFACE_TYPE_START,preview);
+        else watchface_sport_render(layer,area,data,index-WATCHFACE_SPORT_START,preview);
         return;
     }
     if(index>=WATCHFACE_LEGACY_COUNT&&index<WATCHFACE_STUDIO_START){hand_face(&d,data,index-WATCHFACE_LEGACY_COUNT);return;}

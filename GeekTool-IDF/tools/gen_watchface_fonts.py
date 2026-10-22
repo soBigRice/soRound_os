@@ -85,6 +85,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--hands', action='store_true', help='Only generate the small analog numeral subsets')
     parser.add_argument('--studio', action='store_true', help='Only generate the approved STUDIO numeral pairs')
+    parser.add_argument('--typography', action='store_true', help='Generate the oversized typography pairs without changing existing fonts')
     args = parser.parse_args()
     if args.studio:
         # 原稿字号及半尺寸预览逐一保留，旧字库不重栅格化。 / Preserve each approved size and its half-size preview without touching legacy fonts.
@@ -102,6 +103,24 @@ if __name__ == '__main__':
             declarations += ''.join(f'case {size}:return &{symbol};\n' for size,w,_,symbol in studio if w==weight)
             declarations += '} } switch(pixels){\n' if weight=='semibold' else '}return &font_studio_regular_14;\n}\n'
         (ROOT / 'main/watchface_studio_fonts.h').write_text(declarations)
+    elif args.typography:
+        # 大字系列独立生成，既有字库逐字节保持；每个正屏字号配套半尺寸预览。
+        # Generate oversized pairs separately, preserving every existing font and matching each preview size.
+        sizes = {'regular': (161,166,176), 'semibold': (166,215), 'black': (200,202,220)}
+        fonts = [(size,weight,'0123456789:',f'font_type_{weight}_{size}')
+                 for weight, originals in sizes.items()
+                 for size in sorted(set(originals) | {(size+1)//2 for size in originals})]
+        generate(fonts, ROOT / 'main/font_watchface_type.c')
+        header = '// 极简大字独立字库及半尺寸预览。 / Separate oversized fonts and paired previews.\n#pragma once\n#include "lvgl.h"\n'
+        header += 'typedef enum {WFT_REGULAR, WFT_MEDIUM, WFT_BLACK} wft_weight_t;\n'
+        header += ''.join(f'LV_FONT_DECLARE({symbol});\n' for _,_,_,symbol in fonts)
+        header += 'static inline const lv_font_t *wft_font(int size,bool preview,wft_weight_t weight){\nint pixels=preview?(size+1)/2:size;\nswitch(weight){\n'
+        for weight, tag in [('regular','WFT_REGULAR'),('semibold','WFT_MEDIUM'),('black','WFT_BLACK')]:
+            header += f'case {tag}:switch(pixels){{\n'
+            header += ''.join(f'case {size}:return &{symbol};\n' for size,w,_,symbol in fonts if w==weight)
+            header += '}break;\n'
+        header += '}return NULL;\n}\n'
+        (ROOT / 'main/watchface_type_fonts.h').write_text(header)
     elif args.hands:
         generate([(size, weight, '0123456789', f'font_hand_{weight}_{size}')
                   for weight, sizes in [('regular', (12,24)), ('semibold', (16,32))] for size in sizes],

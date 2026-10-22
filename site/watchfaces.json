@@ -119,7 +119,7 @@
   },
   "studio": {
     "title": "STUDIO",
-    "description": "器械、玩物、自然与图形，二十三种时间想象。",
+    "description": "器械、玩物、自然与图形，三十五种时间想象。",
     "family": "studio",
     "kinds": [
       {
@@ -249,6 +249,78 @@
         "key": "orrery",
         "label": "星仪",
         "file": "studio/active-orrery.png",
+        "preview": true
+      },
+      {
+        "key": "stack",
+        "label": "叠字",
+        "file": "studio/active-stack.png",
+        "preview": true
+      },
+      {
+        "key": "air",
+        "label": "细字",
+        "file": "studio/active-air.png",
+        "preview": true
+      },
+      {
+        "key": "offset",
+        "label": "错位",
+        "file": "studio/active-offset.png",
+        "preview": true
+      },
+      {
+        "key": "column",
+        "label": "分栏",
+        "file": "studio/active-column.png",
+        "preview": true
+      },
+      {
+        "key": "cut",
+        "label": "切字",
+        "file": "studio/active-cut.png",
+        "preview": true
+      },
+      {
+        "key": "edition",
+        "label": "刊物",
+        "file": "studio/active-edition.png",
+        "preview": true
+      },
+      {
+        "key": "activity",
+        "label": "律动",
+        "file": "studio/active-activity.png",
+        "preview": true
+      },
+      {
+        "key": "circuit",
+        "label": "赛道",
+        "file": "studio/active-circuit.png",
+        "preview": true
+      },
+      {
+        "key": "matrix",
+        "label": "阵列",
+        "file": "studio/active-matrix.png",
+        "preview": true
+      },
+      {
+        "key": "vector",
+        "label": "矢量",
+        "file": "studio/active-vector.png",
+        "preview": true
+      },
+      {
+        "key": "duo",
+        "label": "双环",
+        "file": "studio/active-duo.png",
+        "preview": true
+      },
+      {
+        "key": "stride",
+        "label": "步幅",
+        "file": "studio/active-stride.png",
         "preview": true
       }
     ]

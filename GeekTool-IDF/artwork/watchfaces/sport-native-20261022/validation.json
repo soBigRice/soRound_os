@@ -1,0 +1,167 @@
+{
+  "date": "2026-10-22",
+  "base_commit": "5cc6ead326e05b5538f71db4eb6de97aed274725",
+  "state": {
+    "native_candidate_accepted": true,
+    "committed": false,
+    "deployed": false,
+    "flashed": false
+  },
+  "source_sha256": {
+    "GeekTool-IDF/main/watchface.c": "5f12fa9bda054e36cbdc1568fa6ff2d7dbcd4fd54d45577595d3eb1229bee722",
+    "GeekTool-IDF/main/watchface_ui.h": "48a5ff0f3843614866ba59b71dade0052fd6e07e926010f17703418220edb288",
+    "GeekTool-IDF/main/watchface_ui.c": "e562bafd973b1cbde7aa86df77888dbb061eca6de89e040fc8e12fc16bd47438",
+    "GeekTool-IDF/main/watchface_catalog.c": "f55238d5b4ba8379e07b4eecee951040bd21ed8f9ca214cd6c9db1a882fdbeed",
+    "GeekTool-IDF/main/watchface_studio_draw.h": "7737530de702b33e4ec26bdb904e8949dee725c4b3b253ec93698b36c0cecf74",
+    "GeekTool-IDF/main/watchface_type.c": "e97c9bd56abd9751f1953b1adc608a001c9b31c8886b09151b40e42eb7b2406c",
+    "GeekTool-IDF/main/watchface_type_fonts.h": "32f65dcdb4fb0f1f7acfb0eade6c5616d1b35cd8f8cdcada8e60ec7fa1f1ab02",
+    "GeekTool-IDF/main/font_watchface_type.c": "e9e6a6d1a6250750a330a565ccd759ba86a568bc99b544a3367d583833046841",
+    "GeekTool-IDF/main/watchface_sport.c": "292a6956aff90534ffeb39a4126142f7ce6a8f06724d9085354e3e0e5d0ffb88",
+    "GeekTool-IDF/tools/gen_watchface_fonts.py": "7becf28958f41996da39a53c6e99dd1e58b64b8afbf7937c73716b7f1924558e",
+    "GeekTool-IDF/tests/watchfaces/watchface_tests.c": "a64c2ffbbead78a7c876fddac47f032428aa92739832de12e009b7be392b71cc",
+    "GeekTool-IDF/tests/host/settings_level_tests.c": "a72c0240c451aaeb8977dda5821d4da9b82b957e2e91471b42813c02372889ab",
+    "site/watchfaces.json": "bacf9f8cbb63690cf0fa299dfa6f05aaf2a1486895282209b1925beab538529d",
+    "site/locales/en.json": "6f52a290a3bfef0a1749245b8003d318da4a01f8b5e6e90d1ab45b2407c040d1"
+  },
+  "host": {
+    "passed": 5,
+    "failed": 0,
+    "receipt": "Test project /tmp/soround-typesport-20261022.FtGIl0/host\n    Start 15: settings_controls_and_level_recovery\n1/5 Test #15: settings_controls_and_level_recovery ...   Passed    1.33 sec\n    Start 30: watchface_collection_and_power\n2/5 Test #30: watchface_collection_and_power .........   Passed    1.48 sec\n    Start 31: watchface_device_format_and_tiles\n3/5 Test #31: watchface_device_format_and_tiles ......   Passed    1.27 sec\n    Start 32: studio_full_frame_and_dma_tiles\n4/5 Test #32: studio_full_frame_and_dma_tiles ........   Passed    4.37 sec\n    Start 33: settings_device_format_and_tiles\n5/5 Test #33: settings_device_format_and_tiles .......   Passed    1.29 sec\n\n100% tests passed, 0 tests failed out of 5\n\nTotal Test time (real) =   9.75 sec",
+    "full_frame_tile_pairs": 1120,
+    "formats": [
+      "RGB565",
+      "RGB565_SWAPPED"
+    ],
+    "sizes": [
+      466,
+      233
+    ],
+    "original_ids_preserved": 44,
+    "baseline_identical_frames": 134,
+    "large_font_pairs": 8,
+    "large_font_instances": 16,
+    "large_font_real_glyph_contract": true,
+    "sport_063015_pixel_semantics": true,
+    "visual_times": [
+      "10:08:36",
+      "00:00:00",
+      "23:59:59"
+    ],
+    "preview_crops_from_real_picker": true
+  },
+  "target": {
+    "build_passed": true,
+    "version": "v1.7-beta.37-type-sport12",
+    "idf": "6.0.1",
+    "lvgl": "9.5.0",
+    "binary_bytes": 5417840,
+    "binary_sha256": "107775ec420976226dc47e6329a823933b36cd57e1d2e6697969738665c0a3d5",
+    "elf_sha256": "be35460775f488465b7ce1eb249f3f43565ecbd427b8fe594e55d7a0a8de627f",
+    "individual_function_frames": {
+      "watchface_type.c.obj": {
+        "maximum_individual_frame": 368,
+        "frames": {
+          "wfs_poly_opa$constprop$0": 288,
+          "wfs_label_font": 368,
+          "number": 48,
+          "caption": 80,
+          "wfs_ring_opa$constprop$0": 288,
+          "watchface_type_render": 304
+        },
+        "limitation": "Individual static frames do not establish device task stack headroom."
+      },
+      "watchface_sport.c.obj": {
+        "maximum_individual_frame": 864,
+        "frames": {
+          "track_point": 64,
+          "wfs_poly_opa$constprop$0": 304,
+          "wfs_label_font": 368,
+          "wfs_label": 48,
+          "date": 80,
+          "wfs_ring_opa$constprop$0": 304,
+          "wfs_arc$constprop$0": 864,
+          "ring": 80,
+          "watchface_sport_render": 416
+        },
+        "limitation": "Individual static frames do not establish device task stack headroom."
+      }
+    },
+    "device_stack_peak_ram_fps_power_subjective_acceptance": false
+  },
+  "site": {
+    "local_build_passed": true,
+    "catalog_count": 56,
+    "public_firmware_existing": 30,
+    "unreleased": 26,
+    "browser": {
+      "errors": [],
+      "filters": [
+        56,
+        30,
+        26
+      ],
+      "selections": 112,
+      "checks": [
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "zh"
+        },
+        {
+          "width": 1380,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 390,
+          "overflow": false,
+          "language": "en"
+        },
+        {
+          "width": 320,
+          "overflow": false,
+          "language": "en"
+        }
+      ]
+    },
+    "keyboard_enter_verified": true
+  },
+  "new_compressed_glyph_bitmap_bytes": 133433,
+  "temporary_build_and_ppm_cleanup": "Completed before delivery; retained final source and review PNGs only.",
+  "scope": {
+    "first_id": 50,
+    "last_id": 55,
+    "kind": "sport"
+  },
+  "review_png_sha256": {
+    "activity-aod.png": "c8531f62282bbd68b85d1bb82e333c6f2c43447e26c6e85938dcc56d14e780ba",
+    "activity.png": "da1e88a7e44df52d85297f44b165e677fef6209fed6f0927d5b8ae271d2ddc71",
+    "app-selector-55-en.png": "060442d3c82764c62570b09157100c11c69f2f3930979d7abfab23e66d991e51",
+    "circuit-aod.png": "8c444f156c6d06186dfe32cc3394685355b829ec0ed158c4363391c38b6eb57a",
+    "circuit.png": "f05ba8f1ee9b616963514c6deec39bb811806c22c8db6ef54aafa8ac9d629cf8",
+    "duo-aod.png": "bc8e5673e88a533b71f3a83160c4948205a321f387ca352f900d61e9ce5af61a",
+    "duo.png": "efa11f72e04f81a188145f73f0c44c6073d9c117546103495a9d3c95e747f637",
+    "late-overview.png": "81b94c86566d2f0991b7f5bc059c69f3c470a3d7b558772160ac739721e7782b",
+    "matrix-aod.png": "83f6453b10147bf2c9746d40a1fd51d361ef1590b6cd62f1700a76c1aa108fbe",
+    "matrix.png": "55f4f59bafe27b2425fef960864f0597c75423f0d8032683563b10eee8ec927a",
+    "midnight-overview.png": "ed5ed570b3d8b88055fb83d93b736352aea783ff22e84e808dd6665cb71c17e0",
+    "overview.png": "2be6e84e6681115c06dbb30cae037e93ef879846cb09209be9644ca0cddba3a6",
+    "preview-overview.png": "acd03456fe6cd0703d0bdcb35228b9d60369faf1fba7aadf7d0ee2b3df5044ac",
+    "selector-50-zh.png": "a2b80c92ba0c4ec34a8f91fc3a821d28ff696215b547e9a2ff8c70767fd2022e",
+    "stride-aod.png": "bf53e78736472c01f86f0177c2b8936eeeebad3872f233b1e45a64d797046917",
+    "stride.png": "ca098eb5b87d61fa5d2ea586fe26c008a34614420fc5282f0fbc168fc0a3e287",
+    "vector-aod.png": "28e0a7ba3deb89106b97db12674a0b3055c53a20e6c5772eee651c343ab56e77",
+    "vector.png": "24f4ea44d5f6801ba5b3697c01f39e8d34b13c52f14e7ea6750508e323dd6025"
+  },
+  "authorization": "User accepted all twelve designs and requested code submission, website deployment and device installation on 2026-10-22."
+}
