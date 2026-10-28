@@ -1,6 +1,6 @@
-# v1.7-beta.38 · 62款表盘与交互性能更新
+# v1.8 · soRound OS 正式版
 
-本版纳入 beta.37 之后已提交的非地图更新。地图 App 不包含在固件及官网功能列表中；正式通道继续保持 v1.7。
+将 v1.7-beta.38 的已发布功能晋升为正式版，固件生产代码、分区和依赖声明保持一致，以 v1.8 标签重新构建。正式与内测 OTA 通道同时更新至 v1.8。地图 App 和未提交的演示模式不包含在本版中。
 
 ## 更新内容
 
@@ -13,18 +13,18 @@
 
 ## 发布验证
 
-- [发布CI39736804822](https://github.com/soBigRice/soRound_os/actions/runs/39736804822)全部通过：ESP-IDF6.0.1、LVGL9.6.0~1构建，59项主机回归、2项生态箱/专注、媒体ASan/UBSan及14项OTA镜像检查。
-- 应用5,462,736B，SHA256 `98c622a14dc33c494aa33a571687197a9809d9692c30c79d48146d4198602001`。精确CI包、GitHub资产摘要、R2与国内完整包一致；两处分发的强ETag条件Range均返回准确206切片。
-- R2与国内正式包仍为4,149,792B的v1.7，发布前后SHA256 `5be78bc1b370177827b53f36c7f155c5b5418bfadf850344faa11d37560abb1d`保持。
+- v1.8 标签流程在发布前执行 ESP-IDF6.0.1 / ESP32-S3 构建、发行版 LVGL 主机回归、生态箱/专注、媒体ASan/UBSan与OTA镜像检查，全部通过后才上传正式包。
+- 发布后的准确镜像大小、摘要、CI与双通道完整下载/条件Range核对结果记录在[发布记录](https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md)。
+- 前序 beta.38 的[发行CI39736804822](https://github.com/soBigRice/soRound_os/actions/runs/39736804822)与分发记录仅作为历史证据，不代替 v1.8 重新构建和校验。
 
 ## 验证与升级边界
 
 - 标签发布流程执行 ESP-IDF6.0.1 / ESP32-S3 构建，并在实际发行LVGL依赖下运行完整主机、生态箱/专注、媒体ASan/UBSan和OTA镜像检查；最终执行结果以本版Actions为准。
-- 此前功能候选的设备安装、全屏/选择器/AOD与生命周期验证分别记录在[表盘说明](https://github.com/soBigRice/soRound_os/blob/v1.7-beta.38/GeekTool-IDF/WATCHFACES_UI.md)。这些历史候选记录不等于本次精确CI包的设备或网络OTA验收。本轮发布不访问或写入设备。
+- 此前功能候选的设备安装、全屏/选择器/AOD与生命周期验证分别记录在[表盘说明](https://github.com/soBigRice/soRound_os/blob/v1.8/GeekTool-IDF/WATCHFACES_UI.md)。这些历史候选记录不等于本次精确CI包的设备或网络OTA验收。本轮发布不访问或写入设备。
 - 本包要求双8MiB应用槽。普通应用OTA不会扩容分区、迁移或格式化资源与录音卷；旧3MiB/4MiB布局不能直接安装超出槽容量的包。
 - 运动图形、太阳、潮汐等为读时设计，不提供心率、步数、GPS或真实日出/潮位数据。实际帧率、功耗、长时间并发、主观观感及故障自动回滚仍需分别验证。
 - 原有限制保留：电脑三键使用标准BLE HID；封面/文字回传存在ATT实测失败，歌词仅显式绑定本地LRC；声音胶囊需要单独初始化录音卷。
 
-**beta.36继续撤回，请勿安装。** 本版只更新beta通道，不覆盖正式版v1.7。
+**beta.36继续撤回，请勿安装。** 双8MiB布局的设备可在OTA页面直接检查正式更新，无需开启测试通道；旧布局须先按分区说明迁移，应用bin不能代替首次完整烧录。
 
-[表盘逻辑](https://github.com/soBigRice/soRound_os/blob/v1.7-beta.38/GeekTool-IDF/WATCHFACES_UI.md) · [后台保存与随身工具](https://github.com/soBigRice/soRound_os/blob/v1.7-beta.38/GeekTool-IDF/COMPANION_APPS.md) · [录音迁移边界](https://github.com/soBigRice/soRound_os/blob/v1.7-beta.38/GeekTool-IDF/CAPSULES.md)
+[表盘逻辑](https://github.com/soBigRice/soRound_os/blob/v1.8/GeekTool-IDF/WATCHFACES_UI.md) · [后台保存与随身工具](https://github.com/soBigRice/soRound_os/blob/v1.8/GeekTool-IDF/COMPANION_APPS.md) · [录音迁移边界](https://github.com/soBigRice/soRound_os/blob/v1.8/GeekTool-IDF/CAPSULES.md)
