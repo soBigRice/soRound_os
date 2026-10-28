@@ -13,8 +13,8 @@
 
 ## 发布验证
 
-- v1.8 标签流程在发布前执行 ESP-IDF6.0.1 / ESP32-S3 构建、发行版 LVGL 主机回归、生态箱/专注、媒体ASan/UBSan与OTA镜像检查，全部通过后才上传正式包。
-- 发布后的准确镜像大小、摘要、CI与双通道完整下载/条件Range核对结果记录在[发布记录](https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md)。
+- [v1.8发行CI40666709157](https://github.com/soBigRice/soRound_os/actions/runs/40666709157)全部通过：ESP-IDF6.0.1 / ESP32-S3、LVGL9.6.0~1构建，59项主机回归、2项生态箱/专注、媒体ASan/UBSan与14项OTA镜像检查。
+- 应用5,462,736B，内嵌版本为`v1.8`，SHA256 `84e36a8912cd6b91b43287a3e98f0b00a2292c62724ebcd00172c532916d4a8a`。精确CI包与GitHub完整下载及资产声明摘要一致；R2与设备OTA地址的正式/内测四个完整包及条件Range均核对通过，详见[发布记录](https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md)。
 - 前序 beta.38 的[发行CI39736804822](https://github.com/soBigRice/soRound_os/actions/runs/39736804822)与分发记录仅作为历史证据，不代替 v1.8 重新构建和校验。
 
 ## 验证与升级边界

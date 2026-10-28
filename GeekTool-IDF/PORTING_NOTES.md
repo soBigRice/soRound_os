@@ -2503,3 +2503,18 @@ R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitH
 最终官网源码`b2a53531dd82d7a47fca29b0a36f23f7837fb875`的[Pages39739102093](https://github.com/soBigRice/soRound_os/actions/runs/39739102093)success。线上中英文HTML、带`96ef8dceafef`内容版本的CSS/JS、旧TYPE及首末新增原生图共7个代表性资源均HTTP成功且与最终本地构建逐字节一致。线上1380×950/390×844重新通过18项浏览器检查：原80ms减少动态条件下所有交互transitionProperty=none、reduce=true、活动动画空；普通模式圆形揭幕150ms中间态、滚动显现、切换、62/30/32筛选、连续选择及语言/移动端均通过，页面异常与控制台错误/警告均为0。真实线上最终桌面和英文手机截图已查看。公开资源与UI回执分别为`website-verification.json`、`browser-live-qa.json`，截图以`live-`前缀保留。
 
 本轮测试浏览器与临时HTTP预览服务已关闭；生成的预览输出、临时验证脚本、原始过程日志与本轮快照缓存清理，仅保留准确发行文件、最小JSON回执及有用的前后/中间态截图。地图、小红书与并行演示代码/测试/渲染器改动保持原工作区状态，未纳入任何本轮提交；没有访问USB或更改设备。本节至此完成，无继续开发待办。
+
+
+## 2026-10-28 v1.8 正式发布
+
+按用户本轮正式发布要求，将 beta.38 已发布功能晋升 v1.8。标签指向 `d90fd2ef37d19666d75668f4796462005f224626`；`GeekTool-IDF/main`、分区、构建配置及发行工作流与 beta.38 标签一致。当前工作区的演示模式、地图、小红书素材及关联测试/渲染器修改未纳入。没有访问设备或迁移/格式化分区。
+
+[发行CI40666709157](https://github.com/soBigRice/soRound_os/actions/runs/40666709157)全部成功：ESP-IDF6.0.1、LVGL9.6.0~1、esp_lvgl_port2.9.0与CO5300 2.2.0；59项主机、2项生态箱/专注、媒体ASan/UBSan与14项OTA镜像检查通过。[Release v1.8](https://github.com/soBigRice/soRound_os/releases/tag/v1.8)为非draft、非prerelease，GitHub latest端点返回v1.8。
+
+精确CI镜像内嵌版本为 `v1.8`，应用5,462,736B，双8MiB槽余2,925,872B；SHA256 `84e36a8912cd6b91b43287a3e98f0b00a2292c62724ebcd00172c532916d4a8a`。完整GitHub资产下载、资产声明摘要、R2与设备OTA地址的正式/内测四个完整对象均与CI包逐字节一致；四对象的强ETag、no-store及条件Range `bytes=1024-2047` 的206、Content-Range和正文均核对通过。正式发布同时覆盖 `GeekTool.bin` 和 `GeekTool-beta.bin`，无需开启测试通道。
+
+核验工具经验：本机urllib对R2源站HEAD在有/无查询参数时均返回403，而curl访问同一未修改公开路径返回200。保留这一已观察到的客户端差异，不推断源站故障或查询参数根因；改用curl完成相同完整文件/条件Range断言，未修改服务器配置或降低校验要求。设备OTA域名的urllib核验正常。
+
+本版需要双8MiB应用槽，旧3MiB/4MiB布局不能直接OTA；应用bin不代替首次完整烧录。声音胶囊仍需单独初始化录音卷。发布及分发成功不等于精确v1.8包的设备安装、网络OTA重启、主观观感、帧率、功耗或自动故障回滚验收，这些仍待对应设备验证。
+
+中英文README和官网同步v1.8正式版及分区边界；保留62款目录、beta.38新增32款分组、原生图片与现有轮播/图鉴交互。8项既有官网回归及双语构建检查通过。准确bin/ELF/map/config/依赖锁保留于忽略目录 `build/releases/v1.8/`，最小CI、分发与官网回执保留于 `build/flash-records/v1.8-release-20261028/`。官网部署回执在完成后补充。

@@ -8,7 +8,8 @@ A compact, versatile system for the **Waveshare ESP32-S3-Touch-AMOLED-1.75C** ro
 board. The main ESP-IDF firmware provides a round-screen launcher, watch faces and lock
 screen, network and sensor tools, audio, games, a BLE digital twin, and dual-partition OTA.
 
-**Current beta: [v1.7-beta.38](https://github.com/soBigRice/soRound_os/releases/tag/v1.7-beta.38).**
+**Current stable: [v1.8](https://github.com/soBigRice/soRound_os/releases/tag/v1.8).**
+Promotes the published beta.38 features to stable and updates both OTA channels. Devices with two 8 MiB app slots can check for updates without enabling the beta channel.
 Five groups contain 62 watch faces, including 32 additions and 41 STUDIO faces with black backgrounds. Existing IDs and saved selection are retained, with a separate Watch Faces app. Updates also remove redundant drawing in Remote, Voice Capsules and Maze, hold the CPU frequency boost during rendering, and move Settings, Garden growth and Focus preferences to background saving. Sudden power loss can discard changes not yet written. Host tests do not establish device frame-rate or power gains.
 This version excludes the Map app. Two 8 MiB app slots are required. Recording storage still needs separate initialization; normal OTA does not migrate or format partitions. This release session did not install the image, migrate partitions or establish device acceptance. Earlier local-candidate device records do not prove installation of this public image. See the [release notes](./GeekTool-IDF/RELEASE_NOTES.md) and [verification record](./GeekTool-IDF/PORTING_NOTES.md) for release checks and distribution results.
 
@@ -60,7 +61,7 @@ the revealed watch-face frame must pass before a new OTA image is confirmed. Cor
 roll back when a recovery image exists. Network-check failures allow offline startup;
 network recovery for Weather, Answers, Zodiac and OTA is retained.
 
-Use `GeekTool-IDF/` for current development. `main` contains the beta.38 updates excluding Map; see the device and public distribution status above.
+Use `GeekTool-IDF/` for current development. `main` contains stable v1.8, with production firmware code identical to beta.38 and Map excluded; see the device and public distribution status above.
 At the v1.7 stable release, all 34 local regressions and nine startup CI checks passed; its release-dependency candidate's watch face, unlock and Settings were accepted on the device.
 The beta.36 device panic supersedes that version's earlier pending-acceptance status. Subsequent candidates must record device results separately; host tests and native previews cannot establish device acceptance. The original beta.30 white-screen trigger has not been reproduced.
 

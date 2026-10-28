@@ -130,7 +130,7 @@
               <button type="button" data-face-filter="new" aria-pressed="false">本次新增 · {{watchface_new}}</button>
             </div>
             <div id="face-gallery">{{face_gallery}}</div>
-            <p class="preview-note" id="studio-status">当前内测包含全部 {{watchface_total}} 款表盘，本次新增 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。<a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">查看当前内测发布说明</a></p>
+            <p class="preview-note" id="studio-status">v1.8 正式版包含全部 {{watchface_total}} 款表盘，承接 beta.38 新增的 {{watchface_new}} 款，保留已有编号与选择。从启动器直接挑选表盘，设置页也保留入口。beta.36 保持撤回，请勿安装。<a href="{{stable_url}}" target="_blank" rel="noopener noreferrer">查看当前正式版发布说明</a></p>
             <p class="preview-note">所有图片由固件原生渲染器导出。STUDIO 采用纯黑背景；图片不代表真机照片或帧率，本次公开包的设备安装仍待验证。</p>
           </div>
         </details>
@@ -247,7 +247,7 @@
               <a class="button" href="https://github.com/soBigRice/soRound_os#快速开始主线固件" target="_blank" rel="noopener noreferrer">安装指南<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
               <a class="button button-outline" href="https://github.com/soBigRice/soRound_os/releases" target="_blank" rel="noopener noreferrer">固件下载<svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
             </div>
-            <p class="installation-note">当前内测需要双 8 MiB 应用槽；录音存储需单独初始化，普通 OTA 不迁移或格式化分区。升级前核对<a href="https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移" target="_blank" rel="noopener noreferrer">分区说明</a>。Release 的应用镜像不能代替首次安装所需的完整烧录。</p>
+            <p class="installation-note">v1.8 正式版需要双 8 MiB 应用槽；录音存储需单独初始化，普通 OTA 不迁移或格式化分区。升级前核对<a href="https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md#2026-10-04-分区扩容与usb迁移" target="_blank" rel="noopener noreferrer">分区说明</a>。Release 的应用镜像不能代替首次安装所需的完整烧录。</p>
             <div class="release-links" aria-label="固件版本">
               <a href="{{stable_url}}" target="_blank" rel="noopener noreferrer">正式版 <span class="mono">{{stable_tag}}</span><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
               <a href="{{beta_url}}" target="_blank" rel="noopener noreferrer">内测通道 <span class="mono">{{beta_tag}}</span><svg class="arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 18 18 6M6 6h12v12"/></svg></a>
