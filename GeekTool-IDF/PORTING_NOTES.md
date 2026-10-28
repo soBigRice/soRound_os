@@ -2517,4 +2517,4 @@ R2与国内beta完整包均为5,218,864B/v1.7-beta.37，SHA256与CI原包及GitH
 
 本版需要双8MiB应用槽，旧3MiB/4MiB布局不能直接OTA；应用bin不代替首次完整烧录。声音胶囊仍需单独初始化录音卷。发布及分发成功不等于精确v1.8包的设备安装、网络OTA重启、主观观感、帧率、功耗或自动故障回滚验收，这些仍待对应设备验证。
 
-中英文README和官网同步v1.8正式版及分区边界；保留62款目录、beta.38新增32款分组、原生图片与现有轮播/图鉴交互。8项既有官网回归及双语构建检查通过。准确bin/ELF/map/config/依赖锁保留于忽略目录 `build/releases/v1.8/`，最小CI、分发与官网回执保留于 `build/flash-records/v1.8-release-20261028/`。官网部署回执在完成后补充。
+中英文README和官网同步v1.8正式版及分区边界；保留62款目录、beta.38新增32款分组、原生图片与现有轮播/图鉴交互。8项既有官网回归及双语构建检查通过。准确bin/ELF/map/config/依赖锁保留于忽略目录 `build/releases/v1.8/`，最小CI、分发与官网回执保留于 `build/flash-records/v1.8-release-20261028/`。[官网推送部署40668212455](https://github.com/soBigRice/soRound_os/actions/runs/40668212455)与[Release编辑部署40668216386](https://github.com/soBigRice/soRound_os/actions/runs/40668216386)均成功；官网源码为`2e0f12740c21a07e7d19add386de4ff3c3cce145`，Release事件仍按工作流检出main。线上中英文HTML、CSS与JS四个文件均与最终本地构建逐字节一致；Tabbit核对双语1380/390px下正式/内测两个入口均指向v1.8，正式版/分区说明正确，无横向溢出或页面错误。已查看减少动态模式下的最终英文手机安装区截图。本节发布工作完成，精确包设备验收仍按上述边界保留。
