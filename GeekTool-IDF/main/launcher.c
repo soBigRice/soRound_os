@@ -12,6 +12,7 @@
 #include "quickpanel.h"
 #include "companion_icons.h"
 #include "font_companion.h"
+#include "font_mimi.h"
 #include "ui_persistence.h"
 #include "esp_log.h"
 #include "esp_heap_caps.h"
@@ -26,7 +27,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels, &app_garden, &app_focus, &app_capsules, &app_watchfaces };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels, &app_garden, &app_focus, &app_capsules, &app_watchfaces, &app_mimi };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -35,6 +36,7 @@ static lv_obj_t *g_back_label, *g_backdots;
 static lv_obj_t *g_batt_percent;
 static lv_obj_t *g_nextart;
 static const app_t *cur_app;
+static bool s_app_fullscreen;
 static int cur, pending_app;
 static pwr_state_t s_last_pwr = PWR_UNKNOWN;
 static uint32_t s_last_batt_color = UINT32_MAX;
@@ -43,7 +45,7 @@ static uint32_t s_tick_at;
 static void battery_visibility(bool covered);
 static bool battery_covered(void) {
     // OTA 按页面约定只显示一个点阵圆圈;仅在该 App 收起实线电量层。
-    return lock_is_locked() || cur_app == &app_ota;
+    return lock_is_locked() || cur_app == &app_ota || s_app_fullscreen;
 }
 static void header_app_style(void) {
     // OTA 的贴边点阵环需要透明点阵返回键;其他 App 保持原有圆形按钮。
@@ -57,7 +59,7 @@ static void header_app_style(void) {
     bool companion = cur_app == &app_garden || cur_app == &app_focus || cur_app == &app_capsules || cur_app == &app_mouse || cur_app == &app_watchfaces;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
-    lv_obj_set_style_text_font(g_title, companion ? &font_companion_24 : (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_style_text_font(g_title, cur_app == &app_mimi ? &font_mimi_24 : companion ? &font_companion_24 : (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
     lv_obj_set_style_text_letter_space(g_title, 0, 0);
     lv_obj_set_style_text_color(g_title, lv_color_hex(COL_TXT), 0);
     lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
@@ -108,7 +110,7 @@ static void set_app_name(int i) {
     bool companion=app==&app_garden || app==&app_focus || app==&app_capsules || app==&app_watchfaces;
     // 新应用名称使用其完整字库；直接切换与动画中点共用同一绑定。
     // Bind new names to their complete font on both direct and animated switches.
-    lv_obj_set_style_text_font(g_name,companion?&font_companion_24:&font_location_24,0);
+    lv_obj_set_style_text_font(g_name,app==&app_mimi?&font_mimi_24:companion?&font_companion_24:&font_location_24,0);
     lv_label_set_text(g_name,tr_app_name(app->name));
 }
 static void apply_app(int i) {
@@ -309,11 +311,21 @@ void launcher_set_title(const char *t) {
     if (g_title) lv_label_set_text(g_title, t);
 }
 
+void launcher_set_app_fullscreen(bool fullscreen) {
+    s_app_fullscreen=fullscreen;
+    if (fullscreen) {
+        lv_obj_add_flag(g_title,LV_OBJ_FLAG_HIDDEN);
+        lv_obj_add_flag(g_back,LV_OBJ_FLAG_HIDDEN);
+    }
+    battery_visibility(battery_covered());
+}
+
 void go_home(void) {
     if (!cur_app) return;
     lv_obj_add_flag(g_title, LV_OBJ_FLAG_HIDDEN);
     lv_obj_add_flag(g_back, LV_OBJ_FLAG_HIDDEN);
     if (cur_app->exit) cur_app->exit();
+    s_app_fullscreen=false;
     // App退出先提交最后副本，再有界等待；失败仍留在后台队列，不能当作保存成功。
     // Exit hooks submit their final snapshots; the bounded barrier retains failed writes for retry.
     if(!ui_persistence_flush(2000))ESP_LOGW("store","exit save remains pending");

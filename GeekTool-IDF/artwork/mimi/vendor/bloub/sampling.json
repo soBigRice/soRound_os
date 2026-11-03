@@ -1,0 +1,93 @@
+{
+  "revision": "b4bb3c1b5f93c7b87a2e8d620f667c4093d97749",
+  "fps": 20,
+  "unitsPerRadius": 1000,
+  "bodyPoints": 64,
+  "eyePoints": 48,
+  "clips": [
+    {
+      "id": "idle",
+      "first": 0,
+      "count": 49,
+      "duration": 2400
+    },
+    {
+      "id": "thinking",
+      "first": 49,
+      "count": 53,
+      "duration": 2600
+    },
+    {
+      "id": "wink",
+      "first": 102,
+      "count": 33,
+      "duration": 1600
+    },
+    {
+      "id": "wide",
+      "first": 135,
+      "count": 37,
+      "duration": 1800
+    },
+    {
+      "id": "alert",
+      "first": 172,
+      "count": 49,
+      "duration": 2400
+    },
+    {
+      "id": "notify",
+      "first": 221,
+      "count": 45,
+      "duration": 2200
+    },
+    {
+      "id": "exclaim",
+      "first": 266,
+      "count": 41,
+      "duration": 2000
+    },
+    {
+      "id": "sleep",
+      "first": 307,
+      "count": 49,
+      "duration": 2400
+    },
+    {
+      "id": "egg",
+      "first": 356,
+      "count": 37,
+      "duration": 1800
+    },
+    {
+      "id": "hexagon",
+      "first": 393,
+      "count": 33,
+      "duration": 1600
+    },
+    {
+      "id": "play",
+      "first": 426,
+      "count": 41,
+      "duration": 2000
+    },
+    {
+      "id": "orbit",
+      "first": 467,
+      "count": 69,
+      "duration": 3400
+    },
+    {
+      "id": "burst",
+      "first": 536,
+      "count": 53,
+      "duration": 2600
+    },
+    {
+      "id": "comet",
+      "first": 589,
+      "count": 49,
+      "duration": 2400
+    }
+  ]
+}

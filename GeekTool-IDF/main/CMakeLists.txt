@@ -6,7 +6,7 @@ idf_component_register(
          "weather_data.c" "weather_details.c" "font_weather_details.c"
          "weather_locations.c" "weather_locations_data.c" "weather_location_ui.c" "font_location_24.c"
          "settings.c" "ui_persistence.c" "app_settings.c" "app_watchfaces.c" "watchface_picker.c" "app_ota.c" "ota_update.c" "audio_mic.c" "app_audio.c" "app_calendar.c"
-         "img_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
+         "img_store.c" "resource_store.c" "app_countdown.c" "audio_out.c" "audio_bus.c"
          "rtc.c" "imu.c" "app_level.c" "app_maze.c" "maze_levels.c" "app_stopwatch.c" "app_fluid.c" "app_dice.c" "font_coin.c"
          "ble_twin.c" "app_twin.c" "ble_core.c" "ble_hid.c" "app_mouse.c"
          "network_http.c" "app_answers.c" "answers_data.c" "answers_fetch.c" "font_answer.c" "font_answer_cjk.c"
@@ -14,6 +14,8 @@ idf_component_register(
          "app_pixels.c" "pixel_field.c"
          "app_garden.c" "garden_state.c" "app_focus.c" "focus_state.c" "font_companion.c" "companion_icons.c"
          "app_capsules.c" "capsule_store.c" "capsule_recorder.c" "remote_media.c" "ble_media.c"
+         "app_mimi.c" "mimi_pet.c" "mimi_motion.c" "font_mimi.c"
+         "mimi_assets.c" "mimi_prepare.c" "mimi_pipeline.c" "mimi_render.c"
     INCLUDE_DIRS "."
     REQUIRES esp_lcd esp_driver_spi esp_driver_i2c esp_driver_gpio esp_lvgl_port nvs_flash
              esp_timer esp_psram spi_flash esp_hw_support esp_system esp_common

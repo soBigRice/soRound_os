@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.20)
+if(NOT TARGET lvgl)
+    project(geektool_mimi_tests LANGUAGES C)
+    set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../host/lv_conf.h" CACHE PATH "" FORCE)
+    set(CONFIG_LV_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
+    set(CONFIG_LV_BUILD_DEMOS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(../../managed_components/lvgl__lvgl lvgl)
+    enable_testing()
+endif()
+add_executable(mimi_state_tests state_tests.c ../../main/mimi_pet.c ../../main/mimi_motion.c)
+target_include_directories(mimi_state_tests PRIVATE ../../main)
+target_link_libraries(mimi_state_tests PRIVATE m)
+target_compile_options(mimi_state_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME mimi_pet_reactions_and_sleep COMMAND mimi_state_tests)
+
+add_executable(mimi_ui_tests ui_tests.c ../../main/mimi_pet.c ../../main/mimi_motion.c ../../main/font_mimi.c
+    ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c
+    ../../main/tools_ui.c ../../main/font_tools.c ../../main/weather_artwork.c)
+target_include_directories(mimi_ui_tests PRIVATE ../host/stubs ../../main)
+target_link_libraries(mimi_ui_tests PRIVATE lvgl m)
+target_compile_options(mimi_ui_tests PRIVATE -Wall -Wextra -Werror)
+add_test(NAME mimi_bilingual_touch_and_cleanup COMMAND mimi_ui_tests)

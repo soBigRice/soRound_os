@@ -2,7 +2,7 @@
 // 内部 RAM 紧张(显存已降到 80 行),故输入/输出缓冲都放 PSRAM;解码用 espressif/esp_jpeg(tjpgd,仅基线 JPEG)。
 #include "img_store.h"
 #include "watchface_backgrounds.h"
-#include "esp_vfs_fat.h"
+#include "resource_store.h"
 #include "esp_heap_caps.h"
 #include "esp_rom_crc.h"
 #include "esp_log.h"
@@ -25,18 +25,8 @@ static lv_image_dsc_t s_dsc;
 static portMUX_TYPE s_mux = portMUX_INITIALIZER_UNLOCKED;
 static bool s_started, s_done, s_ok;              // 只解码一次,之后返回缓存
 
-static bool mount_fat(void) {
-    static bool mounted = false;
-    if (mounted) return true;
-    esp_vfs_fat_mount_config_t mc = { .max_files = 2, .format_if_mount_failed = false };
-    esp_err_t e = esp_vfs_fat_spiflash_mount_ro("/img", "storage", &mc);
-    if (e != ESP_OK) { ESP_LOGW(TAG, "FAT mount(ro) failed: %s", esp_err_to_name(e)); return false; }
-    mounted = true;
-    return true;
-}
-
 static const lv_image_dsc_t *decode_image(void) {
-    if (!mount_fat()) return NULL;
+    if (!resource_store_mount()) return NULL;
 
     FILE *f = fopen(IMG_PATH, "rb");
     if (!f) { ESP_LOGW(TAG, "open %s failed (no image yet?)", IMG_PATH); return NULL; }

@@ -7,7 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-static bool custom,factory,modified_factory,task_fail,allocation_fail,decode_fail,wrong_size;
+static bool custom,factory,modified_factory,task_fail,allocation_fail,decode_fail,wrong_size,mount_fail;
 static int created,finished,head,tail;
 static struct {void (*callback)(void *);void *arg;} jobs[16];
 static const uint8_t tags[3]={0,1,2};
@@ -31,9 +31,7 @@ static FILE *image_open(const char *path,const char *mode){
 #define fopen(path,mode) image_open(path,mode)
 #include "../../main/img_store.c"
 #undef fopen
-int esp_vfs_fat_spiflash_mount_ro(const char *base,const char *partition,const esp_vfs_fat_mount_config_t *cfg){
-    assert(!strcmp(base,"/img")&&!strcmp(partition,"storage")&&!cfg->format_if_mount_failed);return ESP_OK;
-}
+bool resource_store_mount(void){return !mount_fail;}
 void *heap_caps_malloc(size_t size,unsigned flags){assert(flags==MALLOC_CAP_SPIRAM);return allocation_fail?NULL:malloc(size);}
 int xTaskCreate(void (*callback)(void *),const char *name,uint32_t stack,void *arg,unsigned priority,void *handle){
     (void)name;(void)priority;(void)handle;assert(stack==4096);
@@ -52,7 +50,7 @@ static void reset(void){
     free((void *)s_dsc.data);s_dsc=(lv_image_dsc_t){0};
     for(int i=0;i<3;++i){free((void *)s_defaults[i].data);s_defaults[i]=(lv_image_dsc_t){0};}
     memset(s_default_started,0,sizeof s_default_started);memset(s_default_done,0,sizeof s_default_done);memset(s_default_ok,0,sizeof s_default_ok);
-    s_started=s_done=s_ok=custom=factory=modified_factory=task_fail=allocation_fail=decode_fail=wrong_size=false;head=tail=created=finished=0;
+    s_started=s_done=s_ok=custom=factory=modified_factory=task_fail=allocation_fail=decode_fail=wrong_size=mount_fail=false;head=tail=created=finished=0;
 }
 int main(void){
     assert(!img_store_face_image_for(-1)&&!img_store_face_loading(3));
@@ -79,5 +77,9 @@ int main(void){
     assert(!img_store_face_image_for(0));drain();allocation_fail=true;assert(!img_store_face_image_for(0));drain();assert(!img_store_face_image_for(0)&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();decode_fail=true;assert(!img_store_face_image_for(0));drain();assert(!s_defaults[0].data&&!img_store_face_loading(0));reset();
     assert(!img_store_face_image_for(0));drain();wrong_size=true;assert(!img_store_face_image_for(0));drain();assert(!s_defaults[0].data&&!img_store_face_loading(0));reset();
+    // 共享卷挂载失败仍走原主题回退，不打开用户图片或生成半成品缓存。
+    // A shared-volume mount failure preserves the existing theme fallback, without partial image cache.
+    mount_fail=true;assert(!img_store_face_image_for(1));drain();assert(!s_ok&&!s_dsc.data);
+    assert(!img_store_face_image_for(1));drain();assert(img_store_face_image_for(1)==&s_defaults[1]);reset();
     puts("Factory panda migration, genuine custom priority, one task per theme, bounded buffers, failure and task cleanup passed.");return 0;
 }

@@ -131,6 +131,7 @@ static const char *const APP_ZH[][2] = {
     { "Focus",     "专注" },
     { "Capsules",  "声音胶囊" },
     { "Watchfaces", "表盘" },
+    { "Mimi", "小咪" },
 };
 
 const char *tr(str_id_t id) {

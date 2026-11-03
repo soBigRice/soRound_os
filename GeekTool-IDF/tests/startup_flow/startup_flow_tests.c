@@ -14,6 +14,7 @@
 #include "tools_ui.h"
 #include "esp_heap_caps.h"
 #include "font_companion.h"
+#include "font_mimi.h"
 #include "src/misc/lv_text_private.h"
 #include <stdio.h>
 LV_FONT_DECLARE(font_location_24);
@@ -202,7 +203,8 @@ static void check_launcher_names(const char *dir) {
         language=(uint8_t)(1-pass);
         for(int index=0;index<APP_COUNT;++index) {
             assert(!strcmp(lv_label_get_text(name),tr_app_name(APPS[index]->name)));require_glyphs(name);
-            assert(lv_obj_get_style_text_font(name,0)==(index>=20?&font_companion_24:&font_location_24));
+            const lv_font_t *expected=APPS[index]==&app_mimi?&font_mimi_24:index>=20?&font_companion_24:&font_location_24;
+            assert(lv_obj_get_style_text_font(name,0)==expected);
             if(index>=20) {
                 capture_launcher_name(dir,APPS[index]->name);
                 lv_obj_update_layout(home);lv_area_t area;lv_obj_get_coords(icon,&area);
@@ -211,7 +213,8 @@ static void check_launcher_names(const char *dir) {
                 pointer_state=LV_INDEV_STATE_RELEASED;lv_indev_read(pointer);
                 assert(lv_screen_active()!=home);
                 lv_obj_t *title=find_label(lv_layer_top(),tr_app_name(APPS[index]->name));require_glyphs(title);
-                assert(lv_obj_get_style_text_font(title,0)==&font_companion_24);
+                if(APPS[index]!=&app_mimi)assert(!ui_obj_is_hidden(title));
+                assert(lv_obj_get_style_text_font(title,0)==(APPS[index]==&app_mimi?&font_mimi_24:&font_companion_24));
                 if(APPS[index]==&app_watchfaces) {
                     // 此项链接真实App，确认入口可切换、保存并显示所选锁屏表盘。
                     // Link the real app here and exercise selection, persistence and its lock screen.
@@ -222,6 +225,20 @@ static void check_launcher_names(const char *dir) {
                     lock_set(true);vTaskDelay(100);assert(watchface_visible());
                     lock_set(false);assert(!watchface_visible());require_glyphs(title);
                     capture_launcher_name(dir,"app-Watchfaces");
+                }
+                if(APPS[index]==&app_mimi) {
+                    // 小咪链接真实实现，避免仅检查启动器替身掩盖接入问题。
+                    // Link the actual pet so launcher coverage includes its real lifecycle.
+                    assert(ui_obj_is_hidden(title));
+                    lv_obj_t *battery=NULL;
+                    for(unsigned i=0;i<lv_obj_get_child_count(lv_layer_top());++i) {
+                        lv_obj_t *child=lv_obj_get_child(lv_layer_top(),i);
+                        if(lv_obj_check_type(child,&lv_arc_class)&&lv_obj_get_width(child)==458) { battery=child;break; }
+                    }
+                    assert(battery&&ui_obj_is_hidden(battery));
+                    vTaskDelay(66); capture_launcher_name(dir,"app-Mimi");
+                    lock_set(true); vTaskDelay(100); lock_set(false); vTaskDelay(66);
+                    go_home();assert(!ui_obj_is_hidden(battery));
                 }
                 go_home();assert(lv_screen_active()==home);require_glyphs(name);
             }
@@ -240,8 +257,8 @@ int main(int argc,char **argv) {
     app_main();assert(face<30 && watchface_selected()==face);
     if(face==21)assert(!strcmp(watchface_name(face),"STUDIO / radar"));
     if(face==29)assert(!strcmp(watchface_name(face),"STUDIO / growth"));
-    assert(!held && APP_COUNT==24 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
-        APPS[21]==&app_focus && APPS[22]==&app_capsules && APPS[23]==&app_watchfaces && lock_is_locked());
+    assert(!held && APP_COUNT==25 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
+        APPS[21]==&app_focus && APPS[22]==&app_capsules && APPS[23]==&app_watchfaces && APPS[24]==&app_mimi && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
     if(argc>3 && !strcmp(argv[3],"launcher"))
