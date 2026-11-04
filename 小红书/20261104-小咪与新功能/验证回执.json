@@ -20,7 +20,7 @@
       "08-开源与进度"
     ]
   },
-  "visual_review": "已查看封面全图和8页总览；主观视觉与文案待用户确认",
+  "visual_review": "已查看封面、自选行情、开源进度全图及8页总览；主观视觉与文案待用户确认",
   "source_integrity": {
     "preserved_assets": 16,
     "sha256_matches": true
@@ -160,5 +160,5 @@
     "publication": false,
     "paid_image_generation": false
   },
-  "cleanup": "无测试服务器或构建进程；浏览器临时页另作关闭确认"
+  "cleanup": "本次Tabbit临时页面已关闭，任务正常finish；未启动测试服务器、构建、串口或常驻进程；无临时构建缓存"
 }
