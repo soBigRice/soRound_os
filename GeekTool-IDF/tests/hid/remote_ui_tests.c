@@ -108,7 +108,7 @@ static void geometry(lv_obj_t *obj) {
 }
 static void snapshot(const char *directory, const char *name) {
     // lv_refr_now 只刷新绘制;还需实际推进 LVGL 定时器,才能观察切换后的选中动画。
-    for(int i=0;i<12;i++) { host_time_us+=20000; lv_timer_handler(); mouse_tick(); }
+    for(int i=0;i<12;i++) { host_time_us+=20000; lv_timer_handler(); if(s_demo_remote)demo_mouse_frame(1800);else mouse_tick(); }
     lv_obj_update_layout(page); geometry(page); lv_refr_now(display);
     for(int i=0;i<3;i++) {
         lv_area_t a; lv_obj_get_coords(g_modes[i],&a);
@@ -250,5 +250,9 @@ int main(int argc,char **argv) {
     page=lv_obj_create(lv_screen_active()); lv_obj_remove_style_all(page); lv_obj_set_size(page,466,466);
     mouse_enter(page); assert(!s_started && !s_ready && strcmp(lv_label_get_text(g_status),tr(S_BT_FAIL))==0);
     leave();
+    {int original_packets=hid_packet_count,original_ads=hid_advertisements;bool original_visible=media_fixture_visible;
+        for(language=0;language<2;++language)for(unsigned v=0;v<demo_mouse.count;++v){page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,466,466);demo_mouse.enter(page,v);demo_mouse.frame(1800);char name[48];snprintf(name,sizeof name,"demo-remote-%u",v);snapshot(directory,name);demo_mouse.exit();lv_obj_delete(page);}
+        assert(hid_packet_count==original_packets && hid_advertisements==original_ads && media_fixture_visible==original_visible);
+    }
     puts("remote UI: real mouse/tap/wheel/drag input, mode switching, all media controls, timer, hidden releases, reconnect, failure and bilingual round-screen layout passed");
 }

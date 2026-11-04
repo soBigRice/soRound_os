@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "garden_state.h"
 #include "font_companion.h"
@@ -105,9 +106,7 @@ static void garden_visibility(bool visible) {
     // Covered time creates no animation backlog; resume at the current lighting.
     s_watered = false; garden_refresh();
 }
-static void garden_enter(lv_obj_t *parent) {
-    s_state = garden_shared_state(); s_visible = true; s_watered = false; s_night = true;
-    s_last_day = 0; s_saved_at = lv_tick_get();
+static void garden_build(lv_obj_t *parent) {
     launcher_set_title(garden_words("GARDEN", "生态箱"));
     lv_obj_t *subtitle = garden_label(parent, "POCKET GARDEN", 84, 300, &font_companion_19, 0x7c8584);
     lv_obj_set_style_text_letter_space(subtitle, 3, 0);
@@ -136,6 +135,11 @@ static void garden_enter(lv_obj_t *parent) {
     g_water = garden_button(parent, 126, 400, 161, garden_words("WATER", "浇水"), garden_water);
     lv_obj_t *light = garden_button(parent, 298, 400, 40, "A", garden_light); g_light = lv_obj_get_child(light, 0);
     lv_obj_set_style_text_font(lv_obj_get_child(g_water, 0), &font_companion_20, 0);
+}
+static void garden_enter(lv_obj_t *parent) {
+    s_state = garden_shared_state(); s_visible = true; s_watered = false; s_night = true;
+    s_last_day = 0; s_saved_at = lv_tick_get();
+    garden_build(parent);
     garden_refresh(); garden_tick();
 }
 static void garden_exit(void) {
@@ -145,3 +149,14 @@ static void garden_exit(void) {
 }
 const app_t app_garden = {.name = "Garden", .color = COL_TXT, .enter = garden_enter,
     .tick = garden_tick, .exit = garden_exit, .tick_period_ms = 100, .visibility = garden_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_garden_variant;
+static void demo_garden_enter(lv_obj_t *parent,unsigned variant){demo_garden_variant=variant;garden_build(parent);ui_text(g_summary,garden_words("TODAY  50 MIN","今日专注 50 分钟"));}
+static void demo_garden_frame(uint32_t elapsed) {
+    bool night=demo_garden_variant!=0;lv_obj_set_style_image_recolor(g_garden,lv_color_hex(0x142b57),0);lv_obj_set_style_image_recolor_opa(g_garden,night?90:0,0);
+    for(unsigned i=0;i<6;++i){ui_obj_set_hidden(g_leaves[i],i>=4);ui_bg_color(g_leaves[i],night?0x629b72:0xc3ed7a);ui_obj_set_hidden(g_drops[i],elapsed%2400>1100);lv_obj_set_y(g_drops[i],135+(int)((elapsed+i*95)%700)*130/700);}
+    ui_text(g_hint,garden_words("A LITTLE WATER, A LITTLE JOY","喝到水了，叶子动了"));ui_text(g_light,night?LV_SYMBOL_EYE_CLOSE:LV_SYMBOL_EYE_OPEN);
+}
+static void demo_garden_exit(void){g_garden=g_summary=g_hint=g_water=g_light=g_ripple=NULL;for(int i=0;i<6;++i)g_drops[i]=g_leaves[i]=NULL;}
+const demo_page_t demo_garden={.count=2,.enter=demo_garden_enter,.frame=demo_garden_frame,.exit=demo_garden_exit};

@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "lvgl_compat.h"
 #include "zodiac_data.h"
@@ -79,7 +80,7 @@ static void emblem_draw(lv_event_t *e) {
 }
 static void rating_draw(lv_event_t *e) {
     lv_obj_t *o=lv_event_get_target_obj(e);lv_layer_t *l=lv_event_get_layer(e);lv_area_t a;lv_obj_get_coords(o,&a);
-    unsigned score=s_ready?s_data.score[s_category]:UINT8_MAX;
+    unsigned score=lv_event_get_user_data(e)?4:s_ready?s_data.score[s_category]:UINT8_MAX;
     for(unsigned i=0;i<5;++i)arc(l,o,a.x1+5+(int)i*16,a.y1+8,4,0,360,4,i<score&&score<=5?0xe5c38d:0x343438);
 }
 static int today(void) {
@@ -181,7 +182,7 @@ static bool zodiac_back(void) {
     s_selecting=false;ui_obj_set_hidden(g_picker,true);ui_obj_set_hidden(g_reading,false);return true;
 }
 static void zodiac_visibility(bool visible){s_visible=visible;}
-static void zodiac_enter(lv_obj_t *parent) {
+static void zodiac_build(lv_obj_t *parent) {
     s_visible=true;s_waiting=s_ready=s_selecting=s_pending_start=false;s_category=0;
     g_reading=block(parent,0,96,466,356);
     g_emblem=block(g_reading,86,2,64,64);lv_obj_add_event_cb(g_emblem,emblem_draw,LV_EVENT_DRAW_MAIN,(void *)(uintptr_t)s_sign);
@@ -216,8 +217,9 @@ static void zodiac_enter(lv_obj_t *parent) {
     lv_obj_set_scroll_dir(list,LV_DIR_VER);lv_obj_set_scrollbar_mode(list,LV_SCROLLBAR_MODE_AUTO);
     ui_obj_set_scroll_elastic(list,false);ui_obj_set_scroll_chain_ver(list,false);
     for(unsigned i=0;i<ZODIAC_COUNT;++i)g_choices[i]=button(list,settings_lang()?ZODIAC_ZH[i]:ZODIAC_EN[i],2,(int)i*48,274,choose,(void *)(uintptr_t)i);
-    ui_obj_set_hidden(g_picker,true);render();refresh(NULL);
+    ui_obj_set_hidden(g_picker,true);
 }
+static void zodiac_enter(lv_obj_t *parent){zodiac_build(parent);render();refresh(NULL);}
 static void zodiac_exit(void) {
     zodiac_fetch_cancel();s_visible=s_waiting=s_ready=false;
     g_reading=g_picker=g_title=g_date=g_category=g_score=g_body=g_scroll=g_action=NULL;
@@ -225,3 +227,23 @@ static void zodiac_exit(void) {
 }
 const app_t app_zodiac={.name="Zodiac",.color=COL_TXT,.enter=zodiac_enter,.tick=zodiac_tick,.exit=zodiac_exit,
     .back=zodiac_back,.visibility=zodiac_visibility,.tick_period_ms=100};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_zodiac_variant;
+static void demo_zodiac_enter(lv_obj_t *parent,unsigned variant) {
+    demo_zodiac_variant=variant;zodiac_build(parent);
+    lv_obj_remove_event_cb(g_rating,rating_draw);lv_obj_add_event_cb(g_rating,rating_draw,LV_EVENT_DRAW_MAIN,(void *)1);
+    if(variant==12){ui_obj_set_hidden(g_reading,true);ui_obj_set_hidden(g_picker,false);return;}
+    lv_label_set_text(g_title,settings_lang()?ZODIAC_ZH[variant]:ZODIAC_EN[variant]);
+    lv_obj_remove_event_cb(g_emblem,emblem_draw);lv_obj_add_event_cb(g_emblem,emblem_draw,LV_EVENT_DRAW_MAIN,(void *)(uintptr_t)variant);
+    lv_label_set_text(g_date,"DEMO / 2026.10.22");
+}
+static void demo_zodiac_frame(uint32_t elapsed) {
+    if(demo_zodiac_variant==12)return;
+    unsigned selected=elapsed/1300%5;const char *en[]={"Overall","Love","Work","Wealth","Health"};const char *zh[]={"综合运势","爱情运势","事业运势","财富运势","健康运势"};
+    lv_label_set_text(g_category,settings_lang()?zh[selected]:en[selected]);lv_label_set_text(g_score,"4 / 5");
+    lv_label_set_text(g_body,words("Take your time. Good things are on the way.","慢慢来，好事正在发生。"));
+    for(unsigned i=0;i<5;++i)lv_obj_set_style_bg_color(g_tabs[i],lv_color_hex(i==selected?0x52252c:0x171719),0);
+}
+static void demo_zodiac_exit(void){s_visible=s_waiting=s_ready=false;g_reading=g_picker=g_title=g_date=g_category=g_score=g_body=g_scroll=g_action=g_emblem=g_rating=NULL;memset(g_tabs,0,sizeof g_tabs);memset(g_choices,0,sizeof g_choices);}
+const demo_page_t demo_zodiac={.count=13,.enter=demo_zodiac_enter,.frame=demo_zodiac_frame,.exit=demo_zodiac_exit};

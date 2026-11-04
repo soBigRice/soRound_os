@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 /*
  * 数字孪生(twin)—— 通过 BLE 把 IMU/电量实时推给浏览器(Web Bluetooth),网页同步驱动 3D 模型。
  * 设备做 GATT 外设(ble_twin.c);本 app 负责 UI + 后台采样任务打包帧 + notify。
@@ -21,6 +22,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include <stdio.h>
+#include <math.h>
 #include <string.h>
 
 #define FRAME_LEN 20
@@ -94,7 +96,7 @@ static void sampler(void *arg) {
     }
 }
 
-static void twin_enter(lv_obj_t *parent) {
+static void twin_build(lv_obj_t *parent) {
     launcher_set_title("twin");
 
     g_status = lv_label_create(parent);
@@ -120,6 +122,9 @@ static void twin_enter(lv_obj_t *parent) {
     lv_label_set_text(g_vals, "");
     lv_obj_align(g_vals, LV_ALIGN_CENTER, 0, 40);
 
+}
+static void twin_enter(lv_obj_t *parent) {
+    twin_build(parent);
     // 进 app 临时关 WiFi 让单天线全给 BLE(退出恢复)
     s_wifi_prev = wifi_service_enabled();
     if (s_wifi_prev) wifi_service_set_enabled(false);
@@ -165,3 +170,9 @@ static void twin_exit(void) {
 }
 
 const app_t app_twin = { "twin", COL_TXT, twin_enter, twin_tick, twin_exit, NULL, 100 };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_twin_enter(lv_obj_t *parent,unsigned variant){(void)variant;twin_build(parent);lv_label_set_text(g_status,"DEMO / GeekTwin");ui_bg_color(g_dot,COL_CHARGE);}
+static void demo_twin_frame(uint32_t elapsed){char value[100];float t=elapsed/1000.0f;snprintf(value,sizeof value,"batt 74%%\nax %+.2f ay %+.2f az %+.2f\ngz %+d dps",.4f*sinf(t),.3f*cosf(t),.92f,(int)(12*sinf(t)));ui_text(g_vals,value);}
+static void demo_twin_exit(void){g_status=g_vals=g_dot=NULL;}
+const demo_page_t demo_twin={.count=1,.enter=demo_twin_enter,.frame=demo_twin_frame,.exit=demo_twin_exit};

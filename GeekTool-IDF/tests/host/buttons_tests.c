@@ -8,7 +8,10 @@
 
 int64_t host_time_us;
 static int level = 1, power_event, shutdowns, power_reads;
-static bool active = true, covered;
+static bool active = true, covered, demo_active;
+static unsigned demo_exits;
+bool launcher_demo_active(void){return demo_active;}
+void go_home(void){assert(demo_active);demo_active=false;++demo_exits;}
 bool identity_boot_active(void){return false;} // Normal post-boot mapping; startup guard has its own test.
 int gpio_config(const gpio_config_t *config) {
     assert(config->pin_bit_mask == 1 && config->mode == GPIO_MODE_INPUT);
@@ -49,6 +52,8 @@ int main(void) {
     press_boot(); assert(!lock_is_locked());
     release_boot(); assert(lock_is_locked() && shutdowns==0);
     press_boot(); release_boot(); assert(!lock_is_locked());
+
+    reset();demo_active=true;press_boot();release_boot();assert(demo_exits==1 && !demo_active && !lock_is_locked());
 
     reset(); press_boot(); poll(2000000);
     assert(shutdowns==1 && !lock_is_locked());

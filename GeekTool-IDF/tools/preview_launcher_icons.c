@@ -3,6 +3,7 @@
 #include "launcher_icons.h"
 #include "companion_icons.h"
 #include "font_companion.h"
+#include "font_stocks.h"
 #include "font_mimi.h"
 #include "weather_location_ui.h"
 #include "tools_ui.h"
@@ -23,7 +24,7 @@ static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
 }
 static const char *const names[]={"WiFi","I2C","System","weather","calendar","countdown","stopwatch","settings",
                                 "ota","audio","level","maze","fluid","dice","mouse","twin","Answers","Zodiac","Merit","Pixels",
-                                "Garden","Focus","Capsules","Watchfaces","Mimi"};
+                                "Garden","Focus","Capsules","Watchfaces","Stocks","Mimi"};
 #define PREVIEW_ICON_COUNT (LAUNCHER_ICON_COUNT + COMPANION_ICON_COUNT)
 _Static_assert(sizeof(names)/sizeof(names[0]) == PREVIEW_ICON_COUNT, "Preview every registered icon");
 static void battery(void) {
@@ -44,7 +45,7 @@ static void screen(unsigned index) {
     ui_obj_set_scrollable(button,false);
     art=companion_launcher_icon_create(button,(int)index);lv_obj_center(art);
     lv_obj_t *name=lv_label_create(lv_screen_active());lv_label_set_text(name,tr_app_name(names[index]));
-    lv_obj_set_style_text_font(name,index==24?&font_mimi_24:index>=LAUNCHER_ICON_COUNT?&font_companion_24:&font_location_24,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
+    lv_obj_set_style_text_font(name,index==25?&font_mimi_24:index==24?&font_stocks_24:index>=LAUNCHER_ICON_COUNT?&font_companion_24:&font_location_24,0);lv_obj_set_style_text_color(name,lv_color_hex(COL_TXT),0);
     lv_obj_set_width(name,300);lv_obj_set_style_text_align(name,LV_TEXT_ALIGN_CENTER,0);
     lv_obj_align(name,LV_ALIGN_CENTER,0,112);
     lv_obj_t *left=launcher_icon_create(lv_screen_active(),LAUNCHER_PREV);lv_obj_align(left,LV_ALIGN_LEFT_MID,14,0);

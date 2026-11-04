@@ -1,0 +1,33 @@
+@font-face{font-family:Barlow;src:url(fonts/Barlow-Regular.ttf)}
+@font-face{font-family:Barlow;src:url(fonts/Barlow-SemiBold.ttf);font-weight:600}
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:#090a0b;color:#eeeae2}
+body{font-family:"PingFang SC","Hiragino Sans GB",sans-serif;-webkit-font-smoothing:antialiased}
+.poster{width:1080px;height:1440px;position:relative;overflow:hidden;padding:48px 64px;background:#090a0b}
+.brand{display:flex;justify-content:space-between;align-items:center;font-family:Barlow,sans-serif;font-size:30px;font-weight:600;letter-spacing:.3px}
+.brand span{font-family:"PingFang SC",sans-serif;font-size:22px;letter-spacing:2px;color:#d2cbbb}
+.kicker{margin-top:62px;color:#ef704c;letter-spacing:3px;font-size:24px;line-height:1.4}
+h1{font-size:80px;line-height:1.22;letter-spacing:-3px;font-weight:600;margin:16px 0 20px}
+.sub{font-size:27px;color:#b4b4ac;line-height:1.65;margin:0;letter-spacing:.2px}
+.content{margin-top:42px}footer{position:absolute;bottom:38px;left:64px;right:64px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #292b2b;padding-top:22px;gap:20px;color:#969b97;font-size:19px;line-height:1.4}
+footer span:last-child{white-space:nowrap;font-family:Barlow,sans-serif;letter-spacing:2px}
+figure{margin:0;min-width:0;text-align:center}figure img{width:100%;display:block;aspect-ratio:1;object-fit:contain;background:#000;border-radius:50%;outline:1px solid #252927}figcaption{font-size:24px;color:#c7c7bc;line-height:1.4;margin-top:16px;letter-spacing:1px}figcaption:empty{display:none}
+.gallery{display:grid;gap:34px 32px;align-items:start}.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.gallery-six .content{margin-top:80px}.gallery-six .gallery{gap:76px 32px}.gallery-six figcaption{margin-top:24px}
+.gallery-nine .content{margin-top:30px}.gallery-nine h1{font-size:74px}.gallery-nine .gallery{gap:24px 35px}.gallery-nine figure img{max-width:252px;margin:auto}.gallery-nine figcaption{font-size:22px;margin-top:12px}
+.cover .kicker{margin-top:52px}.cover h1{font-size:91px;margin-top:16px}.cover .sub{font-size:29px}.cover .content{margin-top:28px}.cover-grid{display:grid;grid-template-columns:repeat(2,350px);justify-content:center;gap:22px 82px}.cover-grid figure img{width:350px;height:350px}.release{display:flex;justify-content:space-between;align-items:baseline;margin-top:28px;padding:23px 0 0;border-top:1px solid #353938}.release span{font-size:29px;color:#d2cbbb}.release b{font-size:38px;font-weight:500;color:#ef704c}
+.duo{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:42px;align-items:start}.duo figure img{max-width:410px;margin:auto}.picker .content{margin-top:60px}.icon-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:68px;gap:28px}.icon-grid img{max-width:126px;outline:none;margin:auto}.icon-grid figcaption{font-size:23px}.caption{text-align:center;font-size:25px;color:#a7aca4;margin-top:54px;line-height:1.5}
+.four .content{margin-top:42px}.four .gallery{gap:48px 54px}.four figure img{max-width:365px;margin:auto}.four figcaption{font-size:25px}.four .duo{gap:52px;margin-bottom:38px}.four .duo figure img{max-width:365px}
+.hero-page .content{margin-top:28px}.hero{width:600px;margin:auto}.hero figure img{width:600px;height:600px}.mini-row{display:grid;grid-template-columns:repeat(3,1fr);gap:38px;margin:28px 42px 0}.mini-row figure img{width:220px;margin:auto}.mini-row figcaption{font-size:22px}
+.remote .content{margin-top:50px}.remote .duo figure img{width:390px}.remote figcaption{font-size:24px}.music-row{display:grid;grid-template-columns:370px 1fr;gap:64px;align-items:center;margin-top:65px}.music-row figure img{width:370px}.music-row b{font-size:39px;line-height:1.5;font-weight:500}.music-row p{font-size:23px;line-height:1.8;color:#a7aca4;margin-top:25px}
+.capsules .content{margin-top:22px}.capsules .hero{width:535px}.capsules .hero figure img{width:535px;height:535px}.small-duo{margin:25px 110px 0;gap:65px}.small-duo figure img{width:245px}.small-duo figcaption{font-size:23px}.condition{text-align:center;color:#dbb58e;font-size:24px;line-height:1.6;margin-top:28px}
+.points{display:grid;gap:30px}.points>div{border-top:1px solid #3b403b;padding:25px 0 0;display:grid;grid-template-columns:265px 1fr;gap:27px}.points b{font-size:32px;font-weight:500}.points p{margin:0;font-size:26px;line-height:1.7;color:#b8beb5}.site-strip{margin-top:60px;padding:40px;background:#141817;border:1px solid #2d3830;border-radius:18px}.site-strip>span{color:#d0b993;font-size:24px;letter-spacing:2px}.site-strip b{display:block;margin-top:14px;font-size:32px;font-weight:500}.site-strip p{font-size:26px;color:#a7aca4;margin-bottom:0}.closing{margin-top:54px;display:flex;justify-content:space-between;align-items:baseline}.closing span{font-size:32px;color:#c0b9a8}.closing b{font-size:43px;color:#ef704c;font-weight:500}
+.map-page h1{font-size:75px}.map-page .content{margin-top:22px}.map-main{width:510px;margin:auto}.map-duo{width:720px;margin:18px auto 0;gap:65px}.map-duo figure img{width:300px}.map-duo figcaption{font-size:23px}.map-main figcaption{font-size:23px;margin-top:10px}.map-page footer{font-size:18px}
+/* 为三行图鉴和多状态页面留足页脚空间。 */
+/* Reserve footer clearance for three-row galleries and multi-state pages. */
+.gallery-nine .gallery{row-gap:20px}.gallery-nine figure img{max-width:226px}
+.four figure img,.four .duo figure img{max-width:340px}
+.hero-page .hero,.hero-page .hero figure img{width:560px;height:560px}
+.hero-page .mini-row figure img{width:205px}
+.remote .duo figure img{width:365px}.remote .music-row{grid-template-columns:310px 1fr;margin-top:38px}.remote .music-row figure img{width:310px}
+.capsules .hero,.capsules .hero figure img{width:490px;height:490px}.capsules .small-duo figure img{width:230px}.capsules .condition{margin-top:20px}
+.map-page .map-main{width:475px}.map-page .map-duo figure img{width:275px}

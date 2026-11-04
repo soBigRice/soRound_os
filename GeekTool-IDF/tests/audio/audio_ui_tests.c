@@ -112,5 +112,6 @@ int main(int argc,char **argv) {
     assert(s_capture==CAPTURE_FAILED && stops>0 && releases>0);audio_exit();pump();lv_obj_delete(page);
     page=tools_surface(lv_screen_active(),0,0,466,466);allocation_ok=false;audio_enter(page);
     assert(s_capture==CAPTURE_FAILED && !s_run);audio_exit();lv_obj_delete(page);
+    {int before=task_creates;page=tools_surface(lv_screen_active(),0,0,466,466);demo_audio.enter(page,0);demo_audio.frame(1800);capture(dir,"demo-audio");demo_audio.exit();lv_obj_delete(page);assert(task_creates==before);}
     assert(notifications>0);puts("audio: actual spectrum analysis, energy colors, quiet/fault/recovery, activation guard, reuse/visibility, EN/ZH glyphs/round layout, idle no-redraw and partial updates passed");
 }

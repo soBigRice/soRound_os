@@ -1,6 +1,7 @@
 // 启动器(小面积运动设计)+ App 框架 + 导航 —— LVGL 9
 // 静止黑底,居中一个大图标;切换只动中心一小块(短滑+淡入淡出,不整屏滑)→ 从设计上避开撕裂。
 #include "app.h"
+#include "demo_mode.h"
 #include "power.h"
 #include "lock.h"
 #include "buttons.h"
@@ -12,6 +13,7 @@
 #include "quickpanel.h"
 #include "companion_icons.h"
 #include "font_companion.h"
+#include "font_stocks.h"
 #include "font_mimi.h"
 #include "ui_persistence.h"
 #include "esp_log.h"
@@ -27,7 +29,7 @@
 #define SWAP_SLIDE 56     // 中心块滑动幅度(px,越小越不易撕裂)
 
 // 注册表
-const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels, &app_garden, &app_focus, &app_capsules, &app_watchfaces, &app_mimi };
+const app_t *const APPS[] = { &app_wifi, &app_i2c, &app_sys, &app_weather, &app_calendar, &app_countdown, &app_stopwatch, &app_settings, &app_ota, &app_audio, &app_level, &app_maze, &app_fluid, &app_dice, &app_mouse, &app_twin, &app_answers, &app_zodiac, &app_merit, &app_pixels, &app_garden, &app_focus, &app_capsules, &app_watchfaces, &app_stocks, &app_mimi };
 const int APP_COUNT = sizeof(APPS) / sizeof(APPS[0]);
 
 static lv_obj_t *launcher_screen, *app_screen;
@@ -36,6 +38,8 @@ static lv_obj_t *g_back_label, *g_backdots;
 static lv_obj_t *g_batt_percent;
 static lv_obj_t *g_nextart;
 static const app_t *cur_app;
+static const app_t *s_demo_source;
+static bool s_demo_fullscreen;
 static bool s_app_fullscreen;
 static int cur, pending_app;
 static pwr_state_t s_last_pwr = PWR_UNKNOWN;
@@ -45,45 +49,50 @@ static uint32_t s_tick_at;
 static void battery_visibility(bool covered);
 static bool battery_covered(void) {
     // OTA 按页面约定只显示一个点阵圆圈;仅在该 App 收起实线电量层。
-    return lock_is_locked() || cur_app == &app_ota || s_app_fullscreen;
+    return lock_is_locked() || cur_app == &app_ota || s_demo_source == &app_ota || s_demo_fullscreen || s_app_fullscreen;
 }
 static void header_app_style(void) {
+    const app_t *shown=s_demo_source?s_demo_source:cur_app;
     // OTA 的贴边点阵环需要透明点阵返回键;其他 App 保持原有圆形按钮。
-    bool ota = cur_app == &app_ota;
-    bool weather = cur_app == &app_weather;
-    bool controls = cur_app == &app_settings || cur_app == &app_wifi || cur_app == &app_watchfaces;
-    bool book = cur_app == &app_answers || cur_app == &app_zodiac || cur_app == &app_merit;
-    bool pixels = cur_app == &app_pixels;
-    bool compact = weather || controls || book;
-    bool tools = cur_app == &app_audio || cur_app == &app_level;
-    bool companion = cur_app == &app_garden || cur_app == &app_focus || cur_app == &app_capsules || cur_app == &app_mouse || cur_app == &app_watchfaces;
+    bool ota = shown == &app_ota;
+    bool weather = shown == &app_weather;
+    bool controls = shown == &app_settings || shown == &app_wifi || shown == &app_watchfaces;
+    bool book = shown == &app_answers || shown == &app_zodiac || shown == &app_merit;
+    bool pixels = shown == &app_pixels;
+    bool stocks = shown == &app_stocks;
+    bool compact = weather || controls || book || stocks;
+    bool tools = shown == &app_audio || shown == &app_level;
+    bool companion = shown == &app_garden || shown == &app_focus || shown == &app_capsules || shown == &app_mouse || shown == &app_watchfaces;
     // 天气页沿用系统返回/电量语义,仅局部匹配已确认的 AMOLED 版式。
     // 退出后恢复既有尺寸、字体和电量环,不把天气配色扩散到其他 App。
-    lv_obj_set_style_text_font(g_title, cur_app == &app_mimi ? &font_mimi_24 : companion ? &font_companion_24 : (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
+    lv_obj_set_style_text_font(g_title, shown == &app_mimi ? &font_mimi_24 : stocks ? &font_stocks_24 : companion ? &font_companion_24 : (compact || pixels) ? &font_location_24 : UI_FONT_L, 0);
     lv_obj_set_style_text_letter_space(g_title, 0, 0);
     lv_obj_set_style_text_color(g_title, lv_color_hex(COL_TXT), 0);
     lv_obj_set_width(g_title,compact?166:LV_SIZE_CONTENT);
     lv_label_set_long_mode(g_title,LV_LABEL_LONG_MODE_DOTS);
     lv_obj_set_style_text_align(g_title,LV_TEXT_ALIGN_CENTER,0);
-    lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, compact ? 52 : 46);
-    lv_obj_set_size(g_back, (controls || book) ? 44 : (compact ? 40 : 48), (controls || book) ? 44 : (compact ? 40 : 48));
-    lv_obj_align(g_back, LV_ALIGN_TOP_MID, (controls || book) ? -110 : -100, compact ? 52 : 40);
+    lv_obj_align(g_title, LV_ALIGN_TOP_MID, 0, stocks ? 56 : compact ? 52 : 46);
+    lv_obj_set_size(g_back, (controls || book || stocks) ? 44 : (compact ? 40 : 48), (controls || book || stocks) ? 44 : (compact ? 40 : 48));
+    lv_obj_align(g_back, LV_ALIGN_TOP_MID, stocks ? -111 : (controls || book) ? -110 : -100, stocks ? 53 : compact ? 52 : 40);
     lv_obj_align(g_bolt,LV_ALIGN_TOP_MID,weather?-30:0,14);
     lv_obj_set_style_bg_color(g_back, lv_color_hex(weather ? 0x22272a : 0x16161a), 0);
-    lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_MAIN);
-    lv_obj_set_style_arc_width(g_batt, weather ? 6 : 8, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(g_batt, lv_color_hex(weather ? 0x22272a : (tools ? TOOLS_FAINT : 0x15151a)), LV_PART_MAIN);
+    // A版股票使用细环；其余页面每次进入/返回都恢复原尺寸和电量语义。
+    // Stock direction A uses a thin ring; entering/leaving restores other pages and battery semantics.
+    lv_obj_set_size(g_batt, stocks ? 450 : 458, stocks ? 450 : 458);lv_obj_center(g_batt);
+    lv_obj_set_style_arc_width(g_batt, stocks ? 3 : weather ? 6 : 8, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(g_batt, stocks ? 3 : weather ? 6 : 8, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(g_batt, lv_color_hex(stocks ? 0x222326 : weather ? 0x22272a : (tools ? TOOLS_FAINT : 0x15151a)), LV_PART_MAIN);
     if (s_last_batt_color == COL_TXT || s_last_batt_color == TOOLS_WHITE) {
         s_last_batt_color = tools ? TOOLS_WHITE : COL_TXT;
         lv_obj_set_style_arc_color(g_batt,lv_color_hex(s_last_batt_color),LV_PART_INDICATOR);
     }
-    lv_obj_set_style_bg_opa(g_back, ota ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
-    lv_obj_set_style_border_width(g_back, (ota || weather) ? 0 : 1, 0);
+    lv_obj_set_style_bg_opa(g_back, (ota || stocks) ? LV_OPA_TRANSP : LV_OPA_COVER, 0);
+    lv_obj_set_style_border_width(g_back, (ota || weather || stocks) ? 0 : 1, 0);
     lv_obj_set_style_border_color(g_back, lv_color_hex(COL_TXT2), 0);
     lv_obj_set_style_border_opa(g_back, LV_OPA_50, 0);
     lv_label_set_text(g_back_label, LV_SYMBOL_LEFT);
     lv_obj_set_style_text_color(g_back_label, lv_color_hex(COL_TXT), 0);
-    if (weather) lv_obj_set_style_text_font(g_back_label, &lv_font_montserrat_20, 0);
+    if (weather || stocks) lv_obj_set_style_text_font(g_back_label, &lv_font_montserrat_20, 0);
     else lv_obj_remove_local_style_prop(g_back_label, LV_STYLE_TEXT_FONT, 0);
     lv_obj_center(g_back_label);
     if (tools) {
@@ -110,7 +119,7 @@ static void set_app_name(int i) {
     bool companion=app==&app_garden || app==&app_focus || app==&app_capsules || app==&app_watchfaces;
     // 新应用名称使用其完整字库；直接切换与动画中点共用同一绑定。
     // Bind new names to their complete font on both direct and animated switches.
-    lv_obj_set_style_text_font(g_name,app==&app_mimi?&font_mimi_24:companion?&font_companion_24:&font_location_24,0);
+    lv_obj_set_style_text_font(g_name,app==&app_mimi?&font_mimi_24:app==&app_stocks?&font_stocks_24:companion?&font_companion_24:&font_location_24,0);
     lv_label_set_text(g_name,tr_app_name(app->name));
 }
 static void apply_app(int i) {
@@ -307,10 +316,31 @@ static void icon_released(lv_event_t *e) {
     enter_app();
 }
 
+static void demo_start_deferred(void *arg) {
+    (void)arg;if(cur_app!=&app_settings || lock_is_locked())return;go_home();cur_app=&app_demo;
+    // 使用正常生命周期和标题层；不改变启动器注册顺序。/ Reuse the normal lifecycle without changing app indices.
+    battery_visibility(battery_covered());header_app_style();s_app_visible=true;s_tick_at=lv_tick_get();
+    app_screen=lv_obj_create(NULL);lv_obj_set_style_bg_color(app_screen,lv_color_black(),0);
+    lv_obj_remove_flag(app_screen,LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_remove_flag(g_title,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(g_back,LV_OBJ_FLAG_HIDDEN);
+    app_demo.enter(app_screen);lv_screen_load(app_screen);
+}
+void launcher_start_demo(void) {
+    lv_async_call_cancel(demo_start_deferred,NULL);lv_async_call(demo_start_deferred,NULL);
+}
+void launcher_demo_chrome(bool visible) {
+    s_demo_fullscreen=!visible;battery_visibility(battery_covered());
+    if(!visible){lv_obj_add_flag(g_title,LV_OBJ_FLAG_HIDDEN);lv_obj_add_flag(g_back,LV_OBJ_FLAG_HIDDEN);}
+    else if(s_demo_source && cur_app){lv_obj_remove_flag(g_title,LV_OBJ_FLAG_HIDDEN);lv_obj_remove_flag(g_back,LV_OBJ_FLAG_HIDDEN);}
+}
+void launcher_demo_header(const app_t *source) {
+    s_demo_source=source;header_app_style();launcher_demo_chrome(source!=&app_watchfaces);
+}
+bool launcher_demo_active(void){return cur_app==&app_demo;}
+
 void launcher_set_title(const char *t) {
     if (g_title) lv_label_set_text(g_title, t);
 }
-
 void launcher_set_app_fullscreen(bool fullscreen) {
     s_app_fullscreen=fullscreen;
     if (fullscreen) {
@@ -340,7 +370,7 @@ void go_home(void) {
        热区挂 lv_layer_top();锁屏时表盘(也在 layer_top 且被移到最前)盖住它 → 锁屏不触发,正合要求。 ---- */
 static void hotzone_gesture_cb(lv_event_t *e) {
     (void)e;
-    if (lv_indev_get_gesture_dir(lv_indev_active()) == LV_DIR_BOTTOM) quickpanel_open();
+    if (cur_app!=&app_demo && lv_indev_get_gesture_dir(lv_indev_active()) == LV_DIR_BOTTOM) quickpanel_open();
 }
 
 /* ---- 顶层悬浮:电量环 + 标题 + 返回 + 下拉热区 + 快捷面板 ---- */

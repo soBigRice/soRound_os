@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // System telemetry is sampled outside drawing, using disjoint byte-addressable heaps.
 #include "app.h"
 #include "tools_ui.h"
@@ -166,3 +167,8 @@ static void sys_enter(lv_obj_t *parent) {
 static void sys_visibility(bool visible) {s_visible=visible;if(visible){s_last_us=0;sys_tick();}}
 static void sys_exit(void) {s_body=NULL;memset(s_tabs,0,sizeof s_tabs);s_visible=false;}
 const app_t app_sys={"System",COL_SYS,sys_enter,sys_tick,sys_exit,NULL,1000,sys_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_sys_enter(lv_obj_t *parent,unsigned variant){sys_enter(parent);select_page(variant);}
+static void demo_sys_frame(uint32_t elapsed){(void)elapsed;sys_tick();}
+const demo_page_t demo_sys={.count=3,.enter=demo_sys_enter,.frame=demo_sys_frame,.exit=sys_exit};

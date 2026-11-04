@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "lvgl_compat.h"
 #include "audio_out.h"
@@ -133,10 +134,7 @@ static void merit_visibility(bool visible) {
     s_visible=visible;buttons_reset_control();s_anim_at=lv_tick_get();
     if(visible){sound_label();audio_out_init();}else{audio_out_deinit();save();}
 }
-static void merit_enter(lv_obj_t *parent) {
-    if(!s_dirty){s_count=0;s_storage_ready=merit_load(&s_count);}
-    s_visible=true;s_muted=false;
-    s_elapsed=HIT_MS;s_hit_at=s_saved_at=s_anim_at=lv_tick_get();buttons_reset_control();audio_out_init();load_artwork();
+static void merit_build(lv_obj_t *parent) {
     label(parent,words("ACCUMULATED MERIT","累计功德"),102,&font_location_24,0x9e8d77);
     g_count=label(parent,"0",138,&lv_font_montserrat_40,0xf2dfc1);update_count();
     if(!s_storage_ready)lv_label_set_text(g_count,"--");
@@ -151,6 +149,12 @@ static void merit_enter(lv_obj_t *parent) {
     sound_label();
     ui_obj_set_clickable(g_sound,true);lv_obj_add_event_cb(g_sound,sound,LV_EVENT_CLICKED,NULL);
 }
+static void merit_enter(lv_obj_t *parent) {
+    if(!s_dirty){s_count=0;s_storage_ready=merit_load(&s_count);}
+    s_visible=true;s_muted=false;
+    s_elapsed=HIT_MS;s_hit_at=s_saved_at=s_anim_at=lv_tick_get();buttons_reset_control();audio_out_init();load_artwork();
+    merit_build(parent);
+}
 static void merit_exit(void) {
     save();s_visible=false;audio_out_deinit();buttons_reset_control();
     if(s_art.data){lv_image_cache_drop(&s_art);free((void *)s_art.data);s_art=(lv_image_dsc_t){0};}
@@ -158,3 +162,9 @@ static void merit_exit(void) {
 }
 const app_t app_merit={.name="Merit",.color=COL_TXT,.enter=merit_enter,.tick=merit_tick,.exit=merit_exit,
     .visibility=merit_visibility,.tick_period_ms=20};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_merit_enter(lv_obj_t *parent,unsigned variant){(void)variant;load_artwork();merit_build(parent);}
+static void demo_merit_frame(uint32_t elapsed){s_elapsed=elapsed%1500;if(s_elapsed>HIT_MS)s_elapsed=HIT_MS;char text[20];snprintf(text,sizeof text,"%u",128u+(unsigned)(elapsed/1500));lv_label_set_text(g_count,text);lv_label_set_text(g_plus,words("MERIT +1","功德+1"));lv_obj_set_style_opa(g_plus,s_elapsed<HIT_MS?255-255*s_elapsed/HIT_MS:0,0);lv_obj_invalidate(g_wood);}
+static void demo_merit_exit(void){if(s_art.data){lv_image_cache_drop(&s_art);free((void *)s_art.data);s_art=(lv_image_dsc_t){0};}g_wood=g_count=g_plus=g_hint=g_sound=NULL;}
+const demo_page_t demo_merit={.count=1,.enter=demo_merit_enter,.frame=demo_merit_frame,.exit=demo_merit_exit};

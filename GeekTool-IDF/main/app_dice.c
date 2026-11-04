@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 摇骰子 / 抛硬币 —— 骰子占满主屏(甩动或点屏触发,翻滚减速定格)。
 // 主视图右上小齿轮 → 进本 app 独立设置页(单独一页选 1/2/3 颗骰子 或 硬币,存 NVS);
 // 设置页右滑/‹ 返回主视图。骰子全同(≥2 颗)→ 豹子变红;硬币单独走上抛/翻面/落地状态。
@@ -460,3 +461,13 @@ static void dice_exit(void) {
 }
 
 const app_t app_dice = { "dice", COL_TXT, dice_enter, dice_tick, dice_exit, dice_back, 20, dice_visibility };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static int demo_dice_previous_values[3];
+static void demo_dice_enter(lv_obj_t *parent,unsigned variant){for(unsigned i=0;i<3;++i)demo_dice_previous_values[i]=s_val[i];dice_enter(parent);s_mode=(int)variant;s_val[0]=1;s_val[1]=3;s_val[2]=5;if(s_mode==M_COIN)s_val[0]=0;build_stage();render();launcher_set_title(s_mode==M_COIN?tr(S_COIN):tr_app_name("dice"));}
+static void demo_dice_frame(uint32_t elapsed) {
+    if(s_mode==M_COIN){float t=(elapsed%2400)/2400.0f;float face=cosf(t*6*COIN_PI);coin_face(face<0);coin_pose((int)(COIN_LIFT*sinf(t*COIN_PI)),(int)(fmaxf(.06f,fabsf(face))*256),0);}
+    else{unsigned step=elapsed<1600?elapsed/140:12;for(int i=0;i<=s_mode;++i)s_val[i]=1+(step+(unsigned)i*2)%6;render();}
+}
+static void demo_dice_exit(void){dice_exit();for(unsigned i=0;i<3;++i)s_val[i]=demo_dice_previous_values[i];}
+const demo_page_t demo_dice={.count=4,.enter=demo_dice_enter,.frame=demo_dice_frame,.exit=demo_dice_exit};

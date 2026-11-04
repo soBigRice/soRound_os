@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // One setting per detail. The list scrolls; adjustment screens stay centered on the round display.
 #include "control_ui.h"
 #include "settings.h"
@@ -12,7 +13,7 @@
 #include <stdio.h>
 
 enum { SETTINGS_HOME, SETTINGS_BRIGHTNESS, SETTINGS_FACE, SETTINGS_AOD,
-       SETTINGS_VOLUME, SETTINGS_MUTE, SETTINGS_LANG, SETTINGS_ABOUT, SETTINGS_COUNT };
+       SETTINGS_VOLUME, SETTINGS_MUTE, SETTINGS_LANG, SETTINGS_ABOUT, SETTINGS_DEMO, SETTINGS_COUNT };
 static lv_obj_t *s_parent,*s_panel,*s_value,*s_slider,*s_aod,*s_mute;
 static watchface_picker_t s_face_picker;
 static lv_obj_t *s_home_list,*s_scroll,*s_body;
@@ -35,6 +36,7 @@ static lv_obj_t *center_text(const char *value,int y,int width,uint32_t color,co
 }
 static void open_page(lv_event_t *e) {
     int page=(int)(intptr_t)lv_event_get_user_data(e);
+    if(page==SETTINGS_DEMO){launcher_start_demo();return;}
     s_scroll_y[page]=0;s_page=page;queue_rebuild();
 }
 typedef struct {lv_obj_t *obj;lv_layer_t *layer;int x,y;} settings_ink_t;
@@ -184,6 +186,7 @@ static void rebuild(void *arg) {
         home_row(SETTINGS_MUTE,word("静音","Silent"),tr(settings_silent()?S_ON:S_OFF));
         home_row(SETTINGS_LANG,word("语言","Language"),settings_lang()?"中文":"English");
         home_row(SETTINGS_ABOUT,word("关于本机","About"),"soRound OS");
+        home_row(SETTINGS_DEMO,word("演示模式","Demo mode"),word("自动播放全部功能","Tour all features"));
     } else if(s_page==SETTINGS_BRIGHTNESS || s_page==SETTINGS_VOLUME) {
         bool display=s_page==SETTINGS_BRIGHTNESS;
         launcher_set_title(word(display?"亮度":"音量",display?"Brightness":"Volume"));
@@ -263,3 +266,12 @@ static void settings_exit(void) {
 }
 static void settings_tick(void) {if(s_page==SETTINGS_FACE)watchface_picker_refresh(&s_face_picker);}
 const app_t app_settings={.name="settings",.color=COL_TXT,.enter=settings_enter,.tick=settings_tick,.exit=settings_exit,.back=settings_back,.tick_period_ms=1000};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_settings_enter(lv_obj_t *parent,unsigned variant) {
+    s_parent=parent;s_audio_ready=false;s_page=(int)variant;s_built_page=0;
+    for(unsigned i=0;i<SETTINGS_COUNT;++i)s_scroll_y[i]=0;
+    // 音量页仅构建控件，试听由输入屏障阻止。/ Build volume controls without starting the speaker.
+    s_audio_ready=s_page==SETTINGS_VOLUME;rebuild(NULL);s_audio_ready=false;
+}
+const demo_page_t demo_settings={.count=8,.enter=demo_settings_enter,.exit=settings_exit};

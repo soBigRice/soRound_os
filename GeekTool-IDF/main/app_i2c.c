@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // I2C 扫描器 —— 扫出板载芯片地址,带已知芯片名。用 IDF i2c_master_probe。
 #include "app.h"
 #include "ui_list.h"
@@ -94,3 +95,12 @@ static void i2c_exit(void) {
     g_list = NULL;
 }
 const app_t app_i2c = { "I2C", COL_I2C, i2c_enter, i2c_tick, i2c_exit };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_i2c_enter(lv_obj_t *parent,unsigned variant) {
+    (void)variant;g_list=ui_list_create(parent);
+    const uint8_t addresses[]={0x18,0x20,0x34,0x40,0x51,0x5a,0x6b};
+    for(unsigned i=0;i<sizeof addresses;++i){char value[8];snprintf(value,sizeof value,"0x%02X",addresses[i]);ui_list_row(g_list,value,i2c_name(addresses[i]),COL_TXT);}
+    ui_list_relayout(g_list);
+}
+const demo_page_t demo_i2c={.count=1,.enter=demo_i2c_enter,.exit=i2c_exit};

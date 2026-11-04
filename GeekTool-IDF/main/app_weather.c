@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // Shared weather cache. HTTP task never touches LVGL/NVS; location generations
 // prevent a previous city's late response from appearing under the new title.
 #include "app.h"
@@ -115,7 +116,7 @@ static void choose_location(lv_event_t *e) {
     (void)e;s_choosing=true;weather_details_visibility(&s_details,false);ui_obj_set_hidden(s_content,true);weather_location_ui_open(s_parent,select_location);
 }
 static void retry(lv_event_t *e) {(void)e;start_fetch();}
-static void weather_enter(lv_obj_t *parent) {
+static void weather_build(lv_obj_t *parent) {
     display_weather_mode(true);
     s_parent=parent;city_title();s_shown=(wx_state_t)-1;s_shown_revision=UINT32_MAX;s_choosing=false;
     s_content=lv_obj_create(parent);lv_obj_remove_style_all(s_content);lv_obj_set_size(s_content,466,466);
@@ -125,6 +126,9 @@ static void weather_enter(lv_obj_t *parent) {
     // The header label lives on the top layer; its non-clickable text allows this
     // generous hit area beneath it to receive taps on city/pin.
     ui_obj_set_clickable(s_ui.status,true);lv_obj_add_event_cb(s_ui.status,retry,LV_EVENT_CLICKED,NULL);
+}
+static void weather_enter(lv_obj_t *parent) {
+    weather_build(parent);
     start_fetch();
 }
 static void weather_tick(void) {
@@ -154,3 +158,16 @@ static void weather_exit(void) {
 }
 static void weather_visibility(bool visible) {display_weather_mode(visible);weather_details_visibility(&s_details,visible);}
 const app_t app_weather={"weather",COL_TXT,weather_enter,weather_tick,weather_exit,weather_back,0,weather_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_weather_enter(lv_obj_t *parent,unsigned variant) {
+    weather_build(parent);launcher_set_title(settings_lang()?"杭州":"Hangzhou");
+    static const weather_data_t sample={.valid=true,.temp=24,.low=19,.high=27,.humidity=62,.code=2,.is_day=true,.updated="10:08",
+        .apparent=25,.wind=8,.gust=14,.direction=135,.precipitation=0,.cloud=32,.pressure=1014,.visibility=18000,
+        .hour_count=6,.day_count=5,
+        .hours={{.time="10:00",.temperature=24,.code=2,.is_day=true},{.time="11:00",.temperature=25,.code=1,.is_day=true},{.time="12:00",.temperature=26,.code=0,.is_day=true},{.time="13:00",.temperature=27,.code=0,.is_day=true},{.time="14:00",.temperature=26,.code=2,.is_day=true},{.time="15:00",.temperature=25,.code=3,.is_day=true}},
+        .days={{.date="2026-10-22",.sunrise="06:06",.sunset="17:24",.low=19,.high=27,.code=2,.uv=4,.daylight=11.3f},{.date="2026-10-23",.low=18,.high=26,.code=0},{.date="2026-10-24",.low=19,.high=25,.code=3},{.date="2026-10-25",.low=17,.high=24,.code=61},{.date="2026-10-26",.low=18,.high=25,.code=2}}};
+    weather_ui_show(&s_ui,sample.temp,sample.low,sample.high,sample.code,sample.humidity,true);weather_details_show(&s_details,&sample,true);
+    if(variant){lv_obj_update_layout(s_details.scroll);lv_obj_scroll_to_view(s_details.sections[variant-1],LV_ANIM_OFF);}
+}
+const demo_page_t demo_weather={.count=5,.enter=demo_weather_enter,.exit=weather_exit};

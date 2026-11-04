@@ -418,6 +418,10 @@ int main(int argc,char **argv) {
         lv_obj_scroll_to_y(s_details.scroll,3*W,LV_ANIM_ON);advance(40);
         leave();
     }
+    for(language=0;language<2;++language){int original_tasks=tasks;weather_data_t original=s_data;uint16_t original_location=wx_location_selected();
+        for(unsigned v=0;v<demo_weather.count;++v){page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,466,466);demo_weather.enter(page,v);char name[48];snprintf(name,sizeof name,"demo-weather-%u",v);capture(directory,name);demo_weather.exit();lv_obj_delete(page);page=NULL;advance(1000);}
+        assert(tasks==original_tasks && !memcmp(&original,&s_data,sizeof original) && wx_location_selected()==original_location);
+    }
     free(fixture);assert(audited_labels>100);
     printf("%u actual weather renders: all29 WMO codes, 8 night variants + location/cancel/stale-response/save-failure guards, EN/ZH, glyphs, round-safe layout, HTTP/day parsing, offline/re-entry/task recovery passed\n",renders);
     return 0;

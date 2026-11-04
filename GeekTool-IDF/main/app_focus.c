@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "audio_out.h"
 #include "buttons.h"
@@ -140,15 +141,7 @@ static void focus_visibility(bool visible) {
     if (visible) { focus_finish_if_due(); focus_refresh(); }
     else { focus_save_preferences(); (void)garden_shared_save(); }
 }
-static void focus_enter(lv_obj_t *parent) {
-    garden_state_t *garden = garden_shared_state();
-    focus_state_init(&s_focus, garden_state_next_focus_id(garden));
-    if (!s_preferences_dirty) {
-        s_preferences = (focus_preferences_t){.scene = AUDIO_SCENE_RAIN};
-        s_preferences_ready = focus_preferences_load(&s_preferences);
-    }
-    s_visible = true; s_audio_failed = s_completion_saved = false; s_rotation = 0;
-    s_visual_at = s_saved_at = s_preferences_saved_at = lv_tick_get(); buttons_reset_control();
+static void focus_build(lv_obj_t *parent) {
     launcher_set_title(focus_words("FOCUS", "专注"));
     lv_obj_t *subtitle = focus_label(parent, "FOCUS DECK", 84, 240, &font_companion_19, 0x7c8084);
     lv_obj_set_style_text_letter_space(subtitle, 3, 0);
@@ -175,6 +168,17 @@ static void focus_enter(lv_obj_t *parent) {
     // 唱片可点按换音景，三个下方按钮专职静音/计时/重置。
     // Tap the record to change scene; lower buttons handle sound, timer and reset.
     ui_obj_set_clickable(g_record, true); lv_obj_add_event_cb(g_record, focus_next_scene, LV_EVENT_CLICKED, NULL);
+}
+static void focus_enter(lv_obj_t *parent) {
+    garden_state_t *garden = garden_shared_state();
+    focus_state_init(&s_focus, garden_state_next_focus_id(garden));
+    if (!s_preferences_dirty) {
+        s_preferences = (focus_preferences_t){.scene = AUDIO_SCENE_RAIN};
+        s_preferences_ready = focus_preferences_load(&s_preferences);
+    }
+    s_visible = true; s_audio_failed = s_completion_saved = false; s_rotation = 0;
+    s_visual_at = s_saved_at = s_preferences_saved_at = lv_tick_get(); buttons_reset_control();
+    focus_build(parent);
     focus_refresh();
 }
 static void focus_exit(void) {
@@ -185,3 +189,16 @@ static void focus_exit(void) {
 }
 const app_t app_focus = {.name = "Focus", .color = COL_TXT, .enter = focus_enter, .tick = focus_tick,
     .exit = focus_exit, .tick_period_ms = 100, .visibility = focus_visibility, .tick_in_background = true};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_focus_variant;
+static void demo_focus_enter(lv_obj_t *parent,unsigned variant){demo_focus_variant=variant;focus_build(parent);}
+static void demo_focus_frame(uint32_t elapsed) {
+    unsigned seconds=25*60-elapsed/1000;char text[16];snprintf(text,sizeof text,"%02u:%02u",seconds/60,seconds%60);ui_text(g_timer,text);
+    const char *en[]={"FOREST RAIN","OCEAN WAVES","CAMPFIRE"};const char *zh[]={"森林雨声","海浪","篝火"};
+    ui_text(g_scene,settings_lang()?zh[demo_focus_variant]:en[demo_focus_variant]);ui_text(g_hint,focus_words("ONE MOMENT, ONE THING","一段时间，只做一件事"));ui_text(g_toggle,LV_SYMBOL_PAUSE);
+    lv_image_set_rotation(g_record,(int32_t)(elapsed*3/10)%3600);
+    for(unsigned i=0;i<3;++i)ui_bg_color(g_dots[i],i==demo_focus_variant?0xe95236:0x42484c);
+}
+static void demo_focus_exit(void){g_record=g_timer=g_scene=g_hint=g_toggle=g_sound=NULL;for(int i=0;i<3;++i)g_dots[i]=NULL;}
+const demo_page_t demo_focus={.count=3,.enter=demo_focus_enter,.frame=demo_focus_frame,.exit=demo_focus_exit};

@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 麦克风实时频谱:worker 分析 18 段;UI 快照驱动固定 18×16 点阵和能量配色。
 #include "app.h"
 #include "tools_ui.h"
@@ -150,7 +151,7 @@ static void scale_draw(lv_event_t *e) {
 
 static void audio_tick(void);
 
-static void audio_enter(lv_obj_t *parent) {
+static void audio_build(lv_obj_t *parent) {
     g_content = tools_surface(parent,0,0,466,466);
     lv_obj_t *indicator = tools_surface(g_content,161,107,8,8);
     lv_obj_set_style_radius(indicator,LV_RADIUS_CIRCLE,0);
@@ -169,6 +170,9 @@ static void audio_enter(lv_obj_t *parent) {
     g_caption = tools_label(g_content,tools_text("LISTENING","聆听中"),&font_tools_21,233,395,TOOLS_WHITE,settings_lang()?1:2);
     tools_label(g_content,tools_text("18 BANDS","18 个频段"),&font_tools_20,233,423,TOOLS_GRAY,settings_lang()?0:1);
     g_fault = tools_fault(parent,true);
+}
+static void audio_enter(lv_obj_t *parent) {
+    audio_build(parent);
     // 采集任务拥有硬件,结束后释放任务栈;进退页面只发请求,不等待阻塞的 I2S read。
     portENTER_CRITICAL(&s_mux);
     memset(s_band, 0, sizeof s_band); s_capture=CAPTURE_STARTING; s_run = true; s_generation++;
@@ -230,3 +234,14 @@ static void audio_visibility(bool visible) {
 }
 
 const app_t app_audio = { "audio", COL_TXT, audio_enter, audio_tick, audio_exit, NULL, 20, audio_visibility };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_audio_enter(lv_obj_t *parent,unsigned variant){(void)variant;audio_build(parent);ui_obj_set_hidden(g_fault,true);lv_obj_set_style_text_font(g_input,&lv_font_montserrat_20,0);ui_text(g_input,"DEMO INPUT");tools_label_center(g_input,237,111);}
+static void demo_audio_frame(uint32_t elapsed) {
+    float t=elapsed/1000.0f;
+    for(int b=0;b<NB;++b){float v=.15f+.75f*(.5f+.5f*sinf(t*2.8f+b*.7f));int count=(int)(v*ROWS);
+        for(int row=0;row<ROWS;++row)s_colors[b][row]=row>=count?TOOLS_FAINT:row==count-1?COL_RED:spectrum_color(v,false);}
+    lv_obj_invalidate(g_grid);
+}
+static void demo_audio_exit(void){g_content=g_grid=g_caption=g_input=g_fault=NULL;}
+const demo_page_t demo_audio={.count=1,.enter=demo_audio_enter,.frame=demo_audio_frame,.exit=demo_audio_exit};

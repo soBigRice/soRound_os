@@ -63,6 +63,7 @@ extern const app_t app_pixels;
 extern const app_t app_garden;
 extern const app_t app_focus;
 extern const app_t app_capsules;
+extern const app_t app_stocks;
 extern const app_t app_mimi;
 extern const app_t *const APPS[];
 extern const int APP_COUNT;
@@ -77,6 +78,7 @@ bool weather_cached(int *temp, int *lo, int *hi, int *code, int *hum);     // �
 bool launcher_start(void);   // 创建启动器并加载;返回关键任务/定时器是否创建(需在 lvgl_port 锁内调用)
 void go_home(void);          // app 内返回启动器
 void launcher_set_title(const char *t);   // app 可在 enter 里改顶部标题(如天气→城市)
-
 void launcher_set_app_fullscreen(bool fullscreen); // App独占圆屏，退出自动恢复。/ App owns the round viewport until exit.
+
+bool launcher_demo_active(void);    // 拍摄会话；BOOT短按退出。/ BOOT exits a filming session.
 bool launcher_app_visible(void);    // 当前 app 没被锁屏/快捷面板遮挡

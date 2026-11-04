@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>soRound · Orbit 圆屏地图</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="vendor/maplibre-gl.css">
+  <link rel="stylesheet" href="preview.css">
+  <script defer src="vendor/maplibre-gl.js"></script>
+  <script defer src="preview.js"></script>
+</head>
+<body>
+  <main>
+    <header class="page-heading"><span class="wordmark">soRound<span>®</span></span><span>ORBIT <i>/</i> 466 × 466</span></header>
+    <section class="study">
+      <figure class="device-figure">
+        <div class="device-shell" id="device-shell">
+          <section class="screen" id="screen" aria-label="Orbit 圆屏地图交互预览">
+            <div id="map" aria-label="地图"></div>
+            <svg class="radial-type" viewBox="0 0 466 466" aria-hidden="true">
+              <defs>
+                <path id="title-arc" d="M 142 65 Q 233 26 324 65"/>
+                <path id="credit-arc" d="M 82 379 A 210 210 0 0 0 384 379"/>
+              </defs>
+              <text class="place-type"><textPath id="place-name" href="#title-arc" startOffset="50%" text-anchor="middle">上海 · 外滩</textPath></text>
+            </svg>
+            <button id="place" class="place-hit" aria-label="上海 · 外滩" aria-expanded="false" aria-controls="places"></button>
+            <button id="back" class="back icon-button" aria-label="返回地点选择"><img src="vendor/icons/chevron-left.svg" alt=""></button>
+            <span class="battery" aria-label="样例电量 74%"><img src="vendor/icons/battery.svg" alt="">74%</span>
+            <span class="north" aria-label="地图朝北"><img src="vendor/icons/triangle.svg" alt=""><span>N</span></span>
+            <svg class="map-center map-layer" viewBox="0 0 32 32" role="img" aria-label="浏览中心"><path d="M16 2v9m0 10v9M2 16h9m10 0h9"/></svg>
+            <!-- SVG 只定义圆弧交互几何，图标来自 Feather，地图来自真实矢量数据。
+                 SVG defines interactive geometry; Feather supplies icons, real tiles supply the map. -->
+            <svg class="zoom-orbit map-layer" viewBox="0 0 466 466" aria-label="圆弧缩放">
+              <path class="zoom-track" d="M 423.55 140.07 A 212 212 0 0 1 423.55 325.93"/>
+              <path id="zoom-arc" class="zoom-hit" d="M 423.55 140.07 A 212 212 0 0 1 423.55 325.93" role="slider" tabindex="0" aria-label="圆弧缩放滑轨" aria-valuemin="4" aria-valuemax="18" aria-valuenow="14.2" aria-valuetext="缩放级别 14.2" aria-orientation="vertical"/>
+              <circle id="zoom-thumb" class="zoom-thumb" cx="445" cy="233" r="8"/>
+            </svg>
+            <button id="zoom-in" class="zoom-in icon-button map-layer" aria-label="放大地图"><img src="vendor/icons/plus.svg" alt=""></button>
+            <button id="zoom-out" class="zoom-out icon-button map-layer" aria-label="缩小地图"><img src="vendor/icons/minus.svg" alt=""></button>
+            <button id="reset" class="reset icon-button map-layer" aria-label="回到所选地点"><img src="vendor/icons/crosshair.svg" alt=""></button>
+            <svg class="map-credit map-layer" viewBox="0 0 466 466" aria-label="地图署名">
+              <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener"><text><textPath href="#credit-arc" startOffset="50%" text-anchor="middle">OpenFreeMap · © OpenMapTiles · © OpenStreetMap</textPath></text></a>
+            </svg>
+            <div id="notice" class="notice map-layer" role="status" hidden><span id="notice-text"></span><button id="retry" hidden>重试</button></div>
+            <section id="places" class="places" aria-label="选择浏览地点" hidden>
+              <p>选择一个起点，继续探索。</p>
+              <div id="place-list"></div>
+              <button id="cancel" class="cancel">返回地图</button>
+            </section>
+          </section>
+        </div>
+        <figcaption><span id="view-status" role="status">正在载入地图</span><span>浏览模式 · 无定位</span></figcaption>
+      </figure>
+      <div class="instructions"><p>拖动地图 · 沿右弧滑动缩放 · 点地名切换地点</p><p>底部回到起点，缩放滑轨也支持方向键与 Home / End。</p></div>
+    </section>
+    <footer class="page-footer">
+      <p>真实地图交互稿，尚未接入设备。电量为样例。</p>
+      <p><a href="https://openfreemap.org/">OpenFreeMap</a> · <a href="https://openmaptiles.org/">OpenMapTiles</a> · <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a><span>基于 Dark Matter 样式定制；样式设计 © CARTO / Stamen / Paul Norman。</span></p>
+    </footer>
+  </main>
+</body>
+</html>

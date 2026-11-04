@@ -178,5 +178,6 @@ int main(int argc, char **argv) {
             dice_exit(); lv_obj_delete(page);
         }
     }
+    for(language=0;language<2;++language)for(unsigned v=0;v<demo_dice.count;++v){lv_obj_t *p=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(p);lv_obj_set_size(p,466,466);int original_values[3];memcpy(original_values,s_val,sizeof s_val);demo_dice.enter(p,v);demo_dice.frame(1800);char name[48];snprintf(name,sizeof name,"demo-dice-%u",v);capture(dir,name);demo_dice.exit();assert(!memcmp(original_values,s_val,sizeof s_val));lv_obj_delete(p);}
     puts("coin: Chinese/English glyphs and round layout, tap/shake, ascent/flips/landing, both outcomes, rapid-tap guard, cover/resume, settings/cancel/exit, IMU fallback, idle no-redraw and 1/2/3-dice regressions passed");
 }

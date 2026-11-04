@@ -9,6 +9,8 @@ static unsigned poweroffs;
 static button_event_t event;
 bool identity_boot_active(void){return boot;}
 bool launcher_app_visible(void){return false;}
+bool launcher_demo_active(void){return false;}
+void go_home(void){assert(!"unexpected demo exit");}
 void watchface_init(void){}
 void watchface_show(void){visible=true;}
 void watchface_hide(void){visible=false;}

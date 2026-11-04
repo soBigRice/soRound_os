@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 粒子重力流体 —— 连续坐标 Verlet 粒子物理 + QMI8658 重力方向(倾斜手表,液体往低处流)。
 // v3(前两版是 4px 元胞自动机,格子跳变颗粒感重):240 颗半径 4-6px 圆粒,浮点位置逐帧积分,
 // 位置式软碰撞(粒-粒分离 + 圆壁约束,Verlet 隐式速度天然稳定),独立渲染定时器 —— 丝滑水珠感。
@@ -43,6 +44,8 @@ static lv_obj_t *g_canvas, *g_hint;
 static uint16_t  g_lut[3];      // 0=黑 1=白 2=红
 static int8_t    g_span[R_MAX + 1][2 * R_MAX + 1];   // 圆盘每行半宽(擦/画零 sqrt)
 static bool      g_has_imu, g_asleep;
+static bool s_demo_fluid;
+static float s_demo_tx,s_demo_ty;
 static uint32_t  g_calm;                             // 累计静止微秒
 static float     g_ltx, g_lty;                       // 入睡倾斜(累计唤醒判断)
 static int       g_dx1, g_dy1, g_dx2, g_dy2;         // 本帧脏矩形(像素)
@@ -95,7 +98,8 @@ static void draw_disc(int cx, int cy, int r, uint16_t c) {
 static void fluid_frame(lv_timer_t *t) {
     (void)t;
     float tx = 0, ty = 1.0f;
-    if (g_has_imu && !imu_read_tilt(&tx, &ty)) return;
+    if(s_demo_fluid){tx=s_demo_tx;ty=s_demo_ty;}
+    else if (g_has_imu && !imu_read_tilt(&tx, &ty)) return;
 
     int64_t now = esp_timer_get_time();
     uint32_t elapsed = (uint32_t)(now - g_last_us);
@@ -287,6 +291,7 @@ static void fluid_visibility(bool visible) {
 }
 
 static void fluid_enter(lv_obj_t *parent) {
+    s_demo_fluid=false;
     particle_enter(parent);
     if (!g_timer) {
         g_hint = lv_label_create(parent);
@@ -300,3 +305,9 @@ static void fluid_exit(void) {
 }
 
 const app_t app_fluid = { "fluid", COL_TXT, fluid_enter, NULL, fluid_exit, NULL, 0, fluid_visibility };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_fluid_enter(lv_obj_t *parent,unsigned variant){(void)variant;fluid_enter(parent);s_demo_fluid=true;s_demo_tx=0;s_demo_ty=.7f;if(g_hint)lv_label_set_text(g_hint,"");}
+static void demo_fluid_frame(uint32_t elapsed){float t=elapsed/1800.0f;s_demo_tx=.7f*sinf(t);s_demo_ty=.7f*cosf(t);}
+static void demo_fluid_exit(void){fluid_exit();s_demo_fluid=false;}
+const demo_page_t demo_fluid={.count=1,.enter=demo_fluid_enter,.frame=demo_fluid_frame,.exit=demo_fluid_exit,.visibility=fluid_visibility};

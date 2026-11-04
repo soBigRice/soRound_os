@@ -24,3 +24,7 @@ Thumbs.db
 *.swo
 .claude/
 .mimocode/
+
+# Generated delivery archives; editable sources and referenced assets are tracked.
+# 发布压缩包可从已入库源文件和素材重建，保留本地导出物。
+/小红书/*.zip

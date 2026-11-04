@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 倒计时 app —— 圆形递减点环(从 12 点顺时针变暗)+ 中心 MM:SS 大点阵。
 // 一触式预设(1/3/5/10/25 分)立即开始;PWR 实体键或点中心 = 开始/暂停/继续(DONE=重置),reset 重置;
 // 归零中心红字闪烁。Nothing 单色 + 唯一红强调。时间用 esp_timer 计(暂停/继续不丢精度)。
@@ -140,8 +141,8 @@ static lv_obj_t *mk_button(lv_obj_t *par, const char *txt, int w, int h, uint32_
     return b;
 }
 
-static void countdown_enter(lv_obj_t *parent) {
-    audio_out_init();              // 起扬声器(闹铃);退出时释放,把 I2S0 让回麦克风
+static void countdown_build(lv_obj_t *parent) {
+    // 扬声器由正常入口持有，演示只复用绘制。/ Normal entry owns audio; demo only builds widgets.
     // 递减点环
     g_ringbox = lv_obj_create(parent);
     lv_obj_remove_style_all(g_ringbox);
@@ -215,6 +216,8 @@ static void countdown_enter(lv_obj_t *parent) {
     show_state(ST_IDLE);
 }
 
+static void countdown_enter(lv_obj_t *parent){audio_out_init();countdown_build(parent);}
+
 static void countdown_tick(void) {
     if (!g_center) return;
     bool visible = launcher_app_visible();
@@ -259,3 +262,9 @@ static void countdown_visibility(bool visible) {
 }
 
 const app_t app_countdown = { "countdown", COL_TXT, countdown_enter, countdown_tick, countdown_exit, NULL, 0, countdown_visibility, true };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_countdown_enter(lv_obj_t *parent,unsigned variant){countdown_build(parent);s_state=variant?ST_RUN:ST_IDLE;show_state(s_state);}
+static void demo_countdown_frame(uint32_t elapsed){if(s_state==ST_RUN){int left=300-(int)(elapsed/1000);draw_mmss(left);draw_ring((left+4)/5);}}
+static void demo_countdown_exit(void){g_ringbox=g_center=g_centerbtn=g_hint=g_reset=g_idle=NULL;s_last_shown=s_last_remn=-1;}
+const demo_page_t demo_countdown={.count=2,.enter=demo_countdown_enter,.frame=demo_countdown_frame,.exit=demo_countdown_exit};

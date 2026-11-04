@@ -233,6 +233,10 @@ int main(void) {
         create_result=pdPASS; lv_obj_t *old_icon=g_icon,*old_main=g_main;
         ota_exit(); assert(!lv_anim_get(old_icon,arrow_anim_exec) && !lv_anim_get(old_main,orbit_anim_exec)); lv_obj_delete(page);
     }
+    {int original_tasks=tasks,original_saves=saves;ota_status_t original=status_snapshot();
+        for(language=0;language<2;++language)for(unsigned v=0;v<demo_ota.count;++v){lv_obj_t *p=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(p);lv_obj_set_size(p,466,466);demo_ota.enter(p,v);demo_ota.frame(1800);capture(p,v?"demo-progress":"demo-idle");demo_ota.exit();lv_obj_delete(p);}
+        assert(tasks==original_tasks && saves==original_saves);ota_status_t after=status_snapshot();assert(!memcmp(&original,&after,sizeof original));
+    }
     puts("26 bilingual round-screen renders, dotted arrow/ring animations, real progress/colors, settings and task guards passed");
     return 0;
 }

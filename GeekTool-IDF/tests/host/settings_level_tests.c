@@ -13,6 +13,8 @@
 #include "watchface.h"
 static uint8_t language,brightness=191,volume=65,idle,silent,face;
 static int saves,audio_starts,audio_stops,blips;
+static unsigned demo_requests;
+void launcher_start_demo(void){++demo_requests;}
 static unsigned preview_refreshes;
 static uint8_t saved_face;
 static bool sensor_up=true;
@@ -41,6 +43,7 @@ const esp_app_desc_t *esp_app_get_description(void) {return &descriptor;}
 static lv_obj_t *heading;
 void launcher_set_title(const char *t) {lv_label_set_text(heading,t);}
 static uint16_t image_pixels[466*466];
+const lv_image_dsc_t *img_store_face_image_for(int theme){(void)theme;return NULL;}
 static const lv_image_dsc_t face_image={.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,.w=466,.h=466,.stride=932},.data_size=sizeof image_pixels,.data=(const uint8_t *)image_pixels};
 const lv_image_dsc_t *img_store_face_image(void) {return &face_image;}
 static void preview_draw(lv_event_t *e) {
@@ -186,16 +189,16 @@ int main(int argc,char **argv) {
         brightness=191;volume=65;idle=IDLE_AOD;silent=0;face=0;
         snprintf(descriptor.version,sizeof descriptor.version,"v1.7-beta.29");
         lv_obj_t *page=settings_screen();lv_obj_add_event_cb(page,back_gesture,LV_EVENT_GESTURE,NULL);
-        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_home_list)==7);
+        settings_enter(page);assert(s_page==SETTINGS_HOME && lv_obj_get_child_count(s_home_list)==8);
         assert(!settings_back());capture(page,directory,"settings-home");
         lv_area_t title_before,title_after,viewport,last;
         lv_obj_get_coords(heading,&title_before);lv_obj_get_coords(s_home_list,&viewport);
-        lv_obj_get_coords(lv_obj_get_child(s_home_list,6),&last);assert(last.y1>viewport.y2);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,7),&last);assert(last.y1>viewport.y2);
         int maximum=lv_obj_get_scroll_bottom(s_home_list),stored=saves;assert(maximum>0);
         drag(220,200,220,130);settle();assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)>0);
         lv_obj_scroll_to_y(s_home_list,maximum,LV_ANIM_OFF);capture(page,directory,"settings-home-bottom");
         lv_obj_get_coords(heading,&title_after);assert(memcmp(&title_before,&title_after,sizeof title_before)==0);
-        lv_obj_get_coords(lv_obj_get_child(s_home_list,6),&last);assert(last.y1>=viewport.y1 && last.y2<=viewport.y2);
+        lv_obj_get_coords(lv_obj_get_child(s_home_list,7),&last);assert(last.y1>=viewport.y1 && last.y2<=viewport.y2);
         drag(220,230,220,295);settle();assert(s_page==SETTINGS_HOME && saves==stored && lv_obj_get_scroll_y(s_home_list)<maximum);
         // Every row is a direct entry: opening it must not modify the setting itself.
         for(unsigned item=0;item<sizeof destinations/sizeof destinations[0];++item) {
@@ -359,6 +362,10 @@ int main(int argc,char **argv) {
         lv_screen_load(stage);lv_obj_delete(page);assert(!picker->panel && !picker->preview);
         settle();app_watchfaces.exit();app_watchfaces.tick();
     }
+    lv_obj_t *demo_page=settings_screen();settings_enter(demo_page);
+    lv_obj_t *demo_row=lv_obj_get_child(s_home_list,7);lv_obj_scroll_to_view(demo_row,LV_ANIM_OFF);
+    int demo_saved=saves;tap(demo_row);settle();assert(demo_requests==1 && saves==demo_saved);
+    settings_exit();lv_screen_load(stage);lv_obj_delete(demo_page);
     lv_label_set_text(heading,previous_title);lv_indev_delete(touch);touch=NULL;
     // Every direction, near-vertical and inverted readings stay bounded and recover.
     language=0;lv_obj_t *page=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(page);lv_obj_set_size(page,W,W);
@@ -405,5 +412,19 @@ int main(int argc,char **argv) {
         sensor_up=true;tx=ty=0;az=1;lv_tick_inc(20);level_tick();assert(lv_obj_has_flag(g_fault,LV_OBJ_FLAG_HIDDEN));
         level_exit();lv_obj_delete(page);
     }
-    puts("Seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 62-face selection with five safe groups and persistent studio return, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
+    lv_obj_set_style_text_font(heading,&font_location_24,0);
+    for(language=0;language<2;++language) {
+        int before_saves=saves,before_audio=audio_starts;uint8_t before_face=face;
+        lv_obj_set_style_text_font(heading,&font_location_24,0);
+        for(unsigned v=0;v<demo_settings.count;++v){lv_obj_t *p=settings_screen();demo_settings.enter(p,v);char name[64];snprintf(name,sizeof name,"demo-settings-%u",v);capture(p,directory,name);demo_settings.exit();lv_screen_load(stage);lv_obj_delete(p);}
+        lv_obj_t *p=settings_screen();lv_label_set_text(heading,language?"水平仪":"LEVEL");demo_level.enter(p,0);demo_level.frame(1800);capture(p,directory,"demo-level");demo_level.frame(5000);assert(!strcmp(lv_label_get_text(g_big),"0"));demo_level.exit();lv_screen_load(stage);lv_obj_delete(p);
+        // 全屏表盘在实际演示中隐藏系统表头；夹具必须匹配，不能用残留标题审阅画面。
+        // Match fullscreen demo chrome instead of reviewing stale fixture headers.
+        unsigned overlays=lv_obj_get_child_count(lv_layer_top());
+        for(unsigned i=0;i<overlays;++i)lv_obj_add_flag(lv_obj_get_child(lv_layer_top(),i),LV_OBJ_FLAG_HIDDEN);
+        for(unsigned v=0;v<(unsigned)watchface_count();++v){p=settings_screen();demo_watchfaces.enter(p,v);demo_watchfaces.frame(2000);char name[64];snprintf(name,sizeof name,"demo-face-%02u",v);capture(p,directory,name);demo_watchfaces.exit();lv_screen_load(stage);lv_obj_delete(p);}
+        for(unsigned i=0;i<overlays;++i)lv_obj_remove_flag(lv_obj_get_child(lv_layer_top(),i),LV_OBJ_FLAG_HIDDEN);
+        assert(saves==before_saves && audio_starts==before_audio && face==before_face);
+    }
+    puts("Demo entry plus seven direct settings entries EN/ZH, home scrolling/position restore, centered fixed 62-face selection with five safe groups and persistent studio return, independent sliders/switches/language, real pointer persistence/back/preview taps, long about text, audio/inertia/queued-exit cleanup passed; level directions/stale/fault recovery passed");
 }

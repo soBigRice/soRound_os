@@ -73,6 +73,9 @@ int main(int argc,char **argv){const char *dir=argc>1?argv[1]:NULL;
   s_count=MERIT_MAX;update_count();tap(g_wood);assert(s_count==MERIT_MAX);capture(dir,"merit-max");circle(g_count);app_merit.exit();lv_obj_delete(p);
   muted=true;p=page(language?"木鱼":"Merit");app_merit.enter(p);before=sounds;tap(g_sound);tap(g_wood);assert(sounds==before&&!s_muted);app_merit.visibility(false);muted=false;app_merit.visibility(true);assert(!strcmp(lv_label_get_text(g_sound),language?"声音开启":"SOUND ON"));muted=true;unsigned prior=writes;for(unsigned i=0;i<110;++i){tap(g_wood);advance(200);}assert(writes==prior+1&&s_dirty);app_merit.exit();lv_obj_delete(p);
   artwork_memory_ok=false;p=page(language?"木鱼":"Merit");app_merit.enter(p);assert(!s_art.data);assert(!strcmp(lv_label_get_text(g_hint),language?"图片加载失败":"IMAGE UNAVAILABLE"));capture(dir,"merit-image-failed");app_merit.exit();lv_obj_delete(p);artwork_memory_ok=true;
+  {unsigned original_writes=writes,original_sounds=sounds,original_started=started,original_ended=ended;uint32_t original_count=s_count;
+   p=page(language?"木鱼":"Merit");demo_merit.enter(p,0);demo_merit.frame(200);capture(dir,"demo-merit");demo_merit.exit();lv_obj_delete(p);
+   assert(writes==original_writes && sounds==original_sounds && started==original_started && ended==original_ended && s_count==original_count);}
   lv_deinit();writes=0;
  }
  assert(started==ended);puts("merit UI: real circular render/glyphs, rapid taps and PWR, animation, quiet/continuous save batching, load/save errors without losing RAM count, mute/visibility, overflow and cleanup passed");}

@@ -112,9 +112,11 @@ screen or PWR key, with an explicit fallback label when requests fail.
   dot-matrix elements and restrained colors for weather icons.
 - Radial launcher, quick panel, lock-screen watch faces, brightness, volume, always-on
   display and persistent settings in NVS.
-- **24 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
+- **26 apps in the current source:** Wi-Fi, I2C scan, System info, Weather, Calendar, Timer, Stopwatch,
   Settings, OTA updates, Audio visualizer, Level, Maze, Fluid, Dice & coin, Bluetooth
-  remote (mouse / slides / music), Digital twin, Book of Answers, Horoscope, Wooden Fish, Pixels, Garden, Focus, Voice Capsules and Watch Faces.
+  remote (mouse / slides / music), Digital twin, Book of Answers, Horoscope, Wooden Fish, Pixels, Garden, Focus, Voice Capsules, Watch Faces, Stocks and Mimi.
+  [Custom Stocks](./GeekTool-IDF/STOCKS.md) was added locally on 2026-11-03: the default quote overview shows three rows at once and scrolls through up to eight saved symbols. Every row shows price, change, source currency/time and its own stale state; refresh covers the entire watchlist, including offscreen symbols. Market selection supports SH, SZ, HK and US inputs. It was installed in this device's authorized combined build and passed startup checks; live quotes and interaction await acceptance. It is not included in the released v1.8 firmware or included in v1.8 above.
+  [Mimi](./GeekTool-IDF/MIMI.md) fills the round screen, with 25 eye expressions, 14 body animations, tap/stroke reactions and sleep/wake behavior; holding reveals Back. This full-screen revision was installed in the same combined build and passed startup checks. It is not included in the released v1.8 firmware; device appearance, feel and smoothness await acceptance.
   [Pixel Field](./GeekTool-IDF/PIXELS_UI.md) is included in beta.33; physical-device acceptance remains pending.
 - AXP2101 power and battery management, QMI8658 IMU, ES7210 microphone input and ES8311 audio output.
 - Wi-Fi reconnection, SNTP time synchronization and Open-Meteo weather data.

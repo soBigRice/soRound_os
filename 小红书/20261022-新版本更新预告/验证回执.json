@@ -1,0 +1,315 @@
+{
+  "checked": "2026-10-22",
+  "release_date_user_requested": "2026-10-23",
+  "source_head": "cc08558",
+  "title": "小圆屏，又被我玩出新花样了",
+  "main_images": 16,
+  "optional_images": 1,
+  "exports": [
+    {
+      "file": "发布配图/01-封面.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "0f85e1dd1a703bc33a541687c868ad295599c95fa1627cf3cb69042f82089800"
+    },
+    {
+      "file": "发布配图/01-封面.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "a46a9b609e30ae500a1f5df1c8d6b9ab9c63e79b753d7b6f02791fd8e4153c55"
+    },
+    {
+      "file": "发布配图/02-极简字体.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "260cfc277db9563838815ecd215aad7c62d2b39b2c079e0fba0b7a67da954a2c"
+    },
+    {
+      "file": "发布配图/02-极简字体.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "6270655d3e78a8249077568bbdda69bf8111b3ba93363b995c85e38a61816eb4"
+    },
+    {
+      "file": "发布配图/03-设计八款.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "6b7f5946ca683432ff07ccbed367d80df883382dcd51e8c017f901a624dd1dc6"
+    },
+    {
+      "file": "发布配图/03-设计八款.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "6d569b424b59d797b237d2e558ff5c879396c296a51117e52f52b0d5d463b98d"
+    },
+    {
+      "file": "发布配图/04-STUDIO场景.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "b026775220e540dd6fcd34d4860faae4b62ff718865ef69cb344a3ef6757a013"
+    },
+    {
+      "file": "发布配图/04-STUDIO场景.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "948e736e23747a42046dff47f59a84bac15b296705486599dc069883b09a5d81"
+    },
+    {
+      "file": "发布配图/05-图形表盘.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "07d069403b1a1ae3613073924646777c9969411089a84dc65a645ad2ef5b7e77"
+    },
+    {
+      "file": "发布配图/05-图形表盘.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "1eb6c38bbdae32b549a32344df4ebe9fea87fbd9a855182bc6b2e5eff52271e6"
+    },
+    {
+      "file": "发布配图/06-运动图形.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "0a65a07602e24a606e779e53066fdb8834fb1521c9a9c8abdf79dda5ff4437e4"
+    },
+    {
+      "file": "发布配图/06-运动图形.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "724b5a9fcfff88c2cd4d6f33ab63e22a06e9a33732247bfe5a018a715723aeed"
+    },
+    {
+      "file": "发布配图/07-六款指针.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "746f76343403ece86b2462a7c60b5964058dc8a27d441ad04ce8d21c2fc6d39b"
+    },
+    {
+      "file": "发布配图/07-六款指针.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "2bc35adfa719537ee4932aa8ce7fdd86a749ff118ece9a0cea13acab7dbd0edb"
+    },
+    {
+      "file": "发布配图/08-几何读时.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "3182c6182771cd3944531bcb37c73a512b1549dec17ae0d4fddae98391d3650a"
+    },
+    {
+      "file": "发布配图/08-几何读时.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "9145bfee6d6c7dc58501a90203ab839bb9f0bdbeff7078e972ec643612f47c73"
+    },
+    {
+      "file": "发布配图/09-表盘入口与图标.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "685039d1197ebaf49e61a32a725ed4eeb1e0605a5becf3574cc80ceb3e2f9e69"
+    },
+    {
+      "file": "发布配图/09-表盘入口与图标.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "a759ada74af6bbc5c0bbe00ed3f9956bcd5f899d46d681507cecf2a006909694"
+    },
+    {
+      "file": "发布配图/10-像素互动.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "8bbc8c198e12f1ea31a9094667956aba4ecfeaaf1fda8e3b551bcc2e80bbd934"
+    },
+    {
+      "file": "发布配图/10-像素互动.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "6ddde31a50983fa70d4346b2ab3ad1706eb7e20cb0877cc7a0bfa3eb62d7c13a"
+    },
+    {
+      "file": "发布配图/11-掌心生态箱.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "95da88678c57103cbd8282fa3bd7126a26254dc6ab2b8a038f0527bb5a53a064"
+    },
+    {
+      "file": "发布配图/11-掌心生态箱.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "bef3f1b10f72a876807303a64b7e016e058eb828fad374dc388bd99670a24b59"
+    },
+    {
+      "file": "发布配图/12-专注唱片机.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "b0eb20cfcbec78661c6d10a6c55e74a1e0ca40bac638a33a935bd663836015c9"
+    },
+    {
+      "file": "发布配图/12-专注唱片机.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "1f711e5edd2fa211a61c29713e3dc6a15a2d7c528ee8be5eb44a2eb1715bc91c"
+    },
+    {
+      "file": "发布配图/13-电脑遥控台.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "7146acdc2d54f7a57ac47aa5ffcd0cfd68d616ce5ddcb7fa2878a35c00b60fa6"
+    },
+    {
+      "file": "发布配图/13-电脑遥控台.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "a2423f61ddc0d7d43688395afe476a1fe43515d15601736fbd3e52c487f8f42c"
+    },
+    {
+      "file": "发布配图/14-声音胶囊.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "55835a22b040cd0cadf76924a142a372fd76be1e93e1dd865e7ae2d75840438a"
+    },
+    {
+      "file": "发布配图/14-声音胶囊.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "b17b2622035dc8f047046e3d332cc40b8ba6530d797c98b818682a9ff4f4800d"
+    },
+    {
+      "file": "发布配图/15-迷宫流体木鱼.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "f5563b333eafe5a1fb4a156061c53a830129d42113407c1c4e3f92fcc2b8e7a3"
+    },
+    {
+      "file": "发布配图/15-迷宫流体木鱼.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "65497072fb990947bb628a9f04ceefeff06d865c68b6bf25e61710409128ab8a"
+    },
+    {
+      "file": "发布配图/16-体验与官网.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "05847225152aebe0c4c72c703b7e7b5da4a8e08f0b1cd0f0da3f8ed3d8140b56"
+    },
+    {
+      "file": "发布配图/16-体验与官网.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "3b066c2f368412069f1b8cd2e911f3f4756238cdb14f34eea701078b523a6c0a"
+    },
+    {
+      "file": "备选配图/17-备选-地图概念.jpg",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "ec39a55b8fc8127114e17013d040ce5b27a92a055a3e0c677de045ed70c63f4d"
+    },
+    {
+      "file": "备选配图/17-备选-地图概念.png",
+      "size": [
+        1080,
+        1440
+      ],
+      "sha256": "f42e1fff4d2e512ada21da3eb06a0ba6616274d0edcf53dfcb6eb74b9f4ab9c7"
+    }
+  ],
+  "original_assets_hashed": 481,
+  "browser_checks": {
+    "browser": "Tabbit",
+    "pages": 17,
+    "size": [
+      1080,
+      1440
+    ],
+    "broken_images": 0,
+    "minimum_footer_clearance_px": 21,
+    "index_mobile_width": 390,
+    "index_mobile_overflow": false
+  },
+  "visual_review": [
+    "full cover",
+    "native geometry poster",
+    "all 17 final posters in contact sheet"
+  ],
+  "scope": "Publicity artifacts only; no firmware tests or releases performed in this task",
+  "cleanup": {
+    "task_created_browser_page_closed": true,
+    "tabbit_finish_confirmed": true,
+    "forced_cleanup": false,
+    "port_18846_server_stopped": true,
+    "temporary_screenshot_copies_removed": true,
+    "python_bytecode_created": false
+  },
+  "copy_revision": {
+    "date": "2026-10-22",
+    "reference": "用户提供的10月7日已发布笔记截图",
+    "change": "沿用开源地址：GitHub · soBigRice/soRound_os；补充个人主页：sobigrice.com",
+    "sha256": "64ff70a372430814ef23cf46c4516594a69e163495f11e63fc254241cdf43b9d"
+  }
+}

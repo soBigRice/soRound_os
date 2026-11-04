@@ -14,6 +14,7 @@
 | 天气及天气表盘 | `weather_poll → start_fetch → wx_task → weather_data_url → network_http_get → weather_data_parse → generation → s_data/s_revision` | Open-Meteo HTTP；成功20分钟、失败1分钟刷新；8KiB响应、1KiB请求发送缓冲保持。IP恢复后 `WX_OFFLINE` 立即重试；完整SDK响应才解析；切换城市作废旧generation。退出天气页保留共享后台请求/缓存，表盘共用这一来源。 |
 | 答案之书 | `start_turn → answers_fetch_begin → fetch_task → network_http_get → answers_data_parse → answers_fetch_poll → poll_answer` | 小小API HTTPS；每次翻页生成新随机附加值，同次重试保留该值；4KiB缓冲。快速退出重进遇到旧worker `BUSY` 时先等待其清理，再发当前请求；48条备用、缺字/过长/重复处理、显示后不被迟到响应替换保持。 |
 | 星座运势 | `refresh → zodiac_fetch_begin → fetch → network_http_get → zodiac_data_parse → zodiac_fetch_poll → zodiac_tick` | 小小API HTTPS；8KiB缓冲；固定所选星座和请求日，核对UTF-8、业务码、评分及当天日期。保留BUSY等待、刷新/切换/退出取消；校时跨日后，即使此前失败/离线也重新请求一次。 |
+| 股票（2026-11-03修订） | `begin_request → stocks_fetch_begin(list) → fetch逐只请求 → network_http_get → stock_quote_parse → publish → stocks_fetch_poll → render_row/render_quote` | 腾讯JSON HTTPS；全自选总览含价格/涨跌/来源时间，完整列表含屏外行均刷新；单worker/32KiB正文、单只6秒I/O/8秒预算、整轮24秒，完成后间隔15秒。逐只发布、失败保留对应旧行情；总览/详情不取消，编辑/遮挡/退出取消。见[股票说明](./STOCKS.md)，已随整合包安装；真实行情待验收，未发布固件版本。 |
 | OTA | `start_btn → ota_task → ota_update_run → esp_https_ota_* → ota_tick` | 正式/beta的固定HTTPS入口。Wi-Fi已开启但IP尚未就绪时，worker最多等待15秒；超时先停止，尚未打开/写入固件。保留最多三次尝试、强ETag/If-Match/Range续传、项目/版本/长度/固件完整校验与失败清理。错误保留DNS返回值、TCP errno及TLS code/flags，UI呈现相应阶段。 |
 | Wi-Fi / 校时 | `wifi_service_start → wifi_svc_init → wifi_evt → esp_sntp_init/restart → on_time_sync → rtc` | `pool.ntp.org` UDP校时在第一次GOT_IP后启动，后续GOT_IP重新校时。扫描抑制期间掉线，扫描完成/失败或离页取消扫描后恢复已保存网络的连接；原认证/超时状态和后台服务保持。 |
 | 启动联网检查 | `app_main → startup_network_check → boot_net → esp_http_client` | 核心检查/OTA确认后，无IP立即离线；有IP时对同一OTA通道做一次HTTPS HEAD，主任务最多等8.5秒，不下载正文/写flash。HTTP、DNS、TCP、TLS失败记录并提示，不影响固件有效性或离线进入表盘。 |
@@ -33,7 +34,7 @@ IP就绪也不证明具体DNS、互联网或服务可达，后者由各请求的
 仍在手动连接、密码操作抑制或Wi-Fi关闭时不抢占该流程；已关联时不主动断开。
 SNTP配置在 `esp_wifi_start` 前设置，避免快速GOT_IP先于校时配置；事件回调不操作LVGL。
 
-## 三个数据App的共享HTTP边界
+## 四个数据App的共享HTTP边界
 
 `network_http.c:network_http_get` 只负责有界传输；调用方继续持有worker、generation、缓冲与业务解析器。
 采用项目已有ESP-IDF API，避免三份读循环分别遗漏就绪判断、取消、完整性和错误清理；没有新增依赖或后台网络管理器。
@@ -58,7 +59,7 @@ generation有效 + IP就绪
 | JSON、UTF-8、业务字段、星座/日期等解析失败 | 由各解析器拒绝，不将HTTP200视为业务成功，不循环重试坏内容。 |
 | 退出/换城市/换星座/等待超时 | 作废generation；任务在SDK调用边界检测后自行关闭连接和释放内存，不在SDK I/O中强杀任务。 |
 
-答案/星座I/O上限6秒、共享传输预算8秒；天气I/O上限12秒、预算24秒。
+答案/星座/股票单次I/O上限6秒、单次共享传输预算8秒；天气I/O上限12秒、预算24秒。股票于2026-11-03改为完整自选轮询：整轮24秒预算、UI等待30秒，BUSY另等最多10秒，详见[股票说明](./STOCKS.md)。
 预算在SDK调用前后检查，并将下一次I/O timeout缩至剩余预算；SDK内部阻塞DNS或读取可能超过检查点，
 因此这些数字不是整个worker的硬墙钟终止保证。数据App的LVGL线程不执行这些阻塞操作。
 答案/星座UI等待新请求最多8.5秒；若先遇到旧worker BUSY，另有最多8.5秒的清理等待，开始新请求后重新计时。

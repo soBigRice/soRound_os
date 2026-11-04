@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // Fixed, replayable levels; retain the continuous tilt-driven rolling and wall collision model.
 #include "app.h"
 #include "glyph.h"
@@ -152,3 +153,29 @@ static bool maze_back(void){if(g_maze_mode==MAZE_MENU)return false;g_maze_mode=M
 static void maze_exit(void){if(g_maze_queued)lv_async_call_cancel(maze_rebuild,NULL);g_maze_queued=false;g_maze_parent=g_maze_ui=g_wallbox=g_ball=g_msg=NULL;}
 static void maze_visibility(bool visible){(void)visible;s_last_us=esp_timer_get_time();}
 const app_t app_maze={"maze",COL_TXT,maze_enter,maze_tick,maze_exit,maze_back,20,maze_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_maze_path[36],demo_maze_length;
+static int demo_maze_previous_level;
+static void demo_maze_enter(lv_obj_t *parent,unsigned variant) {
+    demo_maze_previous_level=g_level;maze_enter(parent);demo_maze_length=0;if(!variant)return;
+    g_level=(int)variant-1;g_maze_mode=MAZE_PLAY;maze_rebuild(NULL);
+    const maze_level_t *level=current_level();unsigned size=level->size,count=size*size,queue[36],head=0,tail=0;int previous[36];
+    for(unsigned i=0;i<count;++i)previous[i]=-1;
+    queue[tail++]=0;previous[0]=0;
+    while(head<tail){unsigned cell=queue[head++];int x=(int)(cell%size),y=(int)(cell/size);const int dx[]={0,1,0,-1},dy[]={-1,0,1,0};
+        for(unsigned d=0;d<4;++d){int nx=x+dx[d],ny=y+dy[d];if(level->walls[cell]&(1u<<d)||nx<0||ny<0||nx>=(int)size||ny>=(int)size)continue;unsigned next=(unsigned)ny*size+(unsigned)nx;if(previous[next]>=0)continue;previous[next]=(int)cell;queue[tail++]=next;}}
+    unsigned cell=count-1;if(previous[cell]<0)return;
+    do{demo_maze_path[demo_maze_length++]=cell;if(!cell)break;cell=(unsigned)previous[cell];}while(demo_maze_length<count);
+    for(unsigned i=0;i<demo_maze_length/2;++i){unsigned tmp=demo_maze_path[i];demo_maze_path[i]=demo_maze_path[demo_maze_length-1-i];demo_maze_path[demo_maze_length-1-i]=tmp;}
+}
+static void demo_maze_frame(uint32_t elapsed) {
+    if(!g_ball || demo_maze_length<2)return;
+    unsigned n=current_level()->size;
+    float position=fminf(1,elapsed/5800.0f)*(demo_maze_length-1);unsigned a=(unsigned)position,b=a+1<demo_maze_length?a+1:a;float t=position-a;
+    unsigned c=demo_maze_path[a],d=demo_maze_path[b];float cell=BOARD/(float)n;
+    float x=(c%n)*(1-t)+(d%n)*t,y=(c/n)*(1-t)+(d/n)*t;
+    lv_obj_set_pos(g_ball,(int)(OX+(x+.5f)*cell)-BALL_R,(int)(OY+(y+.5f)*cell)-BALL_R);
+}
+static void demo_maze_exit(void){maze_exit();g_level=demo_maze_previous_level;}
+const demo_page_t demo_maze={.count=13,.enter=demo_maze_enter,.frame=demo_maze_frame,.exit=demo_maze_exit};

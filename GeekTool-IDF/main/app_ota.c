@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // OTA 升级 —— ota_update.c 负责 HTTPS 下载/续传/校验,本页负责 worker 与圆屏状态。
 // 线程:后台只发布加锁快照,UI 在 ota_tick(LVGL 任务)里读;离开页面仍继续更新。
 // 安全:开了 bootloader 回滚(sdkconfig CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE)——
@@ -420,9 +421,8 @@ static void ota_enter(lv_obj_t *parent) {
     ota_tick();                  // 首帧立即还原空闲或后台任务真实状态,避免短暂闪错。
 }
 
-static void ota_tick(void) {
+static void ota_render_status(ota_status_t status) {
     if (!g_status) return;
-    ota_status_t status = status_snapshot();
     bool show_progress = status.state == OTA_RUNNING || status.state == OTA_VERIFYING || status.state == OTA_RETRYING;
     if (show_progress && status.pct != s_last_pct) {
         s_last_pct = status.pct;
@@ -522,6 +522,8 @@ static void ota_tick(void) {
     start_orbit_anim();
 }
 
+static void ota_tick(void){ota_render_status(status_snapshot());}
+
 static void ota_exit(void) {
     stop_arrow_anim();                           // 后台下载独立于页面,只停本页视觉动画。
     stop_orbit_anim();
@@ -541,3 +543,13 @@ static void ota_visibility(bool visible) {
 }
 
 const app_t app_ota = { "ota", COL_TXT, ota_enter, ota_tick, ota_exit, ota_back, 0, ota_visibility };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_ota_variant;
+static void demo_ota_enter(lv_obj_t *parent,unsigned variant){demo_ota_variant=variant;ota_enter(parent);stop_arrow_anim();stop_orbit_anim();s_shown=(ota_state_t)-1;}
+static void demo_ota_frame(uint32_t elapsed) {
+    ota_status_t sample={.state=demo_ota_variant?OTA_RUNNING:OTA_IDLE,.pct=15+(int)(elapsed/100),.version="DEMO"};
+    ota_render_status(sample);stop_arrow_anim();stop_orbit_anim();
+    if(demo_ota_variant){s_orbit_phase=(int)(elapsed/15)%360;orbit_render(sample.state);lv_obj_invalidate(g_main);}
+}
+const demo_page_t demo_ota={.count=2,.enter=demo_ota_enter,.frame=demo_ota_frame,.exit=ota_exit};

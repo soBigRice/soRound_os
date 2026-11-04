@@ -187,6 +187,10 @@ int main(int argc,char **argv) {
         network=false;hold_response=false;control=true;page=enter();advance(20);
         assert(!s_turning&&!control);app_answers.exit();lv_obj_delete(page);
     }
+    {unsigned original_requests=requests,original_cancel=cancellations;
+        for(language=0;language<2;++language){lv_obj_t *p=lv_obj_create(lv_screen_active());lv_obj_remove_style_all(p);lv_obj_set_size(p,466,466);demo_answers.enter(p,0);demo_answers.frame(1800);capture(dir,"demo-answers");demo_answers.exit();lv_obj_delete(p);}
+        assert(requests==original_requests && cancellations==original_cancel);
+    }
     lv_deinit();
     puts("answers: 48 bilingual backups, online/failed/duplicate/unsupported/long/timeout states, physical key/tap equivalence, glyph/circle coverage, page turns, repeated-tap guard, no adjacent repeat, cover/resume, clock wrap/delays, idle and exit/reentry passed");
     return 0;

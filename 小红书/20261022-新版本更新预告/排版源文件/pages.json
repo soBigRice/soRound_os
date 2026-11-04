@@ -1,0 +1,121 @@
+[
+  {
+    "name": "封面",
+    "number": 1,
+    "extra": false,
+    "title": "小圆屏，又有新花样了。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "极简字体",
+    "number": 2,
+    "extra": false,
+    "title": "把时间，放大一点。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "设计八款",
+    "number": 3,
+    "extra": false,
+    "title": "每天，换一种心情。",
+    "note": "原生 UI 渲染 · 唱片、线路、月亮与星体为视觉意象"
+  },
+  {
+    "name": "STUDIO场景",
+    "number": 4,
+    "extra": false,
+    "title": "时间，也可以有画面。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "图形表盘",
+    "number": 5,
+    "extra": false,
+    "title": "让秒针，换个走法。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "运动图形",
+    "number": 6,
+    "extra": false,
+    "title": "时间，跑起来了。",
+    "note": "原生 UI 渲染 · 图形表达时分秒，不代表健康或运动数据"
+  },
+  {
+    "name": "六款指针",
+    "number": 7,
+    "extra": false,
+    "title": "还是指针，也有新意思。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "几何读时",
+    "number": 8,
+    "extra": false,
+    "title": "如果没有数字，时间会是什么样？",
+    "note": "原生 UI 渲染 · 几何为艺术化读时表达"
+  },
+  {
+    "name": "表盘入口与图标",
+    "number": 9,
+    "extra": false,
+    "title": "喜欢哪一款，直接换。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "像素互动",
+    "number": 10,
+    "extra": false,
+    "title": "手痒的时候，拨两下。",
+    "note": "原生 UI 渲染 · 触摸、摇动与配色的示例状态"
+  },
+  {
+    "name": "掌心生态箱",
+    "number": 11,
+    "extra": false,
+    "title": "在掌心，养一片小风景。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "专注唱片机",
+    "number": 12,
+    "extra": false,
+    "title": "放一张唱片，专心一会儿。",
+    "note": "原生 UI 渲染 · 音景为离线合成环境声"
+  },
+  {
+    "name": "电脑遥控台",
+    "number": 13,
+    "extra": false,
+    "title": "小圆屏，也管点大事。",
+    "note": "原生 UI 渲染 · 画面数值为示例"
+  },
+  {
+    "name": "声音胶囊",
+    "number": 14,
+    "extra": false,
+    "title": "有些瞬间，想留一点声音。",
+    "note": "原生 UI 渲染 · 录音状态与波形为测试输入"
+  },
+  {
+    "name": "迷宫流体木鱼",
+    "number": 15,
+    "extra": false,
+    "title": "认真玩，也认真解压。",
+    "note": "原生 UI 渲染 · 保留粒子流体玩法"
+  },
+  {
+    "name": "体验与官网",
+    "number": 16,
+    "extra": false,
+    "title": "外表换新，细节也慢慢磨。",
+    "note": "新版本预告 · 2026.10.23 正式版见"
+  },
+  {
+    "name": "备选-地图概念",
+    "number": 17,
+    "extra": true,
+    "title": "下一张风景，想装进圆里。",
+    "note": "AI 视觉概念 · 地理细节非真实输出 · 不列入明日功能承诺"
+  }
+]

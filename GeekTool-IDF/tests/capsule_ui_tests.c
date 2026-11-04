@@ -109,6 +109,10 @@ int main(int argc,char **argv) {
         lv_obj_send_event(g_rows[0],LV_EVENT_LONG_PRESSED,NULL);stable_page(page);
         capsules_exit();assert(!g_main);lv_obj_delete(page);
     }
+    for(language=0;language<2;++language){unsigned actions=recordings+stops+plays+deletes;
+        for(unsigned v=0;v<demo_capsules.count;++v){lv_obj_t *p=tools_surface(lv_screen_active(),0,0,466,466);demo_capsules.enter(p,v);demo_capsules.frame(1800);char name[48];snprintf(name,sizeof name,"demo-capsules-%u",v);capture(dir,name);demo_capsules.exit();lv_obj_delete(p);}
+        assert(actions==recordings+stops+plays+deletes);
+    }
     assert(enters==2 && exits==2);
     puts("capsule UI: actual LVGL EN/ZH idle/recording/storage/list/delete snapshots, circular layout, record/stop/play, two-step deletion, lock visibility and back/exit passed");
 }

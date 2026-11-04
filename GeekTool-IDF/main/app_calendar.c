@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 日历 app —— 月视图网格(周一起始)。今天 = 唯一红色实心圆(满屏点描/描边里唯一的实心块,做视觉焦点)。
 // 时间取本机 localtime(WiFi+SNTP 校时,TZ=CST-8);无网络也能画(按本机时间)。标题显示 "Month Year"。
 // 静态一帧、无 tick:打开即画好,日期不在查看期间滚动,省得整屏重绘(天然避撕裂)。
@@ -89,3 +90,7 @@ static void calendar_enter(lv_obj_t *parent) {
 }
 
 const app_t app_calendar = { "calendar", COL_TXT, calendar_enter, NULL, NULL };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_calendar_enter(lv_obj_t *parent,unsigned variant){(void)variant;calendar_enter(parent);}
+const demo_page_t demo_calendar={.count=1,.enter=demo_calendar_enter};

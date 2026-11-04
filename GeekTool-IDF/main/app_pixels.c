@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // Pixel Field: native vector squares, bounded spring motion and local IMU input.
 #include "app.h"
 #include "pixel_field.h"
@@ -198,3 +199,16 @@ static void pixel_enter(lv_obj_t *parent) {
 }
 
 const app_t app_pixels = {"Pixels", COL_TXT, pixel_enter, pixel_tick, pixel_exit, NULL, 20, pixel_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static uint8_t demo_pixel_palette,demo_pixel_pattern;
+static uint32_t demo_pixel_previous;
+static void demo_pixels_enter(lv_obj_t *parent,unsigned variant){demo_pixel_palette=s_palette;demo_pixel_pattern=s_pattern;s_palette=(uint8_t)variant;pixel_enter(parent);demo_pixel_previous=0;}
+static void demo_pixels_frame(uint32_t elapsed) {
+    if(!s_field)return;
+    float t=elapsed/900.0f;pixel_field_touch(s_field,233+110*sinf(t),225+65*cosf(t),elapsed%3000<2200);
+    if(pixel_field_step(s_field,(elapsed-demo_pixel_previous)/1000.0f))field_redraw();
+    demo_pixel_previous=elapsed;wake();
+}
+static void demo_pixels_exit(void){pixel_exit();s_palette=demo_pixel_palette;s_pattern=demo_pixel_pattern;}
+const demo_page_t demo_pixels={.count=3,.enter=demo_pixels_enter,.frame=demo_pixels_frame,.exit=demo_pixels_exit,.visibility=pixel_visibility};

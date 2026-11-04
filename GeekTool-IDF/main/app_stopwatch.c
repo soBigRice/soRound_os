@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 正向计时器(秒表)—— 从 0 累加。PWR 实体键=开始/暂停/继续;
 // 屏上按钮:运行=计圈(lap),停止=归零(reset)。秒环每分钟扫一圈;中心 MM:SS + 百分秒;顶部最近 3 圈。
 #include "app.h"
@@ -152,3 +153,12 @@ static void stopwatch_exit(void) {
 }
 
 const app_t app_stopwatch = { "stopwatch", COL_TXT, stopwatch_enter, stopwatch_tick, stopwatch_exit, NULL, 20 };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_stopwatch_enter(lv_obj_t *parent,unsigned variant){(void)variant;stopwatch_enter(parent);}
+static void demo_stopwatch_frame(uint32_t elapsed) {
+    s_run=false;s_base_us=(int64_t)(12340+elapsed)*1000;stopwatch_tick();
+    s_nlap=3;s_laps[0]=4200000;s_laps[1]=8300000;s_laps[2]=12340000;update_laps();
+    lv_label_set_text(g_btnl,tr(S_LAP));
+}
+const demo_page_t demo_stopwatch={.count=1,.enter=demo_stopwatch_enter,.frame=demo_stopwatch_frame,.exit=stopwatch_exit};

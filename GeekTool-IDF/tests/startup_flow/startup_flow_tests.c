@@ -14,6 +14,7 @@
 #include "tools_ui.h"
 #include "esp_heap_caps.h"
 #include "font_companion.h"
+#include "font_stocks.h"
 #include "font_mimi.h"
 #include "src/misc/lv_text_private.h"
 #include <stdio.h>
@@ -31,12 +32,13 @@ static uint16_t pixels[466*466];
 _Alignas(LV_DRAW_BUF_ALIGN) static uint16_t buffers[2][466*40];
 static void fixture_enter(lv_obj_t *parent){(void)parent;}
 #define APP(n) const app_t app_##n={.name=#n,.enter=fixture_enter}
-APP(wifi);APP(i2c);APP(sys);APP(weather);APP(calendar);APP(countdown);APP(stopwatch);APP(settings);APP(ota);APP(audio);APP(level);APP(maze);APP(fluid);APP(dice);APP(mouse);APP(twin);APP(answers);APP(zodiac);APP(merit);APP(pixels);
+APP(demo);APP(wifi);APP(i2c);APP(sys);APP(weather);APP(calendar);APP(countdown);APP(stopwatch);APP(settings);APP(ota);APP(audio);APP(level);APP(maze);APP(fluid);APP(dice);APP(mouse);APP(twin);APP(answers);APP(zodiac);APP(merit);APP(pixels);
 // 名称必须与生产注册一致，否则中文映射不会覆盖新增应用。
 // Match production names so the fixture exercises localized new-app labels.
 const app_t app_garden={.name="Garden",.enter=fixture_enter};
 const app_t app_focus={.name="Focus",.enter=fixture_enter};
 const app_t app_capsules={.name="Capsules",.enter=fixture_enter};
+const app_t app_stocks={.name="Stocks",.enter=fixture_enter};
 #undef APP
 static void flush(lv_display_t *d,const lv_area_t *a,uint8_t *bytes) {
     unsigned w=(unsigned)lv_area_get_width(a);
@@ -203,7 +205,7 @@ static void check_launcher_names(const char *dir) {
         language=(uint8_t)(1-pass);
         for(int index=0;index<APP_COUNT;++index) {
             assert(!strcmp(lv_label_get_text(name),tr_app_name(APPS[index]->name)));require_glyphs(name);
-            const lv_font_t *expected=APPS[index]==&app_mimi?&font_mimi_24:index>=20?&font_companion_24:&font_location_24;
+            const lv_font_t *expected=APPS[index]==&app_mimi?&font_mimi_24:APPS[index]==&app_stocks?&font_stocks_24:index>=20?&font_companion_24:&font_location_24;
             assert(lv_obj_get_style_text_font(name,0)==expected);
             if(index>=20) {
                 capture_launcher_name(dir,APPS[index]->name);
@@ -214,7 +216,14 @@ static void check_launcher_names(const char *dir) {
                 assert(lv_screen_active()!=home);
                 lv_obj_t *title=find_label(lv_layer_top(),tr_app_name(APPS[index]->name));require_glyphs(title);
                 if(APPS[index]!=&app_mimi)assert(!ui_obj_is_hidden(title));
-                assert(lv_obj_get_style_text_font(title,0)==(APPS[index]==&app_mimi?&font_mimi_24:&font_companion_24));
+                assert(lv_obj_get_style_text_font(title,0)==(APPS[index]==&app_mimi?&font_mimi_24:APPS[index]==&app_stocks?&font_stocks_24:&font_companion_24));
+                if(APPS[index]==&app_stocks) {
+                    lv_obj_t *ring=lv_obj_get_child(lv_layer_top(),0);lv_area_t area;
+                    // 位置属性由LVGL延迟布局；先结算再检查真实坐标。/ Resolve deferred layout before checking rendered coordinates.
+                    lv_obj_update_layout(title);
+                    lv_obj_get_coords(title,&area);assert(area.y1==56);
+                    assert(lv_obj_get_width(ring)==450 && lv_obj_get_style_arc_width(ring,LV_PART_MAIN)==3);
+                }
                 if(APPS[index]==&app_watchfaces) {
                     // 此项链接真实App，确认入口可切换、保存并显示所选锁屏表盘。
                     // Link the real app here and exercise selection, persistence and its lock screen.
@@ -241,6 +250,11 @@ static void check_launcher_names(const char *dir) {
                     go_home();assert(!ui_obj_is_hidden(battery));
                 }
                 go_home();assert(lv_screen_active()==home);require_glyphs(name);
+                if(APPS[index]==&app_stocks) {
+                    lv_obj_t *ring=lv_obj_get_child(lv_layer_top(),0);
+                    lv_obj_update_layout(ring);
+                    assert(lv_obj_get_width(ring)==458 && lv_obj_get_style_arc_width(ring,LV_PART_MAIN)==8);
+                }
             }
             // 用真实按钮/动画推进到下一项，覆盖中点换字和末尾回绕。
             // Drive the real button and animation, covering midpoint updates and wrap-around.
@@ -257,8 +271,8 @@ int main(int argc,char **argv) {
     app_main();assert(face<30 && watchface_selected()==face);
     if(face==21)assert(!strcmp(watchface_name(face),"STUDIO / radar"));
     if(face==29)assert(!strcmp(watchface_name(face),"STUDIO / growth"));
-    assert(!held && APP_COUNT==25 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
-        APPS[21]==&app_focus && APPS[22]==&app_capsules && APPS[23]==&app_watchfaces && APPS[24]==&app_mimi && lock_is_locked());
+    assert(!held && APP_COUNT==26 && APPS[19]==&app_pixels && APPS[20]==&app_garden &&
+        APPS[21]==&app_focus && APPS[22]==&app_capsules && APPS[23]==&app_watchfaces && APPS[24]==&app_stocks && APPS[25]==&app_mimi && lock_is_locked());
     if(home_dma && !ui_lock_failure){assert(confirmations==1 && !rollbacks && !identity_boot_active() && watchface_visible());assert(memory_samples==2);}
     else {assert(!confirmations && rollbacks==1 && identity_boot_active());assert(!memory_samples);}
     if(argc>3 && !strcmp(argv[3],"launcher"))

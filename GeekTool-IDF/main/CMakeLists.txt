@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "main.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_catalog.c" "watchface_ui.c" "font_watchface.c" "font_watchface_hands.c" "font_watchface_studio.c" "watchface_instrument.c" "watchface_scenes.c" "watchface_graphic.c" "watchface_atelier.c" "watchface_type.c" "watchface_sport.c" "watchface_geometry.c" "font_watchface_type.c" "watchface_studio_draw.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
+    SRCS "main.c" "demo_mode.c" "display.c" "launcher.c" "power.c" "watchface.c" "watchface_catalog.c" "watchface_ui.c" "font_watchface.c" "font_watchface_hands.c" "font_watchface_studio.c" "watchface_instrument.c" "watchface_scenes.c" "watchface_graphic.c" "watchface_atelier.c" "watchface_type.c" "watchface_sport.c" "watchface_geometry.c" "font_watchface_type.c" "watchface_studio_draw.c" "watchface_backgrounds.c" "lock.c" "glyph.c" "buttons.c" "i18n.c" "font_cn16.c"
          "quickpanel.c" "tools_ui.c" "font_tools.c" "launcher_icons.c" "control_ui.c" "font_control.c" "identity_ui.c" "font_identity.c"
          "startup.c" "startup_network.c" "ui_list.c" "app_sys.c" "app_i2c.c" "app_wifi.c" "app_weather.c"
          "weather_ui.c" "weather_artwork.c" "font_weather_16.c" "font_weather_20.c"
@@ -14,6 +14,7 @@ idf_component_register(
          "app_pixels.c" "pixel_field.c"
          "app_garden.c" "garden_state.c" "app_focus.c" "focus_state.c" "font_companion.c" "companion_icons.c"
          "app_capsules.c" "capsule_store.c" "capsule_recorder.c" "remote_media.c" "ble_media.c"
+         "app_stocks.c" "stocks_data.c" "stocks_store.c" "stocks_fetch.c" "font_stocks.c" "font_stocks_cjk.c" "font_stocks_cjk_22.c"
          "app_mimi.c" "mimi_pet.c" "mimi_motion.c" "font_mimi.c"
          "mimi_assets.c" "mimi_prepare.c" "mimi_pipeline.c" "mimi_render.c"
     INCLUDE_DIRS "."

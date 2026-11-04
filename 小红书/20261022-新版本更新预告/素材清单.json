@@ -1,0 +1,2414 @@
+{
+  "baseline": "2026-10-07 上次小红书",
+  "gathered": "2026-10-22",
+  "release_announcement": "2026-10-23 正式版（用户指定）",
+  "source_head": "cc08558",
+  "files": [
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-arc.png",
+      "copy": "素材原图/01-指针表盘/hand-arc.png",
+      "sha256": "80a0a8217c5a4b8a564c53c23fc4416a14aae7d3bcbc7e4708e29b40406d63fc"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-dots.png",
+      "copy": "素材原图/01-指针表盘/hand-dots.png",
+      "sha256": "adb9f66ac315792f502e0573febfceabad214de6ee5354d073bdc86b1dc2a012"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-frame.png",
+      "copy": "素材原图/01-指针表盘/hand-frame.png",
+      "sha256": "67bab9234980b3880c3ef37b752af223dd406b0c3479a1791dba000d90c25ba0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-mark.png",
+      "copy": "素材原图/01-指针表盘/hand-mark.png",
+      "sha256": "c07468b46fd0bb9a8a7b82b2942b66bdbd5433ae7eae5a4e8269a0ba9401e76b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-numeral.png",
+      "copy": "素材原图/01-指针表盘/hand-numeral.png",
+      "sha256": "29ec03a39a39a3c8c2f409950a50573a3d2bb063d0033fb41acc178ec6168e50"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hand-orbit.png",
+      "copy": "素材原图/01-指针表盘/hand-orbit.png",
+      "sha256": "80e564d54ce6844ecb08ea3cc2409ac0a986114c1376d5c923d042d050c1bba1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/maze-05-zh.png",
+      "copy": "素材原图/01-指针表盘/maze-05-zh.png",
+      "sha256": "2d43a98abed626f46789e1eb1f8e3b684b0ae7b36e1eda07e6dd68c8b2187212"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/maze-menu-zh.png",
+      "copy": "素材原图/01-指针表盘/maze-menu-zh.png",
+      "sha256": "eb1ce2317f7f76a6687490ea23a45166536254633ef7ae0786a74363f1c4f260"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/maze-win-zh.png",
+      "copy": "素材原图/01-指针表盘/maze-win-zh.png",
+      "sha256": "a10ff8ed38ddc2dbd4d26fa524c91cf075af4dd2c1ec21142fb349e01ac29a2c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/maze.png",
+      "copy": "素材原图/01-指针表盘/maze.png",
+      "sha256": "5adae42b96d069839f85ebc43c7c7d3b4bab42fb7567bf2f757453595485206c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/particles-zh.png",
+      "copy": "素材原图/01-指针表盘/particles-zh.png",
+      "sha256": "95fe3a1cd73ffcac81405d1cf6607c339d45d77c8e610420ee125cc591f527a8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/fold-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/fold-aod.png",
+      "sha256": "de6a1f663625e2d07b1614dd18c1be865cfe869df969446e6e576d891c03e357"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/fold.png",
+      "copy": "素材原图/02-STUDIO黑底/fold.png",
+      "sha256": "39bbe8a99895b94ae7cae487719263fb163dac6b29c0e5725199375354148165"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/growth-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/growth-aod.png",
+      "sha256": "49605a53ffb2576fdd7bfb0ba3712bdc1672d8123a679e7ccdcca3e57263f3ba"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/growth.png",
+      "copy": "素材原图/02-STUDIO黑底/growth.png",
+      "sha256": "4951f3f4cc9813de402f680b603cf5016ed611ce27fe463b2a1700e5940264d3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/horizon-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/horizon-aod.png",
+      "sha256": "0fb4212869d012eb908bc937e3be1176942c9000cfa5026d07fbaf4167c1c0a8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/horizon.png",
+      "copy": "素材原图/02-STUDIO黑底/horizon.png",
+      "sha256": "213c81fd5360c7ecf5909f550fd343ed45623cdd0b0efea7faeea5f4060e73c8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/iris-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/iris-aod.png",
+      "sha256": "482e1600842bfc6e72070213773d68c7dc5f8030d5608f953ac3ce49af0bcac0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/iris.png",
+      "copy": "素材原图/02-STUDIO黑底/iris.png",
+      "sha256": "471b589d0ff0f3418b505d2f58332c5a73c713386466956168a635e8326b27e1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/maze-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/maze-aod.png",
+      "sha256": "8adcb14f3ba39c30c0d0c8340ccf5543dc160e4450340b01855a5c056019f77c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/maze.png",
+      "copy": "素材原图/02-STUDIO黑底/maze.png",
+      "sha256": "e3426497f392325e5dc795036abb032bd9355cf2ac81a69dcc01ce745e1b861a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/overview.png",
+      "copy": "素材原图/02-STUDIO黑底/overview.png",
+      "sha256": "877397c7adf789482312c63cedee80fd8c7ab48d2c20d5e9820bb06257675070"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/pixel-camp-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/pixel-camp-aod.png",
+      "sha256": "fc050ab6620b21b3dca01c647587ea327bf2c1656683373fbcc8e7bafd20f130"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/pixel-camp.png",
+      "copy": "素材原图/02-STUDIO黑底/pixel-camp.png",
+      "sha256": "3f5c030da19c015e122bceb1b60f8a3e1c4dbafad4bb7699b274cf42dbe4531d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/radar-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/radar-aod.png",
+      "sha256": "1ae11e59c155687e7140e1d4dbdd916c515c4a90d3a05e42c4482accbd82e039"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/radar.png",
+      "copy": "素材原图/02-STUDIO黑底/radar.png",
+      "sha256": "6639e3cd9b1c6ac0da23fcc9e0a4345e08a325aa2ba837e5377d212cc5fe66cd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/tape-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/tape-aod.png",
+      "sha256": "5024284560d344469023fb27e6a85a772c9ba2dc155c1504e19344d1632f8a15"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/tape.png",
+      "copy": "素材原图/02-STUDIO黑底/tape.png",
+      "sha256": "59b33e272177aff618feb87afd12cb1ca99d0bd4f64ec7b1319ae88d3cf9b6d1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/tide-aod.png",
+      "copy": "素材原图/02-STUDIO黑底/tide-aod.png",
+      "sha256": "3fe6612b81ce44f1f153e885533abd6d20364a74f81f803888c3e24471bf0ddf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/black-native-20261021/tide.png",
+      "copy": "素材原图/02-STUDIO黑底/tide.png",
+      "sha256": "3bca25eeb9bb5b976037821dd9c8781a165792342bea8bc9ce1d7be9936813f9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/binary-aod.png",
+      "copy": "素材原图/03-图形表盘/binary-aod.png",
+      "sha256": "84a0d9e624f86b179748677be49ae5c295c335cc61f1b9ce2b1b2df0eabf0489"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/binary.png",
+      "copy": "素材原图/03-图形表盘/binary.png",
+      "sha256": "035be555adf2a93f2ee600b53ea409da613915448e34448125021aba2509b7f2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/grid-aod.png",
+      "copy": "素材原图/03-图形表盘/grid-aod.png",
+      "sha256": "66a9a7293fa261691ab909cb94fe9b0dccbb08b824fd34b6bb6999f788a868ef"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/grid.png",
+      "copy": "素材原图/03-图形表盘/grid.png",
+      "sha256": "72d444beebf6f903cf29584c9451bb01146e557ec99aa272c87a56a00e321f35"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/overview.png",
+      "copy": "素材原图/03-图形表盘/overview.png",
+      "sha256": "3bb13e3e0b17ecaa31bda43596af13a5ed3b55f81ec993cf644c858af8ae4065"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/petal-aod.png",
+      "copy": "素材原图/03-图形表盘/petal-aod.png",
+      "sha256": "a8be86f965ee51bb8d9c504167966248129a55968293767e206fc089ff4fce5b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/petal.png",
+      "copy": "素材原图/03-图形表盘/petal.png",
+      "sha256": "fd9344a2d460f246ed15f3b6fc3d63e74362a6fef34c46832e292f18abc2d881"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/ribbon-aod.png",
+      "copy": "素材原图/03-图形表盘/ribbon-aod.png",
+      "sha256": "3fd07e329901cd804fd15d7a53fe5d1d217ddd9df34c81bbf91654b88442e843"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/ribbon.png",
+      "copy": "素材原图/03-图形表盘/ribbon.png",
+      "sha256": "014a58674fa31fa3d284f1c0444a4d4cdeb21c57b574716dcc0e5fae6f8234f5"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/sector-aod.png",
+      "copy": "素材原图/03-图形表盘/sector-aod.png",
+      "sha256": "71a7b4ce4eebd34b06f50597a7bb524b9da0dde10ca28415e9f818ca691c8e11"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/sector.png",
+      "copy": "素材原图/03-图形表盘/sector.png",
+      "sha256": "aa64b07a21f5ebc599c3a5af440d069cb90d0675d94e00c58d92c894b63e5c6d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/solar-aod.png",
+      "copy": "素材原图/03-图形表盘/solar-aod.png",
+      "sha256": "707bb9fb6b0f122dc1858d99ac0e3b36751f6a91d09c7a087feab81f4d4b256e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/graphic-native-20261022/solar.png",
+      "copy": "素材原图/03-图形表盘/solar.png",
+      "sha256": "db4735270018f8f5f0ad86166728e568d95e10cc1955693fba685212c1c74963"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/bauhaus-aod.png",
+      "copy": "素材原图/04-设计八款/bauhaus-aod.png",
+      "sha256": "ae7a1e33c9f9a7bd12cf5b84a50665f8580096d6b1d1d74c6cc82eb4c888e5de"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/bauhaus.png",
+      "copy": "素材原图/04-设计八款/bauhaus.png",
+      "sha256": "3b9db884a4460a5402d59898ad6a516d70d7f22296626ed6236d6e7bd4b77337"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/late-overview.png",
+      "copy": "素材原图/04-设计八款/late-overview.png",
+      "sha256": "1d6c95c73a17f2ac2a1b3cda17d3a9df9076bd9561783ec71c39457b3a75e47b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/metro-aod.png",
+      "copy": "素材原图/04-设计八款/metro-aod.png",
+      "sha256": "d6b53503ef98ea9fbdc0799c798139808badb55a30c6bcdd247453b1eb5e26e8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/metro.png",
+      "copy": "素材原图/04-设计八款/metro.png",
+      "sha256": "d9293e2d62e8c9efeab1670e3a71d5e6b21342b4f77d7c7497a6ecd8d4bd61fe"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/midnight-overview.png",
+      "copy": "素材原图/04-设计八款/midnight-overview.png",
+      "sha256": "f9de87eb4719f1e833f2f4cd1dbd39c85149f0244a4b3fadc31e373459a90f52"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/mono-aod.png",
+      "copy": "素材原图/04-设计八款/mono-aod.png",
+      "sha256": "019e09e4ba93c74c934ef3ec759c9c36720ced91e2b8530946eba387a5c0651e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/mono.png",
+      "copy": "素材原图/04-设计八款/mono.png",
+      "sha256": "398be8274c11a5e87d3bb323c399b82922d8d262ec67489e51e33c4261a1ed04"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/moon-gate-aod.png",
+      "copy": "素材原图/04-设计八款/moon-gate-aod.png",
+      "sha256": "fbf6a8cb4bd4a116f8a540033496b3331bac5b1ed527749e80f79db57f170d65"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/moon-gate.png",
+      "copy": "素材原图/04-设计八款/moon-gate.png",
+      "sha256": "d2407869f3c7856855149999aa25fd22b0fcff4a7fc7d843ae214d9cffc9fa8a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/orrery-aod.png",
+      "copy": "素材原图/04-设计八款/orrery-aod.png",
+      "sha256": "ea66886cc02d50c7a064735c36ca409bad5cf20826b0e8291073cd35b3be86fc"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/orrery.png",
+      "copy": "素材原图/04-设计八款/orrery.png",
+      "sha256": "94b96065e4e4c4674b51e6e7bf050ec7b3ef7cc80df52710ffe50c25ef246449"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/overview.png",
+      "copy": "素材原图/04-设计八款/overview.png",
+      "sha256": "32f4a36425909140929039d214ffa0e5dceb4c9e0a805748c22f9292e3d9289f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/preview-overview.png",
+      "copy": "素材原图/04-设计八款/preview-overview.png",
+      "sha256": "91f64e026455c530e2da6b8a38b8004863ffa7bb0bb298a6cb0f535f1e7bb369"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/prism-aod.png",
+      "copy": "素材原图/04-设计八款/prism-aod.png",
+      "sha256": "0847a4609aa8bdec2badff1b3bcc00aea7b67d09ae33c9cb553b6e081f582b55"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/prism.png",
+      "copy": "素材原图/04-设计八款/prism.png",
+      "sha256": "f7ecd905dcedbe3ddee496c5976a20425055879547c8e4e03e6cbcd3a9b73b4e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/selector-36-zh.png",
+      "copy": "素材原图/04-设计八款/selector-36-zh.png",
+      "sha256": "6501bdcb82989c908dc0e93bb3477f9e265c5e3308cebb9f1424e9ce562c06de"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/selector-43-en.png",
+      "copy": "素材原图/04-设计八款/selector-43-en.png",
+      "sha256": "fd831d8e7ceb9a7fca9ccaa21b17e21de27a5b034e53a76984308a2d46e39a1d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/seven-aod.png",
+      "copy": "素材原图/04-设计八款/seven-aod.png",
+      "sha256": "0f72a188e34c891fa060e85f9410b7823c0cb5addbaf4b24bdcfc2cd3d826631"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/seven.png",
+      "copy": "素材原图/04-设计八款/seven.png",
+      "sha256": "dad2352ec671fbdda55c9ec3ced3ddd3c851f6cd8ae79ebe86feeaa6dc2788b0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/vinyl-aod.png",
+      "copy": "素材原图/04-设计八款/vinyl-aod.png",
+      "sha256": "a3cdac2b7e6ea834e286c73876377a464c94a33e8d74b62843153d3b861ad2b1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/atelier-native-20261022/vinyl.png",
+      "copy": "素材原图/04-设计八款/vinyl.png",
+      "sha256": "2a9b9457d974f33bf5570093d68e0e1b41d98dfb0bf97e650fa861ae89ba7511"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/air-aod.png",
+      "copy": "素材原图/05-极简字体/air-aod.png",
+      "sha256": "acb6e90d2ae038407277fa0fe16aa6e203229969769c02b2151c7d386d4fca96"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/air.png",
+      "copy": "素材原图/05-极简字体/air.png",
+      "sha256": "02f64b225ed2cab5a398679e095210f2ff117311f45935ad085197de6d886d27"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/app-selector-49-en.png",
+      "copy": "素材原图/05-极简字体/app-selector-49-en.png",
+      "sha256": "93aa7873dad0ae5bebf3868c126cc62f03c651398ca5e7941f42363d6276906a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/column-aod.png",
+      "copy": "素材原图/05-极简字体/column-aod.png",
+      "sha256": "3c5f103a64fdb9b5c5625384eaf688666934e1832ef25a16fa9f8901a05fc8bb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/column.png",
+      "copy": "素材原图/05-极简字体/column.png",
+      "sha256": "2d5b27f940cd8b4d2a2c5f16e27363fc865babc79b4bb87dbaeeeb5b058ad7e8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/cut-aod.png",
+      "copy": "素材原图/05-极简字体/cut-aod.png",
+      "sha256": "c210dc933d90a916d976d80ef62b041813ddee049f2920a65204532ee83dd13f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/cut.png",
+      "copy": "素材原图/05-极简字体/cut.png",
+      "sha256": "d673e3c984967da253f5f7ae1f2167f459881df6b11c76c8eca6703e183444e7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/edition-aod.png",
+      "copy": "素材原图/05-极简字体/edition-aod.png",
+      "sha256": "e3ecb0864a84d479cb037ae9e4f46888ced24d0f56ed8596c5350bcd45e3a9d9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/edition.png",
+      "copy": "素材原图/05-极简字体/edition.png",
+      "sha256": "480729f4297c4e2c7c137313f206c72e0da7b3ee3bade6cb69088787e5840d04"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/late-overview.png",
+      "copy": "素材原图/05-极简字体/late-overview.png",
+      "sha256": "e895ecb7d2c1bb80da445adcc64cb2f3a7db39f83fe10fc5b7fd6526deb27b15"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/midnight-overview.png",
+      "copy": "素材原图/05-极简字体/midnight-overview.png",
+      "sha256": "edbea22ddf4c0e7f8b3ad13e0f8d72703c2dcd7189ff09ef164e35c34cb7027f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/offset-aod.png",
+      "copy": "素材原图/05-极简字体/offset-aod.png",
+      "sha256": "0e1d2cfc86a296b481825760e4c75e98b66ae6587409ab14fbeea75ba0b38c55"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/offset.png",
+      "copy": "素材原图/05-极简字体/offset.png",
+      "sha256": "49ee4d4665186391c1a566e611c7ae975d3f85ee8bdbe0cad7593507a65dc764"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/overview.png",
+      "copy": "素材原图/05-极简字体/overview.png",
+      "sha256": "420fcbaa618ce4193f7f88669412ee99adf52e12bb5eee68419fc02dc3e7d615"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/preview-overview.png",
+      "copy": "素材原图/05-极简字体/preview-overview.png",
+      "sha256": "af7cdce8aa39f9dcdbcc931250ba9baf1028edebab424e3b8d6e5cc8135aae53"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/selector-44-zh.png",
+      "copy": "素材原图/05-极简字体/selector-44-zh.png",
+      "sha256": "765559c73c6ba4cd4631667611488cb179843b8f97f0cc1630b2205f9378e0cb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/stack-aod.png",
+      "copy": "素材原图/05-极简字体/stack-aod.png",
+      "sha256": "ba90b0f2952b7b9f18e356da9aa8dbfb52f13f16be02b463408212c7e11142a2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-native-20261022/stack.png",
+      "copy": "素材原图/05-极简字体/stack.png",
+      "sha256": "926e994d600d11a39ef2f049b56c2ef6508ee9fba8097c765f0d4899502da126"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/activity-aod.png",
+      "copy": "素材原图/06-运动图形/activity-aod.png",
+      "sha256": "c8531f62282bbd68b85d1bb82e333c6f2c43447e26c6e85938dcc56d14e780ba"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/activity.png",
+      "copy": "素材原图/06-运动图形/activity.png",
+      "sha256": "da1e88a7e44df52d85297f44b165e677fef6209fed6f0927d5b8ae271d2ddc71"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/app-selector-55-en.png",
+      "copy": "素材原图/06-运动图形/app-selector-55-en.png",
+      "sha256": "060442d3c82764c62570b09157100c11c69f2f3930979d7abfab23e66d991e51"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/circuit-aod.png",
+      "copy": "素材原图/06-运动图形/circuit-aod.png",
+      "sha256": "8c444f156c6d06186dfe32cc3394685355b829ec0ed158c4363391c38b6eb57a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/circuit.png",
+      "copy": "素材原图/06-运动图形/circuit.png",
+      "sha256": "f05ba8f1ee9b616963514c6deec39bb811806c22c8db6ef54aafa8ac9d629cf8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/duo-aod.png",
+      "copy": "素材原图/06-运动图形/duo-aod.png",
+      "sha256": "bc8e5673e88a533b71f3a83160c4948205a321f387ca352f900d61e9ce5af61a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/duo.png",
+      "copy": "素材原图/06-运动图形/duo.png",
+      "sha256": "efa11f72e04f81a188145f73f0c44c6073d9c117546103495a9d3c95e747f637"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/late-overview.png",
+      "copy": "素材原图/06-运动图形/late-overview.png",
+      "sha256": "81b94c86566d2f0991b7f5bc059c69f3c470a3d7b558772160ac739721e7782b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/matrix-aod.png",
+      "copy": "素材原图/06-运动图形/matrix-aod.png",
+      "sha256": "83f6453b10147bf2c9746d40a1fd51d361ef1590b6cd62f1700a76c1aa108fbe"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/matrix.png",
+      "copy": "素材原图/06-运动图形/matrix.png",
+      "sha256": "55f4f59bafe27b2425fef960864f0597c75423f0d8032683563b10eee8ec927a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/midnight-overview.png",
+      "copy": "素材原图/06-运动图形/midnight-overview.png",
+      "sha256": "ed5ed570b3d8b88055fb83d93b736352aea783ff22e84e808dd6665cb71c17e0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/overview.png",
+      "copy": "素材原图/06-运动图形/overview.png",
+      "sha256": "2be6e84e6681115c06dbb30cae037e93ef879846cb09209be9644ca0cddba3a6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/preview-overview.png",
+      "copy": "素材原图/06-运动图形/preview-overview.png",
+      "sha256": "acd03456fe6cd0703d0bdcb35228b9d60369faf1fba7aadf7d0ee2b3df5044ac"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/selector-50-zh.png",
+      "copy": "素材原图/06-运动图形/selector-50-zh.png",
+      "sha256": "a2b80c92ba0c4ec34a8f91fc3a821d28ff696215b547e9a2ff8c70767fd2022e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/stride-aod.png",
+      "copy": "素材原图/06-运动图形/stride-aod.png",
+      "sha256": "bf53e78736472c01f86f0177c2b8936eeeebad3872f233b1e45a64d797046917"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/stride.png",
+      "copy": "素材原图/06-运动图形/stride.png",
+      "sha256": "ca098eb5b87d61fa5d2ea586fe26c008a34614420fc5282f0fbc168fc0a3e287"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/vector-aod.png",
+      "copy": "素材原图/06-运动图形/vector-aod.png",
+      "sha256": "28e0a7ba3deb89106b97db12674a0b3055c53a20e6c5772eee651c343ab56e77"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/sport-native-20261022/vector.png",
+      "copy": "素材原图/06-运动图形/vector.png",
+      "sha256": "24f4ea44d5f6801ba5b3697c01f39e8d34b13c52f14e7ea6750508e323dd6025"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/app-native-20261020/app-en.png",
+      "copy": "素材原图/07-表盘入口/app-en.png",
+      "sha256": "0e2ae2be24f96e06ba92805074c0ca3943654780a6fbc7090fd6736f51134372"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/app-native-20261020/app-zh.png",
+      "copy": "素材原图/07-表盘入口/app-zh.png",
+      "sha256": "cff89315deb546adddfc77d2c679f8874b07f755fdc5153f1b3df05fc416602c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/app-native-20261020/launcher-en.png",
+      "copy": "素材原图/07-表盘入口/launcher-en.png",
+      "sha256": "51d84009b46cef695ee781efe4c3894bc8f8ab12cb0eaf4b9e9fd9fd2799cde6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/app-native-20261020/launcher-zh.png",
+      "copy": "素材原图/07-表盘入口/launcher-zh.png",
+      "sha256": "aa49e326ac45992bdbd944b064bd114bc0ce5dc23038d107c69d4b844025285b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-initial-en.png",
+      "copy": "素材原图/08-像素互动/pixels-initial-en.png",
+      "sha256": "153f7b9ec0ee49cb3fee568c0f8cd84ce441eb4a089eca4e801dc167d5ed6579"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-initial-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-initial-zh.png",
+      "sha256": "b93e3fd7adb51758bd3c5171e7517079305978aff02bb83536853e27448ad377"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-noimu-en.png",
+      "copy": "素材原图/08-像素互动/pixels-noimu-en.png",
+      "sha256": "a93d85db6eb0f5d7dc6890fd4387d75fb23ffd9de430c6085148ea8aec5d9dfb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-noimu-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-noimu-zh.png",
+      "sha256": "36e9e0f162b06bea85f9e451081dfd8271ab2782d7dce8aa984ee62c573927c4"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-palette-en.png",
+      "copy": "素材原图/08-像素互动/pixels-palette-en.png",
+      "sha256": "e0d33ad5f021b3220918d4b81ede66b08dce32e0b1c82a2b49e478a04993a56b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-palette-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-palette-zh.png",
+      "sha256": "00cfe113d9a40397cf1b632beffd90518ebfb72ef621c2d09e36b6edd88ed7fa"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-read-failure-en.png",
+      "copy": "素材原图/08-像素互动/pixels-read-failure-en.png",
+      "sha256": "a1bd27294443f6b59684a1cb5804c2350acb5976c9e0e14b064402cfc5e3cbf0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-read-failure-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-read-failure-zh.png",
+      "sha256": "d6244a8445ef56568008043c8e4ee9d57ced3c41e7f59cb82c59b69b49c609a7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-regroup-en.png",
+      "copy": "素材原图/08-像素互动/pixels-regroup-en.png",
+      "sha256": "f79661859636906377f7ac0a9e38a4a31ba8a3efece0bcf84a8db920351d74c4"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-regroup-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-regroup-zh.png",
+      "sha256": "5d293d723b92f7aff39984c3f92398c901900a55c1c6b199d71a09c5dc55b9ab"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-review.png",
+      "copy": "素材原图/08-像素互动/pixels-review.png",
+      "sha256": "01fd20f2ce03b2c31b5997f1f62b4ba53f33249f22e9ab9324162c94cdf78b27"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-shake-en.png",
+      "copy": "素材原图/08-像素互动/pixels-shake-en.png",
+      "sha256": "e91d46b542bccee87d4a518a75c3f57050ea265781a77e7e0f2737bebb0600ac"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-shake-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-shake-zh.png",
+      "sha256": "949293098f8312c9370fa140073508c6bfc07f1eb94f69bb667da5d5318b3d3b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-touch-en.png",
+      "copy": "素材原图/08-像素互动/pixels-touch-en.png",
+      "sha256": "0eef21e1835be11e9a5ae42b5597e727621febe0947bbd6f5a50da409b39e353"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/pixels/native/pixels-touch-zh.png",
+      "copy": "素材原图/08-像素互动/pixels-touch-zh.png",
+      "sha256": "b56bfb1594dc2dbcbf3144658f9836c05ea3c2bd3d4605b65f718affcd81c0fb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/capsules-delete-confirm-zh.png",
+      "copy": "素材原图/09-随身应用/capsules-delete-confirm-zh.png",
+      "sha256": "65c72dc9dc769977fe6a742a4498ba8e4f5dcee3ed8bd43aad24a25878391ba1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/capsules-list-zh.png",
+      "copy": "素材原图/09-随身应用/capsules-list-zh.png",
+      "sha256": "25ff3ae4b8ed8dd84e64744dbd8b51babcf1e544f34e41d338ce7f5f081049ab"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/capsules-recording-en.png",
+      "copy": "素材原图/09-随身应用/capsules-recording-en.png",
+      "sha256": "c22e8c5007ee37c9c70fa57cbdae6ec50ef3ee5dfb09b89ea1433a86045c2d9c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/capsules-recording-zh.png",
+      "copy": "素材原图/09-随身应用/capsules-recording-zh.png",
+      "sha256": "ac0e4b97b51c94b631da9bca2d4e407ba435339f6ba79bd182c66951990c99cb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/capsules-unconfigured-zh.png",
+      "copy": "素材原图/09-随身应用/capsules-unconfigured-zh.png",
+      "sha256": "5be17eb1a0c693a1c0c8e4865bd491b9d3cbd19bb316b18407c8ebe8b72bf794"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/companion-overview.png",
+      "copy": "素材原图/09-随身应用/companion-overview.png",
+      "sha256": "a7d8fd84cec656b509a2e7ba9bccba59abf6c176f4c29c7abaaf396ed9ecaeb7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-done-zh.png",
+      "copy": "素材原图/09-随身应用/focus-done-zh.png",
+      "sha256": "1eb72ffba48b80cb57b90bd8a82b5e4ab74a5e60d8e04e671fe83eb74d0da1a0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-paused-zh.png",
+      "copy": "素材原图/09-随身应用/focus-paused-zh.png",
+      "sha256": "9341ed1c052ee11a36296f6f7ed88bb3a5424d15731fa45691de384631beba0a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-ready-en.png",
+      "copy": "素材原图/09-随身应用/focus-ready-en.png",
+      "sha256": "8b8c4b4a08ff58097adcebc93ec64ff02121ba58fc215720ed17d799712c7e12"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-ready-zh.png",
+      "copy": "素材原图/09-随身应用/focus-ready-zh.png",
+      "sha256": "b79134f1a2a20938e452508343260251a326331b9a947fc6b3710907748df160"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-running-zh.png",
+      "copy": "素材原图/09-随身应用/focus-running-zh.png",
+      "sha256": "06added7ee88f82c6d2800bdfbe16d516dec7fadf9fe5a2c21059803c9ac71bd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/focus-unsaved-zh.png",
+      "copy": "素材原图/09-随身应用/focus-unsaved-zh.png",
+      "sha256": "bcdaa4f7044edb6949fd75e93ac7ba7f69869b7e02dbd1572326a206e5a00161"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/garden-grown-zh.png",
+      "copy": "素材原图/09-随身应用/garden-grown-zh.png",
+      "sha256": "dfd4b8b59890b3e6b0362eb3c9b1f701792053d740f5d0c92aaa5316664f5f48"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/garden-night-zh.png",
+      "copy": "素材原图/09-随身应用/garden-night-zh.png",
+      "sha256": "d410d6765a4a5bcff8a40e95d954aec86f138cbeee9169928507d8c8493dc6da"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/garden-ready-en.png",
+      "copy": "素材原图/09-随身应用/garden-ready-en.png",
+      "sha256": "2f61778cd7154f43a5f53a6ced89e16d2e45fb43d0de0539e427d64453392951"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/garden-ready-zh.png",
+      "copy": "素材原图/09-随身应用/garden-ready-zh.png",
+      "sha256": "292c1190ef3e9c1b4e721b6ad6c4abab88e20d783c1756c4c6eaa54cfd8d194f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/garden-water-zh.png",
+      "copy": "素材原图/09-随身应用/garden-water-zh.png",
+      "sha256": "8ab17025daaf127d8951b62cecb35f184df8738920e7d4624f7ba9ab489eb9b8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Capsules-en.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Capsules-en.png",
+      "sha256": "01110107c2ef60e147bba1e8f80ed5350142666ccf23ae29b587135e073a349a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Capsules-zh.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Capsules-zh.png",
+      "sha256": "6c9791387f5744407b6c0dfbc1fa3a116cd76b1b6eb6a87d470cd9e423f0c073"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Focus-en.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Focus-en.png",
+      "sha256": "2d507a2058014e30137fb5e1a1557321d5660e837279e8a18846c2cf62f2975e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Focus-zh.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Focus-zh.png",
+      "sha256": "25c2e19ca49446e33650517a531ab7cbef3b3b9cf13f0972189cf9edf75e019b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Garden-en.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Garden-en.png",
+      "sha256": "2dddf22d7d7ccbf31e07a677504cebf46a4dbfa49395965ee3b81b6240742a75"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/native/launcher-font-fix/launcher-Garden-zh.png",
+      "copy": "素材原图/09-随身应用/launcher-font-fix/launcher-Garden-zh.png",
+      "sha256": "6eeaf2c76b25d283ecfb4257a480d7a8037aa31ca9dd86888c5ec9750cc7bd3d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/centered-controls/media-lyrics-fixture.png",
+      "copy": "素材原图/10-遥控台/centered-controls/media-lyrics-fixture.png",
+      "sha256": "f274dcaf7c94f55ad16bf417cd271758a5454c0a452a652c08c9a466af91aa68"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/centered-controls/media-waiting.png",
+      "copy": "素材原图/10-遥控台/centered-controls/media-waiting.png",
+      "sha256": "a7e989decc85b85e0d78ba48f1ae10b3c19c82d45a6ac50ceb2babf6795030d2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-disconnected-zh.png",
+      "copy": "素材原图/10-遥控台/remote-disconnected-zh.png",
+      "sha256": "fba08ce77d24a8dee5a794df3185efaea5fae5c8388f92eb8f42cb1f97f70cae"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-media-en.png",
+      "copy": "素材原图/10-遥控台/remote-media-en.png",
+      "sha256": "c44bf76588f601de314f49f134405b365517a27d3486f2804485a876b261fbe3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-media-lyrics-fixture.png",
+      "copy": "素材原图/10-遥控台/remote-media-lyrics-fixture.png",
+      "sha256": "12e2d15d89efc823c53489fa57c3f9bfda5e7eee853bcd774ee927243fab0c9c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-media-no-artwork.png",
+      "copy": "素材原图/10-遥控台/remote-media-no-artwork.png",
+      "sha256": "c769754c9da0360dc1cb99fc458acc265be5d8e0412d5979633ef2f81831f7e0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-media-zh.png",
+      "copy": "素材原图/10-遥控台/remote-media-zh.png",
+      "sha256": "bb0ca6751f36de48d206d313b664ae48b19cd033b3ba88d35185350c56c31763"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-mouse-en.png",
+      "copy": "素材原图/10-遥控台/remote-mouse-en.png",
+      "sha256": "34dfeeb2f7bf7f34b8f7b242760a6b2b173da1013d4f060eaa2fffc3dbc20aee"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-mouse-zh.png",
+      "copy": "素材原图/10-遥控台/remote-mouse-zh.png",
+      "sha256": "13fbfe459c7b8d8200c2fbfbcb6dd15db40503364ebeff561aad2f79f39882fe"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-pair-en.png",
+      "copy": "素材原图/10-遥控台/remote-pair-en.png",
+      "sha256": "20f1e7eee0ea876b7c092543e103b666f1dcc5142658cf264251301508d40714"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-slides-en.png",
+      "copy": "素材原图/10-遥控台/remote-slides-en.png",
+      "sha256": "86bdeabb07e87e17de5734203b336c0c5c4cbc607968c286a4731dd53a374663"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/native/remote-slides-zh.png",
+      "copy": "素材原图/10-遥控台/remote-slides-zh.png",
+      "sha256": "833282836eadff1137f02a75c6bbe323cdd7577616280e113fe3288aaa67c374"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Answers-en.png",
+      "copy": "素材原图/11-启动器/Answers-en.png",
+      "sha256": "8e8639e7141a44cf28ee13db6b33e999aab4a95633a4357603ea1ce39801c230"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Answers-zh.png",
+      "copy": "素材原图/11-启动器/Answers-zh.png",
+      "sha256": "455c1d43766eb6285c509c2e4639d823e3a4f91519fb2e8ac748e204e525dfb8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Capsules-zh.png",
+      "copy": "素材原图/11-启动器/Capsules-zh.png",
+      "sha256": "6c9791387f5744407b6c0dfbc1fa3a116cd76b1b6eb6a87d470cd9e423f0c073"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Focus-zh.png",
+      "copy": "素材原图/11-启动器/Focus-zh.png",
+      "sha256": "25c2e19ca49446e33650517a531ab7cbef3b3b9cf13f0972189cf9edf75e019b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Garden-zh.png",
+      "copy": "素材原图/11-启动器/Garden-zh.png",
+      "sha256": "6eeaf2c76b25d283ecfb4257a480d7a8037aa31ca9dd86888c5ec9750cc7bd3d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/I2C-zh.png",
+      "copy": "素材原图/11-启动器/I2C-zh.png",
+      "sha256": "ab59e6da37f3dc55755ade01f47ceb434522096edd847f625a34936c672119df"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Merit-zh.png",
+      "copy": "素材原图/11-启动器/Merit-zh.png",
+      "sha256": "071bf15520ba1c39c10107a53aae18250b23a7e6ed7886659b74e5c3bc5a4a8a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Pixels-zh.png",
+      "copy": "素材原图/11-启动器/Pixels-zh.png",
+      "sha256": "31a8fe343a2c4ff919cd73f91dd01ca97aca3c765ba93a0b6f22013ea5175b16"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/System-zh.png",
+      "copy": "素材原图/11-启动器/System-zh.png",
+      "sha256": "f56b93650909866d3b0acff649f9507fa917148889e060228dbc236e5dadd681"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/WiFi-en.png",
+      "copy": "素材原图/11-启动器/WiFi-en.png",
+      "sha256": "332ec555aeeadcfedf328ae8591dc3ad5e58dd0c095912cb8372752caaf2bca0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/WiFi-zh.png",
+      "copy": "素材原图/11-启动器/WiFi-zh.png",
+      "sha256": "332ec555aeeadcfedf328ae8591dc3ad5e58dd0c095912cb8372752caaf2bca0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/Zodiac-zh.png",
+      "copy": "素材原图/11-启动器/Zodiac-zh.png",
+      "sha256": "b711a1c561ae4dc0c72f4acc3dec7a2e6e9c13164bc2feb0e6acc01796b7c012"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/audio-zh.png",
+      "copy": "素材原图/11-启动器/audio-zh.png",
+      "sha256": "1060b3b495068dd954fb06f7deeb6a4d259d6773a7cad387c3004757a435f580"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/calendar-zh.png",
+      "copy": "素材原图/11-启动器/calendar-zh.png",
+      "sha256": "943f5a69e1264738f2de53fabe471953e370bac2b464cd4b22ccd53beff72af8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/countdown-zh.png",
+      "copy": "素材原图/11-启动器/countdown-zh.png",
+      "sha256": "a6082b78ce009e37ffb972e5a15f9c3c0a2c300a39f2304360a343ea9477104b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/dice-zh.png",
+      "copy": "素材原图/11-启动器/dice-zh.png",
+      "sha256": "52aa4f4dbd3c7d77165ced081b27fb8b4f107609aad2350569cde78fa0bad835"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/fluid-zh.png",
+      "copy": "素材原图/11-启动器/fluid-zh.png",
+      "sha256": "c19a36539090b947131d0aef7406f31aa01330e0ea45b0e1487b2cb31898aeaa"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/level-zh.png",
+      "copy": "素材原图/11-启动器/level-zh.png",
+      "sha256": "ea01ced967e98acb1349df448a16adadd68a7803d230397e48d9520720753945"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/maze-zh.png",
+      "copy": "素材原图/11-启动器/maze-zh.png",
+      "sha256": "995b44ac376bb3319e526b126af422e7988f035d3ef1912585b7506ac870c5c6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/merit-fade-zh.png",
+      "copy": "素材原图/11-启动器/merit-fade-zh.png",
+      "sha256": "387a71930de66736d806b8b7a85ec8ef18c1d3944d14f17e934a80a374fb95e3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/mouse-zh.png",
+      "copy": "素材原图/11-启动器/mouse-zh.png",
+      "sha256": "a01f334f356cfee86b0ca95f0b80bce5bcd863a7ebebaba14907a2c7a358891a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/ota-zh.png",
+      "copy": "素材原图/11-启动器/ota-zh.png",
+      "sha256": "3e4193ff2352832c74d33c82b54d3f5ba26f3ff068d3936077565cdd0e4df52f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/review-23.png",
+      "copy": "素材原图/11-启动器/review-23.png",
+      "sha256": "da76f7ec9aa6de2b959c171d55314df6cba9a58caceb4158cc35b6d6e1245873"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/review.png",
+      "copy": "素材原图/11-启动器/review.png",
+      "sha256": "776c51e9e7076f227edb948b0c792e92c77471a85c7027ead9fcd326c607a20d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/settings-zh.png",
+      "copy": "素材原图/11-启动器/settings-zh.png",
+      "sha256": "ad1cfcf29b3e4bbd3c526d6a7fe7ed9f5c8be72390d021361c2feb7d7bdf35c6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/stopwatch-zh.png",
+      "copy": "素材原图/11-启动器/stopwatch-zh.png",
+      "sha256": "1eb5a6807cf729f437a24c2c92a4110b6bac29a8bbd85630826a0dd0f0919ee5"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/system-fade-zh.png",
+      "copy": "素材原图/11-启动器/system-fade-zh.png",
+      "sha256": "d2fa4cbc95677c9e6696fd6ae0993cd4a5c458ebe90c02bcb06399c06a18e638"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/twin-zh.png",
+      "copy": "素材原图/11-启动器/twin-zh.png",
+      "sha256": "76c88cce4fd49f117ad294bad8c72a8a553faa8042937cf8107e1493966a0fe4"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/native/weather-zh.png",
+      "copy": "素材原图/11-启动器/weather-zh.png",
+      "sha256": "69b223960a00b8969be01a7f68a39b439c2ca59cfe66ee8fe9148ed46c6c9e7a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/answers.png",
+      "copy": "素材原图/12-实心图标/answers.png",
+      "sha256": "b9720a1623ee9fe0ba9991b1a2839eac16315a854faef0d9bdd93a6e669e4b48"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/answers.svg",
+      "copy": "素材原图/12-实心图标/answers.svg",
+      "sha256": "3c0e04da3bd78532d07ae62282ff4e48708aa11c6343d6d8a9c0e67b4d8ca7f3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/audio.png",
+      "copy": "素材原图/12-实心图标/audio.png",
+      "sha256": "8a897fea58abf44e9655b77a50383aafe08cc328e7e1093a9b8268d39cd1ec90"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/audio.svg",
+      "copy": "素材原图/12-实心图标/audio.svg",
+      "sha256": "2475b02befef24d4250915823daedaa1ca5a75bf4c03fb5efa43f6da8ff50d5b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/calendar.png",
+      "copy": "素材原图/12-实心图标/calendar.png",
+      "sha256": "c9c0b90d4533da7b763999395925301231985f19d86d3ecbc4ce2f674c805d74"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/calendar.svg",
+      "copy": "素材原图/12-实心图标/calendar.svg",
+      "sha256": "5cb865309fc98b4e52648de1115519aa3b4f5ae3b7a6ed640e90515883791ee3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/countdown.png",
+      "copy": "素材原图/12-实心图标/countdown.png",
+      "sha256": "d00dc3870cd7bacfb66a3631e0cafab1bbad3e0e2a3aea73da1ed3644431e0e3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/countdown.svg",
+      "copy": "素材原图/12-实心图标/countdown.svg",
+      "sha256": "145ce49351a4061d82f7fab17d9952e6f7bb9fe91c1e48c9fbae73daf9ec189a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/dice.png",
+      "copy": "素材原图/12-实心图标/dice.png",
+      "sha256": "45cd80ff85194e0746a17839284e854c05167df8dcdd3197e2394f4ccd057d78"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/dice.svg",
+      "copy": "素材原图/12-实心图标/dice.svg",
+      "sha256": "d574fe4977220a652c4243ce4f87b9f78471223eaf66677916acb60714df166a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/fluid.png",
+      "copy": "素材原图/12-实心图标/fluid.png",
+      "sha256": "9c99412117d7d5f1b57e392abcbf1dde68ddcf4fd83023038dce26a8d15866eb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/fluid.svg",
+      "copy": "素材原图/12-实心图标/fluid.svg",
+      "sha256": "ce83477360f405c70f8b55e55f7452c93d0ca3748fe5693f57b16d11b49a7c6f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/level.png",
+      "copy": "素材原图/12-实心图标/level.png",
+      "sha256": "d6ca17e1e32fe8d74006d2379b0432e23d9ccbdddf520242e917a0a5b5eb2658"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/level.svg",
+      "copy": "素材原图/12-实心图标/level.svg",
+      "sha256": "c5ba4085c5201b081816a93d8e009c1c01849c416a491bd2174ec0eb69a1aca1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/maze.png",
+      "copy": "素材原图/12-实心图标/maze.png",
+      "sha256": "06a082a6a4f97281b5c2407001333fe8a2fba80512c57183bf60896396381d78"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/maze.svg",
+      "copy": "素材原图/12-实心图标/maze.svg",
+      "sha256": "cdb95f8db94b9c309e3aa9838ec31dc68c66bada105340cd29d38bf306228667"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/merit.png",
+      "copy": "素材原图/12-实心图标/merit.png",
+      "sha256": "977beac50c84702622a420c53ab1aa03c82f43ffca0838d6bf1470a52848afc2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/merit.svg",
+      "copy": "素材原图/12-实心图标/merit.svg",
+      "sha256": "05eccf867a7978e8ffeb7262e24c1aed70309e1741634b1839aa4f12502b1c4d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/ota.png",
+      "copy": "素材原图/12-实心图标/ota.png",
+      "sha256": "5ad7c65717009e53613f6b61830f396e833ceaec381120a3cc452adb3fb8c66b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/ota.svg",
+      "copy": "素材原图/12-实心图标/ota.svg",
+      "sha256": "d4d793fb3a85a1ba9ece394621edc01ed10972d06578aaf4bfa2075714d01c37"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/pixels.png",
+      "copy": "素材原图/12-实心图标/pixels.png",
+      "sha256": "a143366dbf7262faa94c08e54ce986b7688395893886a1ac95b488964a3c13f7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/pixels.svg",
+      "copy": "素材原图/12-实心图标/pixels.svg",
+      "sha256": "7b49ae0fa3e349b4015c9b9873aee2c915ec0ca67872a5f8d8d75c60dee08f0f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/remote.png",
+      "copy": "素材原图/12-实心图标/remote.png",
+      "sha256": "cf6553dbbbccc9cc4c8c2c43cfa58a3df58b8afc4efd13bc7b69918544f7da1b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/remote.svg",
+      "copy": "素材原图/12-实心图标/remote.svg",
+      "sha256": "6a976d1b0248029e5d0e5b9a3b3705e716d751ccf62ca4d22b5529d060df79ad"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/scan.png",
+      "copy": "素材原图/12-实心图标/scan.png",
+      "sha256": "2a9704fcc348179c4b50a724973ed2c9ebb8558fcc7b23582f99e7407ba372c0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/scan.svg",
+      "copy": "素材原图/12-实心图标/scan.svg",
+      "sha256": "88f3a1d0a3619631c3414b9009e07ebd712d1cd9e796f58bbf2a5d9bde310df8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/settings.png",
+      "copy": "素材原图/12-实心图标/settings.png",
+      "sha256": "3164c460f01a930f6df01ea9e308aa9e80cfc9643ec321fac4cbc469429c13c4"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/settings.svg",
+      "copy": "素材原图/12-实心图标/settings.svg",
+      "sha256": "bcca9bae33378e52ac413f862906c8d85fba22ed3b1c9ef30989add616f96679"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/stopwatch.png",
+      "copy": "素材原图/12-实心图标/stopwatch.png",
+      "sha256": "91a7a6655afa0cfd50b1435f20d1ca9de3ee24021e80ff680aaeddb3dbb12d97"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/stopwatch.svg",
+      "copy": "素材原图/12-实心图标/stopwatch.svg",
+      "sha256": "1508b5fdf0116cc9ae6388f2111141f5cb6afbd573eb2433cc4d4754ee0e114f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/system.png",
+      "copy": "素材原图/12-实心图标/system.png",
+      "sha256": "993893f60aabee8a0e709dee89e20ec08e4271d1e9559fb3bb3199f0197b13e3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/system.svg",
+      "copy": "素材原图/12-实心图标/system.svg",
+      "sha256": "0ccceff0b25b278554821e6316c6305eebeb259cd0a76624baf00b83dddf2c51"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/twin.png",
+      "copy": "素材原图/12-实心图标/twin.png",
+      "sha256": "7f6e1ad1a8c3bd6ebdc5616a391bb3f007bbeabae53e83f6bf28052597baea49"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/twin.svg",
+      "copy": "素材原图/12-实心图标/twin.svg",
+      "sha256": "6879a474aa77e045d63d3d7b4a0de3ed72fe839dc1c132a73886447f8e56f907"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/weather.png",
+      "copy": "素材原图/12-实心图标/weather.png",
+      "sha256": "4eac546fde193487d8ebb65b50ac45c086f2a998c67e2734268f6788896fa31e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/weather.svg",
+      "copy": "素材原图/12-实心图标/weather.svg",
+      "sha256": "b22d6267117ad29972702765fff04efb4fac1dc41bbbff66f482d89a737af460"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/wifi.png",
+      "copy": "素材原图/12-实心图标/wifi.png",
+      "sha256": "fcd1eb2a577f05af8c47b0bf98c47c9ed4b624dc487ae72bb52bf36b70468307"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/wifi.svg",
+      "copy": "素材原图/12-实心图标/wifi.svg",
+      "sha256": "bb95b6755328f1fb7f49f27538f4868088d176105b1b2d37179854bcd0c25eca"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/zodiac.png",
+      "copy": "素材原图/12-实心图标/zodiac.png",
+      "sha256": "1c70bea337973c55a7e07dcf2a76d233942886f06f20f2f2c9701ceb36b67fc5"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/selected/zodiac.svg",
+      "copy": "素材原图/12-实心图标/zodiac.svg",
+      "sha256": "36c492fccfb0b67f21fb041c401dcbb4fbd13290b409155561d51d984b9ee34b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/disc-3.png",
+      "copy": "素材原图/13-补充图标/disc-3.png",
+      "sha256": "0f05adac3044a76ef1db610b02bcf3d99b31165dfa43d8a9ad788f5532b664c2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/disc-3.svg",
+      "copy": "素材原图/13-补充图标/disc-3.svg",
+      "sha256": "fdf63f6eeb61185ec77aa431bc05668787f29a201324ec1114623dc265dc5bb2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/mic.png",
+      "copy": "素材原图/13-补充图标/mic.png",
+      "sha256": "b5396dd217de6b7e84ec5f246aa52e29230ceaa570c30f52d128a304156d2eb3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/mic.svg",
+      "copy": "素材原图/13-补充图标/mic.svg",
+      "sha256": "b632567ebdd9be0ef245e493a8129875cd391cc9628fa7debbcc19a3f0695e65"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/sprout.png",
+      "copy": "素材原图/13-补充图标/sprout.png",
+      "sha256": "08f493f699a9da90201704cba46ff00fc68e0497a27c070d5b890056bb8fa3a9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/sprout.svg",
+      "copy": "素材原图/13-补充图标/sprout.svg",
+      "sha256": "886b1af4f4bb8bb5719715b87845b26aeb8c8d2e541982cca3e15bd8bc8eb30b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/watchfaces.png",
+      "copy": "素材原图/13-补充图标/watchfaces.png",
+      "sha256": "ca1783f6b4821713eb45476b4e974f829455b0b952012dc5a093772aaf8752b3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/additional/watchfaces.svg",
+      "copy": "素材原图/13-补充图标/watchfaces.svg",
+      "sha256": "1408ef269cd2809a921976102b7f44a9a04cd1bbfc1d510320673f7f9654f62d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/merit-icon-v2.png",
+      "copy": "素材原图/14-木鱼/merit-icon-v2.png",
+      "sha256": "74c13f441b91ea6fd37a0be938b3a49ebe4d23ae8f64111405f3667a195ffd90"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/native-merit-en.png",
+      "copy": "素材原图/14-木鱼/native-merit-en.png",
+      "sha256": "4def01e2e44bdffab1816d879fb7a0b89e8af13ce8261b52c4c6138298271510"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/native-merit-fade.png",
+      "copy": "素材原图/14-木鱼/native-merit-fade.png",
+      "sha256": "a203707b993d2756334bd68408685eb7967e63f3441aab65d40fed58075376ec"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/native-merit-zh.png",
+      "copy": "素材原图/14-木鱼/native-merit-zh.png",
+      "sha256": "932e9ba0f301199b695735ec370c94c4a80b5fc634071942501a37c4684ce3c9"
+    },
+    {
+      "source": "site/assets/studio/active-activity.png",
+      "copy": "素材原图/15-官网表盘/active-activity.png",
+      "sha256": "da1e88a7e44df52d85297f44b165e677fef6209fed6f0927d5b8ae271d2ddc71"
+    },
+    {
+      "source": "site/assets/studio/active-air.png",
+      "copy": "素材原图/15-官网表盘/active-air.png",
+      "sha256": "02f64b225ed2cab5a398679e095210f2ff117311f45935ad085197de6d886d27"
+    },
+    {
+      "source": "site/assets/studio/active-aperture.png",
+      "copy": "素材原图/15-官网表盘/active-aperture.png",
+      "sha256": "bc9fa5f4602db59969c8f171b9aa3b55c7125a5969f76d4cbe1ed299b9008157"
+    },
+    {
+      "source": "site/assets/studio/active-balance.png",
+      "copy": "素材原图/15-官网表盘/active-balance.png",
+      "sha256": "fdb2f1500549fc41a468c952c533a2b7923ef16d02626234667a42c2ad336f27"
+    },
+    {
+      "source": "site/assets/studio/active-bauhaus.png",
+      "copy": "素材原图/15-官网表盘/active-bauhaus.png",
+      "sha256": "3b9db884a4460a5402d59898ad6a516d70d7f22296626ed6236d6e7bd4b77337"
+    },
+    {
+      "source": "site/assets/studio/active-binary.png",
+      "copy": "素材原图/15-官网表盘/active-binary.png",
+      "sha256": "035be555adf2a93f2ee600b53ea409da613915448e34448125021aba2509b7f2"
+    },
+    {
+      "source": "site/assets/studio/active-circuit.png",
+      "copy": "素材原图/15-官网表盘/active-circuit.png",
+      "sha256": "f05ba8f1ee9b616963514c6deec39bb811806c22c8db6ef54aafa8ac9d629cf8"
+    },
+    {
+      "source": "site/assets/studio/active-column.png",
+      "copy": "素材原图/15-官网表盘/active-column.png",
+      "sha256": "2d5b27f940cd8b4d2a2c5f16e27363fc865babc79b4bb87dbaeeeb5b058ad7e8"
+    },
+    {
+      "source": "site/assets/studio/active-cross.png",
+      "copy": "素材原图/15-官网表盘/active-cross.png",
+      "sha256": "aff75445d29ea88098bbfd997df7353667a0a9728baf175d1ee748d66c2bacdf"
+    },
+    {
+      "source": "site/assets/studio/active-cut.png",
+      "copy": "素材原图/15-官网表盘/active-cut.png",
+      "sha256": "d673e3c984967da253f5f7ae1f2167f459881df6b11c76c8eca6703e183444e7"
+    },
+    {
+      "source": "site/assets/studio/active-duo.png",
+      "copy": "素材原图/15-官网表盘/active-duo.png",
+      "sha256": "efa11f72e04f81a188145f73f0c44c6073d9c117546103495a9d3c95e747f637"
+    },
+    {
+      "source": "site/assets/studio/active-edition.png",
+      "copy": "素材原图/15-官网表盘/active-edition.png",
+      "sha256": "480729f4297c4e2c7c137313f206c72e0da7b3ee3bade6cb69088787e5840d04"
+    },
+    {
+      "source": "site/assets/studio/active-fold.png",
+      "copy": "素材原图/15-官网表盘/active-fold.png",
+      "sha256": "39bbe8a99895b94ae7cae487719263fb163dac6b29c0e5725199375354148165"
+    },
+    {
+      "source": "site/assets/studio/active-grid.png",
+      "copy": "素材原图/15-官网表盘/active-grid.png",
+      "sha256": "72d444beebf6f903cf29584c9451bb01146e557ec99aa272c87a56a00e321f35"
+    },
+    {
+      "source": "site/assets/studio/active-growth.png",
+      "copy": "素材原图/15-官网表盘/active-growth.png",
+      "sha256": "4951f3f4cc9813de402f680b603cf5016ed611ce27fe463b2a1700e5940264d3"
+    },
+    {
+      "source": "site/assets/studio/active-horizon.png",
+      "copy": "素材原图/15-官网表盘/active-horizon.png",
+      "sha256": "213c81fd5360c7ecf5909f550fd343ed45623cdd0b0efea7faeea5f4060e73c8"
+    },
+    {
+      "source": "site/assets/studio/active-hourglass.png",
+      "copy": "素材原图/15-官网表盘/active-hourglass.png",
+      "sha256": "9864d00e4da28907229b0c81e8b054ae1a2e5b32a0f7cff77d5c9bd43cae2f83"
+    },
+    {
+      "source": "site/assets/studio/active-iris.png",
+      "copy": "素材原图/15-官网表盘/active-iris.png",
+      "sha256": "471b589d0ff0f3418b505d2f58332c5a73c713386466956168a635e8326b27e1"
+    },
+    {
+      "source": "site/assets/studio/active-matrix.png",
+      "copy": "素材原图/15-官网表盘/active-matrix.png",
+      "sha256": "55f4f59bafe27b2425fef960864f0597c75423f0d8032683563b10eee8ec927a"
+    },
+    {
+      "source": "site/assets/studio/active-maze.png",
+      "copy": "素材原图/15-官网表盘/active-maze.png",
+      "sha256": "542ad7d11a6ced40f08b7c1e245b052984f41b5ebdcb7148a7862832e85c9189"
+    },
+    {
+      "source": "site/assets/studio/active-metro.png",
+      "copy": "素材原图/15-官网表盘/active-metro.png",
+      "sha256": "d9293e2d62e8c9efeab1670e3a71d5e6b21342b4f77d7c7497a6ecd8d4bd61fe"
+    },
+    {
+      "source": "site/assets/studio/active-mono.png",
+      "copy": "素材原图/15-官网表盘/active-mono.png",
+      "sha256": "398be8274c11a5e87d3bb323c399b82922d8d262ec67489e51e33c4261a1ed04"
+    },
+    {
+      "source": "site/assets/studio/active-moon-gate.png",
+      "copy": "素材原图/15-官网表盘/active-moon-gate.png",
+      "sha256": "d2407869f3c7856855149999aa25fd22b0fcff4a7fc7d843ae214d9cffc9fa8a"
+    },
+    {
+      "source": "site/assets/studio/active-offset.png",
+      "copy": "素材原图/15-官网表盘/active-offset.png",
+      "sha256": "49ee4d4665186391c1a566e611c7ae975d3f85ee8bdbe0cad7593507a65dc764"
+    },
+    {
+      "source": "site/assets/studio/active-orrery.png",
+      "copy": "素材原图/15-官网表盘/active-orrery.png",
+      "sha256": "94b96065e4e4c4674b51e6e7bf050ec7b3ef7cc80df52710ffe50c25ef246449"
+    },
+    {
+      "source": "site/assets/studio/active-petal.png",
+      "copy": "素材原图/15-官网表盘/active-petal.png",
+      "sha256": "fd9344a2d460f246ed15f3b6fc3d63e74362a6fef34c46832e292f18abc2d881"
+    },
+    {
+      "source": "site/assets/studio/active-phase.png",
+      "copy": "素材原图/15-官网表盘/active-phase.png",
+      "sha256": "596b0c15df0df2f1b9a19135912b1c0cdedc7d0c9f78e0764ec1f0c377fe5bdf"
+    },
+    {
+      "source": "site/assets/studio/active-pixel-camp.png",
+      "copy": "素材原图/15-官网表盘/active-pixel-camp.png",
+      "sha256": "3f5c030da19c015e122bceb1b60f8a3e1c4dbafad4bb7699b274cf42dbe4531d"
+    },
+    {
+      "source": "site/assets/studio/active-prism.png",
+      "copy": "素材原图/15-官网表盘/active-prism.png",
+      "sha256": "f7ecd905dcedbe3ddee496c5976a20425055879547c8e4e03e6cbcd3a9b73b4e"
+    },
+    {
+      "source": "site/assets/studio/active-quanta.png",
+      "copy": "素材原图/15-官网表盘/active-quanta.png",
+      "sha256": "fe70c6adb4cb1a0e53e1b18708f924dda686756b1e50fc4d3953e802138c0b5d"
+    },
+    {
+      "source": "site/assets/studio/active-radar.png",
+      "copy": "素材原图/15-官网表盘/active-radar.png",
+      "sha256": "6639e3cd9b1c6ac0da23fcc9e0a4345e08a325aa2ba837e5377d212cc5fe66cd"
+    },
+    {
+      "source": "site/assets/studio/active-ribbon.png",
+      "copy": "素材原图/15-官网表盘/active-ribbon.png",
+      "sha256": "014a58674fa31fa3d284f1c0444a4d4cdeb21c57b574716dcc0e5fae6f8234f5"
+    },
+    {
+      "source": "site/assets/studio/active-sector.png",
+      "copy": "素材原图/15-官网表盘/active-sector.png",
+      "sha256": "aa64b07a21f5ebc599c3a5af440d069cb90d0675d94e00c58d92c894b63e5c6d"
+    },
+    {
+      "source": "site/assets/studio/active-seven.png",
+      "copy": "素材原图/15-官网表盘/active-seven.png",
+      "sha256": "dad2352ec671fbdda55c9ec3ced3ddd3c851f6cd8ae79ebe86feeaa6dc2788b0"
+    },
+    {
+      "source": "site/assets/studio/active-solar.png",
+      "copy": "素材原图/15-官网表盘/active-solar.png",
+      "sha256": "db4735270018f8f5f0ad86166728e568d95e10cc1955693fba685212c1c74963"
+    },
+    {
+      "source": "site/assets/studio/active-stack.png",
+      "copy": "素材原图/15-官网表盘/active-stack.png",
+      "sha256": "926e994d600d11a39ef2f049b56c2ef6508ee9fba8097c765f0d4899502da126"
+    },
+    {
+      "source": "site/assets/studio/active-stride.png",
+      "copy": "素材原图/15-官网表盘/active-stride.png",
+      "sha256": "ca098eb5b87d61fa5d2ea586fe26c008a34614420fc5282f0fbc168fc0a3e287"
+    },
+    {
+      "source": "site/assets/studio/active-tape.png",
+      "copy": "素材原图/15-官网表盘/active-tape.png",
+      "sha256": "59b33e272177aff618feb87afd12cb1ca99d0bd4f64ec7b1319ae88d3cf9b6d1"
+    },
+    {
+      "source": "site/assets/studio/active-tide.png",
+      "copy": "素材原图/15-官网表盘/active-tide.png",
+      "sha256": "3bca25eeb9bb5b976037821dd9c8781a165792342bea8bc9ce1d7be9936813f9"
+    },
+    {
+      "source": "site/assets/studio/active-vector.png",
+      "copy": "素材原图/15-官网表盘/active-vector.png",
+      "sha256": "24f4ea44d5f6801ba5b3697c01f39e8d34b13c52f14e7ea6750508e323dd6025"
+    },
+    {
+      "source": "site/assets/studio/active-vinyl.png",
+      "copy": "素材原图/15-官网表盘/active-vinyl.png",
+      "sha256": "2a9b9457d974f33bf5570093d68e0e1b41d98dfb0bf97e650fa861ae89ba7511"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-fold.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-fold.png",
+      "sha256": "ebac37e64acc93dc92aa28771a5ac96a340bbfa7894bf9d07a4614b86125edde"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-growth.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-growth.png",
+      "sha256": "bc3ab4096dd02854523d25bc0a1e8104de64db63bb50f9e360ff21c2f9d7d04b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-horizon.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-horizon.png",
+      "sha256": "7f0bb4c51427f016bf523b38d706b5e0a0002b089b551b98bef8f379e6f67fa6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-iris.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-iris.png",
+      "sha256": "24aaf756b707d3e420163894d27ff3673f945470d36a531cee863509d45d5c0f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-maze.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-maze.png",
+      "sha256": "22a03ef93001a574c4ae050202c37123d39ff639e32bc0892795bea411ff90ce"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-overview.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-overview.png",
+      "sha256": "93ef0901382899b62c024261281630f1478fb913dfea5e6d396b15a68f11ee92"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-pixel-camp.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-pixel-camp.png",
+      "sha256": "b61c2c855e2ad0c4a82b574e57e1e4a70625fa87509af972c67299b3e9cff907"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-radar.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-radar.png",
+      "sha256": "7abb163b01fa9c03d59674e6b267f623b76d754b8f845c3982f5866c2abace56"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-tape.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-tape.png",
+      "sha256": "47063853b41d7bf06074ebcd735002fc807d20df6f93a49dfa9bd7e15f785a60"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/active-tide.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/active-tide.png",
+      "sha256": "604c269be43d466c6bbb309af0394a8d10101a75e32e2b07575b4043d3cba33d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-fold.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-fold.png",
+      "sha256": "ad6539e27009323f3278db60e170a4dc3fe86b4df37f873954acb55a03e4d791"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-growth.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-growth.png",
+      "sha256": "2bdb892e9aba17cc35b40208d1841adf7a9ea12b205884d5296d1bfae3c0f661"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-horizon.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-horizon.png",
+      "sha256": "e5389ba5c6ea9526b9e4d0b69f0eee5290cba3f60dec110e9bbeeaaa8c663747"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-iris.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-iris.png",
+      "sha256": "10fafd28e1317df7578e6620b8393e41183f09f3b9464da1b31e6b783499c18c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-maze.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-maze.png",
+      "sha256": "323ba25a11be36b49cf89c31a7f7934e83f558c22b6d5c487859cbb5ad09ee68"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-overview.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-overview.png",
+      "sha256": "9b5ea6e291b00618d87ef60749e64f36e10b655e8867d5d0f7ebdd2fdf358c0b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-pixel-camp.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-pixel-camp.png",
+      "sha256": "73bc51caebfb67920bc51cfeba69029491060cfe610107b1c6cba27940bcd05e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-radar.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-radar.png",
+      "sha256": "42255b4231a3c43e4af5bbd27c772e05c21c7d3238ea71b8dc6b87478f1c0d79"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-tape.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-tape.png",
+      "sha256": "2d7366129937e74e74315c98df58c9006584193a9278c7142f8fadb61624295d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/aod-tide.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/aod-tide.png",
+      "sha256": "0b88a3ecee01777363a1c2c3b016e4ceaf3eb2a1bb20f52163cff9f7696dd2ff"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-active-instrument.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-active-instrument.png",
+      "sha256": "053dbabebf7cec06659cfaa76fc23cb5fc8f28e47602a9a25f3aa0f10c393913"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-active-nature.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-active-nature.png",
+      "sha256": "3f13f3aed7c2a6772502e6fbce20db0de4e061d53fc0efa2babf1b2ffd4ee12e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-active-play.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-active-play.png",
+      "sha256": "b3e0338f3dea7aff032d1495c48b9d21443c002aa2d97445b6288d11ac2ba770"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-aod-instrument.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-aod-instrument.png",
+      "sha256": "86e7e39b00d0a03106c5d1cafeb9753fd53dc09d2f977e8abc470b9f2a31eba0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-aod-nature.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-aod-nature.png",
+      "sha256": "e8c487da5ca34c95b89fa5ce0da0b1a4c57cc48a77053bae9a3d7b8140d55b86"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/compare-aod-play.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/compare-aod-play.png",
+      "sha256": "fd9abf30384bed6a19d9ec348f7446b1fc8a36b1b95c1c2a89a7d8191874f9f8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/reference-active.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/reference-active.png",
+      "sha256": "1579953b1c21290d66602292c1a55f24d00d0b93d5377a71d37129104fdf997b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/reference-aod.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/reference-aod.png",
+      "sha256": "60eb591b7f12a88caa6f504c79a327fa9c40e2466d38547660017636fb5287a5"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/selector-21-en.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/selector-21-en.png",
+      "sha256": "6a0792a610c0116455a1627ff0dbec56406f16150fd6d7a8588248aaf81fc79e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/selector-21-zh.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/selector-21-zh.png",
+      "sha256": "dd13e04cfbf0f2770ca6881e091c2cab6e7cb06fe74782b74e520f817f8499f8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/selector-29-en.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/selector-29-en.png",
+      "sha256": "6d05943941c04625dd89c6ada728d840f645015faafc34f57bec24b38312020f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/studio-native/selector-29-zh.png",
+      "copy": "素材原图/设计留档/01-最初STUDIO/selector-29-zh.png",
+      "sha256": "ed10b3e4304505d1ee31ec3d965e52956958ca0d1e853cae124d298ef155fb1a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/exploration-20261020/overview.png",
+      "copy": "素材原图/设计留档/02-表盘探索/overview.png",
+      "sha256": "1bf7c811161aec198c7f83783e2d7f2b14a0cf23e8f15df8838f237b8f939761"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/air.png",
+      "copy": "素材原图/设计留档/03-字体探索/air.png",
+      "sha256": "cd6201ac056283d7b6e73b05003f208f64c89e9edf90b3e37d65dbcf315595fa"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/air.svg",
+      "copy": "素材原图/设计留档/03-字体探索/air.svg",
+      "sha256": "0afd00a76e104677ddb78fa81cc4ff74468401ca6395775d9f5ef78a188f12e3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/column.png",
+      "copy": "素材原图/设计留档/03-字体探索/column.png",
+      "sha256": "d5bf89fbd8526184d763502640a5ccd6c4430f16b1e6719e0d753efde843c867"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/column.svg",
+      "copy": "素材原图/设计留档/03-字体探索/column.svg",
+      "sha256": "a2af18b06c5759bd6e2abbed4720752c581028f67f4431f1ce7eba8d4a2f56f3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/cut.png",
+      "copy": "素材原图/设计留档/03-字体探索/cut.png",
+      "sha256": "1e7de494bbd653a9f220bcbbe1b13c37d579d56492217ff4aeed7fc9632e1dcf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/cut.svg",
+      "copy": "素材原图/设计留档/03-字体探索/cut.svg",
+      "sha256": "b6f9b3ae50ab6ca385cfc9edc202381ed40216337d86897f79d164e5ef6bb016"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/edition.png",
+      "copy": "素材原图/设计留档/03-字体探索/edition.png",
+      "sha256": "11bc49363ababd5e3d4e36dd086c7c8294984e2d14b6615e7b4e38b3b6b9490f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/edition.svg",
+      "copy": "素材原图/设计留档/03-字体探索/edition.svg",
+      "sha256": "39c9d5e2d881aa9f2e2a68240ea654026d77785196c7e62a01897ece6a94f39f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/offset.png",
+      "copy": "素材原图/设计留档/03-字体探索/offset.png",
+      "sha256": "105da3b5bce067111b1eb593e644c6fb83afcc7e01632baa5f573f816d050045"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/offset.svg",
+      "copy": "素材原图/设计留档/03-字体探索/offset.svg",
+      "sha256": "57453403eb57449c2164a6f11228a8d59dbb9d5d1a97420c2557ba485f1df05c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/overview.png",
+      "copy": "素材原图/设计留档/03-字体探索/overview.png",
+      "sha256": "0084e0ae2131cd3649ff113c8d68e662f60bc8fb0460ac79ebc1c38a4af19479"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/proof.png",
+      "copy": "素材原图/设计留档/03-字体探索/proof.png",
+      "sha256": "477d0a748afa760dc9b95984535c56828f9c70ff97d9e0fb22d1f4f1f6f48ac1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/stack.png",
+      "copy": "素材原图/设计留档/03-字体探索/stack.png",
+      "sha256": "6cd4d9fd57754d5374b436dd954bc06cbe5ab0bf6fedb7145a8cda9ebcf74dd2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/stack.svg",
+      "copy": "素材原图/设计留档/03-字体探索/stack.svg",
+      "sha256": "891f780e973019f3dc5bc5583ba60526803166ff2fb492ed5cb5fb37bee8663b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/air-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/air-0000.svg",
+      "sha256": "f283ca85608361cef8f2cc1ca2f336e8568aa63046f9b5a26bad56ef032711a6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/air-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/air-1008.svg",
+      "sha256": "0afd00a76e104677ddb78fa81cc4ff74468401ca6395775d9f5ef78a188f12e3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/air-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/air-2359.svg",
+      "sha256": "9ae0c64a392a32a074d23b1f84c28a97cc6d2ff0fe79bec109c3f4e69cda7cd9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/column-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/column-0000.svg",
+      "sha256": "0ebc1803919fbc99c7dfac284462d5537bbbeca165bceb7f2d212f38afd5267b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/column-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/column-1008.svg",
+      "sha256": "a2af18b06c5759bd6e2abbed4720752c581028f67f4431f1ce7eba8d4a2f56f3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/column-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/column-2359.svg",
+      "sha256": "0cb96e9dbd56fab561ee5761c4773b21a5fe405f5d1dfc1d1242aad2f5a405ef"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/cut-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/cut-0000.svg",
+      "sha256": "ee034475a95132aceef5d466482914f4bb65ccd20117a3c877f4a0203cc2436d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/cut-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/cut-1008.svg",
+      "sha256": "b6f9b3ae50ab6ca385cfc9edc202381ed40216337d86897f79d164e5ef6bb016"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/cut-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/cut-2359.svg",
+      "sha256": "49091aa57ab3126f43df31031e98d76ed6058f3d845589d1d19efd56adfb34fa"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/edition-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/edition-0000.svg",
+      "sha256": "3a7d907807b0ff998a02f2c42a3b7055a5cea67381730aa98629edd7fde97ad9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/edition-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/edition-1008.svg",
+      "sha256": "39c9d5e2d881aa9f2e2a68240ea654026d77785196c7e62a01897ece6a94f39f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/edition-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/edition-2359.svg",
+      "sha256": "811c95c1e63103e87ae269738649ae7815069ac5d644ad20d2788d175e82b21a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/offset-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/offset-0000.svg",
+      "sha256": "f86b194af987a3796cbd431b791ac0772e4b5d8e16cf4872fa96191c97080a1f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/offset-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/offset-1008.svg",
+      "sha256": "57453403eb57449c2164a6f11228a8d59dbb9d5d1a97420c2557ba485f1df05c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/offset-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/offset-2359.svg",
+      "sha256": "134c306e58fa55a8ccc92886b2568786c6f45cf907a5dfa37017c1ae76231c48"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/stack-0000.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/stack-0000.svg",
+      "sha256": "2cd8f7da1faa9db5092b02bf0c06a192fa64c58be241d9339258dd71d6f4eccd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/stack-1008.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/stack-1008.svg",
+      "sha256": "891f780e973019f3dc5bc5583ba60526803166ff2fb492ed5cb5fb37bee8663b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/type-exploration-20261022/states/stack-2359.svg",
+      "copy": "素材原图/设计留档/03-字体探索/states/stack-2359.svg",
+      "sha256": "976833a64c0a169387de1b667753918f55c60943b290e7cbc7adf461d8dc3431"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/aperture.svg",
+      "copy": "素材原图/设计留档/04-几何读时/aperture.svg",
+      "sha256": "e647dc3560fcf268fe10b1eedfc00b9e161b2e2259c4ebc82e4cdb9f6e11d010"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/balance.svg",
+      "copy": "素材原图/设计留档/04-几何读时/balance.svg",
+      "sha256": "29f4f5dec70be264afeb75cf01f946a7725bc817ebb6628ccb9a2cf17d240686"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/cross.svg",
+      "copy": "素材原图/设计留档/04-几何读时/cross.svg",
+      "sha256": "d71f4e89d5bcc1a08ac0d33824ccc9f7fc20e5121550ae7784e610639ae0aca8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/hourglass.svg",
+      "copy": "素材原图/设计留档/04-几何读时/hourglass.svg",
+      "sha256": "b6cad52b8b26f1d0a5dab8646f6785d3cd35b2736e99b729ee4202ebd656426c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/late-overview.png",
+      "copy": "素材原图/设计留档/04-几何读时/late-overview.png",
+      "sha256": "dd9cbc91c1fdc89c8a09d355ee02ebedf936b034d8a27cf43e0c7b6eb73faa23"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/midnight-overview.png",
+      "copy": "素材原图/设计留档/04-几何读时/midnight-overview.png",
+      "sha256": "41d9352dc6ae59a81242cdc7d6e88ac94731fc6522a29e3e6d03ebb476a7f381"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/overview.png",
+      "copy": "素材原图/设计留档/04-几何读时/overview.png",
+      "sha256": "7d8cb83251fe0d1a20c50e909175bfe6a1e713027848c1e644a71535b20ed715"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/phase.svg",
+      "copy": "素材原图/设计留档/04-几何读时/phase.svg",
+      "sha256": "ba02b7191ca4114dcfccf518fba770e735de429ad89e56221dfca68eb82bdef7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/quanta.svg",
+      "copy": "素材原图/设计留档/04-几何读时/quanta.svg",
+      "sha256": "da0757bf4eb5881da3ff8cfcc626af4ddd4af45e457289e14dc89c797ef536ac"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/aperture-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/aperture-0000.svg",
+      "sha256": "34437ae068a52e537a5725bf9cae26bbec504a64bbb2a4165ee4751c4a323f18"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/aperture-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/aperture-0630.svg",
+      "sha256": "2b31923ef6f08e8c76282fcecad6ebe0d1f90d850b14a5dbb2bb67101344e523"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/aperture-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/aperture-2359.svg",
+      "sha256": "01c4e0265ef8dae6be0c5afcd1674bcbda131af92a0cb37a94a3b2f3e6dba868"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/balance-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/balance-0000.svg",
+      "sha256": "b33d3b0db602b065b0fd003b3cce5894f76fb3bfadd9acdbd76503eaa208c9ba"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/balance-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/balance-0630.svg",
+      "sha256": "cbc4435ae8ac2e7ebc7b926b403b516a3681772d0ff702322913548d199f86a1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/balance-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/balance-2359.svg",
+      "sha256": "acf9a79c3db04c8b9a59feb3b4f80acdcd4f5e606359dd144f2e2eb1bdfba979"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/cross-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/cross-0000.svg",
+      "sha256": "5c61634a46713625a4b2e6881c436eb858abfea6e11b2e797723ef315fb016fd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/cross-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/cross-0630.svg",
+      "sha256": "b65be77af13313986821886d598c2af0ff7892d67edf1dc37e0aa7945ad05dd6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/cross-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/cross-2359.svg",
+      "sha256": "a3be71628255e36bcdfc089b574b9fef6485e60da12bacfd6758662df1414c2b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/hourglass-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/hourglass-0000.svg",
+      "sha256": "785203d0caa7b27a5f2b07309b4a1a607fef6616cd5866c6effa79bce65be762"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/hourglass-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/hourglass-0630.svg",
+      "sha256": "db21147c3a2953ea8f3556288a182b8fc28e50e80a7746829ebf585fca08055c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/hourglass-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/hourglass-2359.svg",
+      "sha256": "f58c74b0f5368c404139bc11564ca472c0c24dcb223f0eac1872036d7d9f140d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/phase-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/phase-0000.svg",
+      "sha256": "ca09523154596b1d5a3ec081a84625d6c310cda0281ec5ef39a234e99c13126b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/phase-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/phase-0630.svg",
+      "sha256": "2089799a217e1a7ca43ddacbe121010bfd9643c52250eec1f775853d9aafd16c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/phase-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/phase-2359.svg",
+      "sha256": "5201e8f251093a0ac9fee75fcf55e5c1427bd2d65dc74be04a0ba2923686dbb1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/quanta-0000.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/quanta-0000.svg",
+      "sha256": "08920b4a09e9ac33408c1ecfa3e65eaf614dd476d36157d6a6478a3b5d60f56f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/quanta-0630.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/quanta-0630.svg",
+      "sha256": "451eff91e9fc849ec983f1518f1b729ff29c92f178056651d4706176c9cb13fc"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-exploration-20261022/states/quanta-2359.svg",
+      "copy": "素材原图/设计留档/04-几何读时/states/quanta-2359.svg",
+      "sha256": "43b40549594816103d5064dd006cf616a70f231926116bab4523295fe31197a6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/map-browser-20261022/concepts/crescent.png",
+      "copy": "素材原图/设计留档/05-地图概念/crescent.png",
+      "sha256": "24ef621ba61eac1646f92703a09f9c85b70dff416de6b0b5846e890e1aede2c2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/map-browser-20261022/concepts/orbit.png",
+      "copy": "素材原图/设计留档/05-地图概念/orbit.png",
+      "sha256": "8d6c49829447e38b94519313a9e272bd1c3527d9f0cbb927873c2cc5d0427829"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/map-browser-20261022/concepts/quiet-lens.png",
+      "copy": "素材原图/设计留档/05-地图概念/quiet-lens.png",
+      "sha256": "eda897be2fc4ce4d3f3eae8da275880a7efcff011928f7ef32172fc07ba3ef2c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/a-solid.png",
+      "copy": "素材原图/设计留档/06-图标方向/a-solid.png",
+      "sha256": "02f0bbd47a4ef364311a4f2606574b6aa501b6bccbf30498a9f3a1d821a81471"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/b-color.png",
+      "copy": "素材原图/设计留档/06-图标方向/b-color.png",
+      "sha256": "4d9416017b15297828597ded867a289d1cc2c5135d6fd2f9c4fdc5934da5f2e9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/c-pixel.png",
+      "copy": "素材原图/设计留档/06-图标方向/c-pixel.png",
+      "sha256": "6e44ad2f14de275b4d61756b970e5966aeee6d81c096f209400779893933f4b0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/directions.png",
+      "copy": "素材原图/设计留档/06-图标方向/directions.png",
+      "sha256": "16641117692658444ba32670936146616fc35a2f9eb1415b733401d3097c2956"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/fluid-review.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/fluid-review.png",
+      "sha256": "262890662272bda95e9a9cd8d7cfb76cc9e1f7376dc468d6ecc97398f05b6a7a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/levels-review.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/levels-review.png",
+      "sha256": "5058556e0185fd46a89b8ce7960302589f0863b6814ea137ee1b99591c198888"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/fluid.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/native/fluid.png",
+      "sha256": "a2078cd993f1e2a2368650520859aa3b8cd44a5b41cb9af8c84aa4b63b37652e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/hands.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/native/hands.png",
+      "sha256": "09782849a8d108aeb146be453c0fdf0855580ffd06be3bf3e80b1d2f2628010c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/ink-zh.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/native/ink-zh.png",
+      "sha256": "87407092985af81106ed74b9ba43869dd43ba3723aabd223151ea04928def5a6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/native/selector.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/native/selector.png",
+      "sha256": "5a1b2ca97a564fb40b3229480c5f1bd446d66e7a370a63b1d5d9dfeb939bfdf9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/rejected-silver.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/rejected-silver.png",
+      "sha256": "fd589e9623e6ec85f339f0ab3f0b3d580e7d3d51732f271fbcfeb87b305944b7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/analog-play/review.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/analog-play/review.png",
+      "sha256": "a7de202f562380bbf66ab598693edd258b974168f12f52a92d3445e2c2921307"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/focus-device.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/companion-apps/focus-device.png",
+      "sha256": "ef6ab41f3185162e774c0916f74807f287c40b9c5e912a93412f0f6c8de68170"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/focus-source.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/companion-apps/focus-source.png",
+      "sha256": "ceffa5a077111f2bb80b9c324d9c025d4d061d38e461f0951c903451a0f1b41c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/garden-device.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/companion-apps/garden-device.png",
+      "sha256": "83401254077d096588f32996939380c8d718262e8a1b98e77cb689cea9ca9c2f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/companion-apps/garden-source.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/companion-apps/garden-source.png",
+      "sha256": "885a6f3731fdf3663236ffe013f541384b9c885787d8dc509a73efdcdc7daf97"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/launcher/icon-design-20261019/current-native.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/launcher/icon-design-20261019/current-native.png",
+      "sha256": "02725135177fe165d5c45fe1f355f8d580cd1f3b278e2143a160f537f4248c4a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/merit-icon-v2.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/merit/icon-design-20261013/merit-icon-v2.svg",
+      "sha256": "3eed13b08ff50f8aa103736df02bb127e87554ef8fe64043f0d7d04d132ca734"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/merit-icon.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/merit/icon-design-20261013/merit-icon.svg",
+      "sha256": "f51c484478c1aa4154f263ba60395fad4a01e114dce78e474dc4f260e46bcd2b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/review-v2.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/merit/icon-design-20261013/review-v2.png",
+      "sha256": "9217f5c2b31a09151557074ed07319a195ca1e1d435e2c98eaf17b535767a08f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/merit/icon-design-20261013/review.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/merit/icon-design-20261013/review.png",
+      "sha256": "3c1c0df5e3dbc613cd522465b8e7a47beb44c4b418224ab95ccf9b1ced4e8395"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/icons/disc-3.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/remote/icons/disc-3.svg",
+      "sha256": "61818943e2f72fd9dfdae108a14ffc3a7ba1b59f7760c5db006eb7192a89efb7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/icons/lock-keyhole.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/remote/icons/lock-keyhole.svg",
+      "sha256": "d2c052ce26b89b063a4b1ecaa98198803b7d881cb0d176cb33c067e5140b2dd0"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/icons/mic.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/remote/icons/mic.svg",
+      "sha256": "6b7893c14bc1d1a9f839571ee2119dd8c5b96d7301c87cb6735e43278788f934"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/icons/mouse.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/remote/icons/mouse.svg",
+      "sha256": "8ea55d9c6444b11e04374745c30e4990e53078108b5dde5094dc5d34cc945bfd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/remote/icons/sprout.svg",
+      "copy": "素材原图/设计留档/07-其余变更素材/GeekTool-IDF/artwork/remote/icons/sprout.svg",
+      "sha256": "79e4e4f8569bbd0700f6408ec269532344243f267f46c741b5a51e511f97648f"
+    },
+    {
+      "source": "site/assets/hands/hand-arc.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-arc.png",
+      "sha256": "80a0a8217c5a4b8a564c53c23fc4416a14aae7d3bcbc7e4708e29b40406d63fc"
+    },
+    {
+      "source": "site/assets/hands/hand-dots.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-dots.png",
+      "sha256": "adb9f66ac315792f502e0573febfceabad214de6ee5354d073bdc86b1dc2a012"
+    },
+    {
+      "source": "site/assets/hands/hand-frame.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-frame.png",
+      "sha256": "67bab9234980b3880c3ef37b752af223dd406b0c3479a1791dba000d90c25ba0"
+    },
+    {
+      "source": "site/assets/hands/hand-mark.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-mark.png",
+      "sha256": "c07468b46fd0bb9a8a7b82b2942b66bdbd5433ae7eae5a4e8269a0ba9401e76b"
+    },
+    {
+      "source": "site/assets/hands/hand-numeral.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-numeral.png",
+      "sha256": "29ec03a39a39a3c8c2f409950a50573a3d2bb063d0033fb41acc178ec6168e50"
+    },
+    {
+      "source": "site/assets/hands/hand-orbit.png",
+      "copy": "素材原图/设计留档/07-其余变更素材/site/assets/hands/hand-orbit.png",
+      "sha256": "80e564d54ce6844ecb08ea3cc2409ac0a986114c1376d5c923d042d050c1bba1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/mute-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/mute-zh.png",
+      "sha256": "2b47af188ee281aec7f91cbef26b90c04f9d533fdd586291c20695bb85826695"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/face-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/face-en.png",
+      "sha256": "ac0d46c86a4d65c747eebf299581343a83ee4942f3c1fb123cfd670ebdff19d9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-long-bottom-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-long-bottom-zh.png",
+      "sha256": "315f045dd3444efe7b5fda5ed6fd276e380cc17d6abd4182cb455a8c4bc21a36"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-native-bottom-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-native-bottom-zh.png",
+      "sha256": "27fb0d4ad6a81bff63232c87053ac26b4d257411fa8978169aa71e8e46da00d6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/home-bottom-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/home-bottom-en.png",
+      "sha256": "52e908a88af058b6d44848b35db147333b4199d54b434b28b3adc35bfcdd65fd"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-long-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-long-en.png",
+      "sha256": "fa7fa993f84d8356be61f43d3088a9b97086affa2e97b2216386f6912f077cfb"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/brightness-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/brightness-en.png",
+      "sha256": "ccd5deb96528cdee34d97477e83ea3d26abbf849b42e56ad3202b568ab03468a"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/before-display-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/before-display-en.png",
+      "sha256": "50eb0e5f2faaad4f3434a8455d5fe5567f95ff40bb20ece3437f2e5fa57da1e8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/home-bottom-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/home-bottom-zh.png",
+      "sha256": "11f734deabdb938971663ce8635b8c5969f33af7d57e24a8b230890e51da36f5"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-native-bottom-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-native-bottom-en.png",
+      "sha256": "bdbb785d5e73f8c8b784bd7f1e53e08e0cc2abd40a8932da3d95544beede4fde"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/before-display-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/before-display-zh.png",
+      "sha256": "6345a564f5542120384a3d38f7a648bad098c74427f323a2a8767f9122888fda"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/review-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/review-zh.png",
+      "sha256": "f6ed4cce5cc536d97546b1c226a674a76dede6b400826a3669f39a99bdb2f628"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/before-overview-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/before-overview-zh.png",
+      "sha256": "ce022acc33c8489f7447112b8c52355ce7d70ce28bfe67035d109cbbaf7ece78"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/brightness-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/brightness-zh.png",
+      "sha256": "4f4ae22316232e9a12e176f1a3466e9150b1033edc75a5924bd6dc36a5e9663c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-long-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-long-zh.png",
+      "sha256": "f40b148ef7ee3b409200689d34304706e302e110307d8b41f1b4c8c701568fa7"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/mute-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/mute-en.png",
+      "sha256": "501d59d9b9d32fbf71fca0a290ef4822d31694a1ad8ea0037daaea31e10bd77e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-long-bottom-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-long-bottom-en.png",
+      "sha256": "fade067acab4abb02d6592b579ceab62dcc8c62d2e10e93da57864bd17dbddaf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/face-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/face-zh.png",
+      "sha256": "2420a6fccc29451efe10de5ec021d4cf93ab3a06348ae4c583a4c70caa316a3c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/home-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/home-en.png",
+      "sha256": "d0e58107c87266f4cff03846ce129be1ca87741321986b7e6960201f4350caa9"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/mute-toggled-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/mute-toggled-en.png",
+      "sha256": "a71edd83d73caf3bae59e0b08ecbe1956c65715da4e13281e6598312fddb7bbc"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/all-pages-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/all-pages-zh.png",
+      "sha256": "1bc801f1e851e97bed329b865c9f9aaa177117c29094e17d8f5656a3aaf30e49"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/language-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/language-en.png",
+      "sha256": "197ad42368140f0f708ef5763541c5f5e5b6ad71669aa37418ea1e18fc188779"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/aod-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/aod-zh.png",
+      "sha256": "9991f9a87046207e314af000b95615948fb92718b2012e7e8eb4a36237b3d71f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/aod-toggled-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/aod-toggled-zh.png",
+      "sha256": "eab97373a474b04cb2a44e6de34dd86358a5ae9ecb96d02b619ff674b0acf29b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-en.png",
+      "sha256": "cd57a47d1c6cccdd108c2ed1ac069eacc8fcf83985c473cb830b841a06802bbf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/volume-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/volume-en.png",
+      "sha256": "94ced2b35ecd160ca758ecfc9e785c0e77d586b279a18eb6da8e764f7425f380"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/aod-toggled-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/aod-toggled-en.png",
+      "sha256": "739330db36d885eeeb7beb15cf8e0b9a41029bcdd85edfa116966773699d6b29"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/volume-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/volume-zh.png",
+      "sha256": "b1ce58b1cb4bc08f8f78fb361e2627372c71e9266e0b79d72cc4232955b926ce"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/about-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/about-zh.png",
+      "sha256": "ec67c36c47b7cf4194185783c9b3328fbac9f95ed314df4c160143e211fb0bb3"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/language-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/language-zh.png",
+      "sha256": "49f413774f256eea177bd83401d01d845338f949993dd9a46721ea475b39b2ec"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/all-pages-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/all-pages-en.png",
+      "sha256": "0ea7715bfddf32562769eee99b2f41f3a40ac558896288dc35332fa579f70b3b"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/mute-toggled-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/mute-toggled-zh.png",
+      "sha256": "dfb1d90f4d4bb79aad4db67cf6c88f099fd688813f2f64a4d9919713f84ac7ed"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/home-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/home-zh.png",
+      "sha256": "7837ef6719dc2c5fe276b6fb873a88ae7304d0c3aa937617864630031ce3dc8f"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-detail/aod-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-detail/aod-en.png",
+      "sha256": "e0a3cebb6e255f389f196c37d9663b7ebb2c141b5588c1c2bf89225b32381242"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/scrolling-preview.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/scrolling-preview.png",
+      "sha256": "dfc6ab17a5fe6004bf3839f0d5a73625f18e7a7f8bf6f6d3a9b439bfbe18f9b6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/scroll-top-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/scroll-top-en.png",
+      "sha256": "fd9463a58a430cc595ef10e19401d369decbfe9241e0e5e71fac2b4400c3f975"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/before-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/before-zh.png",
+      "sha256": "3eea0f87e55bbee356f4c64320f5f4b0c4d228a819f09d25df4ced1c4741be18"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/scroll-bottom-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/scroll-bottom-en.png",
+      "sha256": "4b934d61df263681073bd49b3461e49a676eceb227cedc6b3ef7a87f8230b9cc"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/scroll-top-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/scroll-top-zh.png",
+      "sha256": "57a44c6b3eae497af9f5f399e85f25243268502ac4c76e3273604ef3b1755419"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/scroll-bottom-zh.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/scroll-bottom-zh.png",
+      "sha256": "48c53c50ef798c224fe547b4e3386e5b15d80cdb26b745edb638e21f372af085"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/settings-home/before-en.png",
+      "copy": "素材原图/10月7日同日补充/settings-home/before-en.png",
+      "sha256": "225fec6ca07c7ff8e67e1be8b5bd9f506530c6596687b02dff0bbc199b512b63"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/network-recovery/ota-tcp-fail-zh.png",
+      "copy": "素材原图/10月7日同日补充/network-recovery/ota-tcp-fail-zh.png",
+      "sha256": "3f2672f707bc37dae92fb099a65f9892c71d248e7b5e5b59876d75ee3b334276"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/network-recovery/ota-dns-fail-zh.png",
+      "copy": "素材原图/10月7日同日补充/network-recovery/ota-dns-fail-zh.png",
+      "sha256": "a5e87bebc453759d70367effb296449731bbd08a0e4c5a3d25b7c230177fd1be"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot.mp4",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot.mp4",
+      "sha256": "eec62b6ed47e733728ba48432bec5cfc584a0605bcbf043606379e2b6e4d5faf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-failed-zh.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-failed-zh.png",
+      "sha256": "c74c435e91b5732c428adc7ac881334cbe3d51be6cce84791f0095bf17cd4ce6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-failed-en.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-failed-en.png",
+      "sha256": "2d2cd6f35831104f10bd6835df654ef99eae294351a94a1f62acac8f969d4f05"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-offline-zh.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-offline-zh.png",
+      "sha256": "ba239fa8e2b8c331f97ea91db343a025f614c9261a7d2d1bf1648a4a90ae1e6d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-network-failed-en.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-network-failed-en.png",
+      "sha256": "da3242937a51b5278f8a0ee7f554cc1c7e93e313d5cb8cc7fafc7fac0fc93ea6"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-check-zh.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-check-zh.png",
+      "sha256": "53212f1d1dacfb1c7b16a0629fd21a03e5df6b7ddbae4c9fdab83547292b8466"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-offline-en.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-offline-en.png",
+      "sha256": "1481cecb1ec2d4435112a8e1f2c19798115db531e0ba7f5b0f1a36cfbab8160c"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-check-en.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-check-en.png",
+      "sha256": "cbe541b9db0cee26997fce56d897f7ce2bdf13ea13a3edd272593eb45ae4a7d4"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/identity/native/startup-20261007/boot-network-failed-zh.png",
+      "copy": "素材原图/10月7日同日补充/startup-20261007/boot-network-failed-zh.png",
+      "sha256": "63b76d635ee60b119686861bdd1852bcd69ff30a763e65ef2ffaebb1e387cc0d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/aperture-aod.png",
+      "copy": "素材原图/16-几何读时/aperture-aod.png",
+      "sha256": "9acca74d313a0ee3f421cfd3ed7e6504e10adb7af5f14a81eee3decf0115cfa1"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/aperture.png",
+      "copy": "素材原图/16-几何读时/aperture.png",
+      "sha256": "bc9fa5f4602db59969c8f171b9aa3b55c7125a5969f76d4cbe1ed299b9008157"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/app-selector-61-en.png",
+      "copy": "素材原图/16-几何读时/app-selector-61-en.png",
+      "sha256": "8253016bb6895a0d9625472cd850b4a23ee4042d93efec3889c7a327d567c091"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/balance-aod.png",
+      "copy": "素材原图/16-几何读时/balance-aod.png",
+      "sha256": "2d943082b047d952c9c13620987414a43b29aeeb6b1a646243db70abddc88fe2"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/balance.png",
+      "copy": "素材原图/16-几何读时/balance.png",
+      "sha256": "fdb2f1500549fc41a468c952c533a2b7923ef16d02626234667a42c2ad336f27"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/cross-aod.png",
+      "copy": "素材原图/16-几何读时/cross-aod.png",
+      "sha256": "505a620c97a3da11c195867ee3bbfffd6a68f137ae1e5d31d6c791cb43c817e8"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/cross.png",
+      "copy": "素材原图/16-几何读时/cross.png",
+      "sha256": "aff75445d29ea88098bbfd997df7353667a0a9728baf175d1ee748d66c2bacdf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/hourglass-aod.png",
+      "copy": "素材原图/16-几何读时/hourglass-aod.png",
+      "sha256": "bce1b916a44d324eb39b7c1fbf12073b821205274f37b0f689913709b24ce56d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/hourglass.png",
+      "copy": "素材原图/16-几何读时/hourglass.png",
+      "sha256": "9864d00e4da28907229b0c81e8b054ae1a2e5b32a0f7cff77d5c9bd43cae2f83"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/late-overview.png",
+      "copy": "素材原图/16-几何读时/late-overview.png",
+      "sha256": "aadbba42a4903eadc92119b8c0c50f74d27d75ca430b0b717883da6e457f4865"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/midnight-overview.png",
+      "copy": "素材原图/16-几何读时/midnight-overview.png",
+      "sha256": "4650b6592abf0a81bedb57367482d4b4c04bca623975e19399a9dc82fa5c5a87"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/overview.png",
+      "copy": "素材原图/16-几何读时/overview.png",
+      "sha256": "f8d11b4aa3329dbe913345e9d0446b082a0b4805b221e7a2311feebafc8c6642"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/phase-aod.png",
+      "copy": "素材原图/16-几何读时/phase-aod.png",
+      "sha256": "cb9a092c7508a80aadf5bad23ee4dc7190cabd99ed1f3688aa79d8d1feb5b043"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/phase.png",
+      "copy": "素材原图/16-几何读时/phase.png",
+      "sha256": "596b0c15df0df2f1b9a19135912b1c0cdedc7d0c9f78e0764ec1f0c377fe5bdf"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/preview-overview.png",
+      "copy": "素材原图/16-几何读时/preview-overview.png",
+      "sha256": "e0bbc1becead259d52ca395c4df69b07399323045223ab072835a8b45fceca4e"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/quanta-aod.png",
+      "copy": "素材原图/16-几何读时/quanta-aod.png",
+      "sha256": "9d130c75bc125b1c58399c5467bfedf9b47041416feecead8c5e1d897b4f7123"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/quanta.png",
+      "copy": "素材原图/16-几何读时/quanta.png",
+      "sha256": "fe70c6adb4cb1a0e53e1b18708f924dda686756b1e50fc4d3953e802138c0b5d"
+    },
+    {
+      "source": "GeekTool-IDF/artwork/watchfaces/geometry-native-20261022/selector-56-zh.png",
+      "copy": "素材原图/16-几何读时/selector-56-zh.png",
+      "sha256": "3817c709eeca77c65dd4862fcd4f11b99c550a285fcce609cad1437c41f5c0f4"
+    },
+    {
+      "source": "site/assets/studio/active-cross.png",
+      "copy": "素材原图/15-官网表盘/active-cross.png",
+      "sha256": "aff75445d29ea88098bbfd997df7353667a0a9728baf175d1ee748d66c2bacdf"
+    },
+    {
+      "source": "site/assets/studio/active-balance.png",
+      "copy": "素材原图/15-官网表盘/active-balance.png",
+      "sha256": "fdb2f1500549fc41a468c952c533a2b7923ef16d02626234667a42c2ad336f27"
+    },
+    {
+      "source": "site/assets/studio/active-hourglass.png",
+      "copy": "素材原图/15-官网表盘/active-hourglass.png",
+      "sha256": "9864d00e4da28907229b0c81e8b054ae1a2e5b32a0f7cff77d5c9bd43cae2f83"
+    },
+    {
+      "source": "site/assets/studio/active-quanta.png",
+      "copy": "素材原图/15-官网表盘/active-quanta.png",
+      "sha256": "fe70c6adb4cb1a0e53e1b18708f924dda686756b1e50fc4d3953e802138c0b5d"
+    },
+    {
+      "source": "site/assets/studio/active-phase.png",
+      "copy": "素材原图/15-官网表盘/active-phase.png",
+      "sha256": "596b0c15df0df2f1b9a19135912b1c0cdedc7d0c9f78e0764ec1f0c377fe5bdf"
+    },
+    {
+      "source": "site/assets/studio/active-aperture.png",
+      "copy": "素材原图/15-官网表盘/active-aperture.png",
+      "sha256": "bc9fa5f4602db59969c8f171b9aa3b55c7125a5969f76d4cbe1ed299b9008157"
+    },
+    {
+      "source": "https://sobigrice.github.io/soRound_os/ (2026-10-22, gallery 56-face snapshot)",
+      "copy": "素材原图/17-官网快照/20261022-官网图鉴-56款时.png",
+      "sha256": "a3a27dccfca5f7df79b6ba40a68de2f7b5ebdeafc61cc8505e38d6d30f7bb6f1"
+    }
+  ],
+  "geometry_native_added": "2026-10-22 最新已提交原生实现"
+}

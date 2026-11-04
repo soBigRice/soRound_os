@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // 遥控台:保留触控鼠标,同一 BLE 连接内切换演示翻页和媒体控制。
 // 拖拽锁定让单指触摸也可按住左键移动;遮挡/断连/模式切换统一释放输入。
 #include "app.h"
@@ -39,6 +40,7 @@ static bool s_volume_open;
 
 static void update_connection(void);
 static void build_mode(void);
+static bool s_demo_remote;
 
 static void free_media_view(void) {
     // LVGL 必须先丢掉图像对象与缓存，再释放 UI 持有的 PSRAM 副本。
@@ -374,10 +376,12 @@ static void build_mode(void) {
         lv_obj_t *close=label(g_volume_panel, tr(S_REMOTE_HOLD_VOLUME), UI_FONT_M);
         lv_obj_set_style_text_color(close,lv_color_hex(0x929294),0); lv_obj_align(close,LV_ALIGN_TOP_MID,0,8);
         ui_obj_set_hidden(g_volume_panel,true);
-        s_rotation_at=lv_tick_get(); update_media_view();
+        s_rotation_at=lv_tick_get(); if(!s_demo_remote)update_media_view();
     }
+    if(!s_demo_remote) {
     s_ready = !ble_hid_ready(s_mode); // 强制同步新一组控件的 enabled 状态。
     s_status = -1; update_connection();
+    }
     launcher_set_title(tr(s_mode == HID_MEDIA ? S_REMOTE_MEDIA : s_mode == HID_KEYBOARD ? S_REMOTE_SLIDES : S_REMOTE_TITLE));
 }
 
@@ -406,11 +410,12 @@ static void update_connection(void) {
     }
 }
 
-static void mouse_enter(lv_obj_t *parent) {
+static void mouse_build(lv_obj_t *parent,bool demo) {
+    s_demo_remote=demo;
     g_parent = parent; s_mode = HID_MOUSE; s_visible = true;
     s_elapsed_us = s_timer_since = s_feedback_until = 0; s_timer_running = false;
     s_btns = 0; s_drag = false; s_ax = s_ay = s_wacc = 0;
-    remote_media_set_visible(true);
+    if(!demo)remote_media_set_visible(true);
     g_status = label(parent, tr(S_STARTING), UI_FONT_M);
     lv_obj_set_width(g_status, 324); lv_obj_set_style_text_align(g_status, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(g_status, LV_ALIGN_TOP_MID, 0, 88);
@@ -422,8 +427,10 @@ static void mouse_enter(lv_obj_t *parent) {
         lv_obj_add_event_cb(g_modes[i], mode_event, LV_EVENT_CLICKED, (void *)(uintptr_t)i);
         if (i == HID_MEDIA) lv_obj_add_event_cb(g_modes[i], volume_event, LV_EVENT_LONG_PRESSED, NULL);
     }
-    s_started = ble_hid_start(); build_mode();
+    s_started = demo?false:ble_hid_start(); build_mode();
 }
+
+static void mouse_enter(lv_obj_t *parent){mouse_build(parent,false);}
 
 static void mouse_tick(void) {
     // 即使锁屏/快捷面板遮挡也排空释放报文,避免电脑把按键一直当成按住。
@@ -460,3 +467,28 @@ const app_t app_mouse = {
     .name = "mouse", .color = COL_TXT, .enter = mouse_enter, .tick = mouse_tick, .exit = mouse_exit,
     .back = mouse_back, .tick_period_ms = 20, .visibility = mouse_visibility, .tick_in_background = true,
 };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_media_artwork(void) {
+    // UI拥有样例封面；只复用原图层与清理，不向媒体服务发布假快照。/ Own the sample cover locally; never publish fake media state.
+    s_cover_pixels=heap_caps_malloc(REMOTE_MEDIA_ARTWORK_BYTES,MALLOC_CAP_SPIRAM|MALLOC_CAP_8BIT);
+    if(!s_cover_pixels)return;
+    uint16_t *pixels=(uint16_t *)s_cover_pixels;
+    const uint32_t colors[]={0x111b29,0x325268,0xb87b58,0xe5b17e};
+    for(int y=0;y<466;++y)for(int x=0;x<466;++x){int dx=x-233,dy=y-233;unsigned ring=(unsigned)(dx*dx+dy*dy)/7000;uint32_t color=colors[ring%4];pixels[y*466+x]=lv_color_to_u16(lv_color_hex(color));}
+    s_cover_image=(lv_image_dsc_t){.header={.magic=LV_IMAGE_HEADER_MAGIC,.cf=LV_COLOR_FORMAT_RGB565,.w=466,.h=466,.stride=932},.data=s_cover_pixels,.data_size=REMOTE_MEDIA_ARTWORK_BYTES};
+    lv_image_set_src(g_cover,&s_cover_image);ui_obj_set_hidden(g_cover,false);ui_obj_set_hidden(g_media_hint,true);
+    lv_obj_t *track=label(g_media_layer,"CIRCLES / soRound Studio",&lv_font_montserrat_20);lv_obj_align(track,LV_ALIGN_TOP_MID,0,127);
+    lv_obj_t *lyrics=label(g_media_layer,"A little time, a little space",&lv_font_montserrat_20);lv_obj_align(lyrics,LV_ALIGN_TOP_MID,0,323);
+    ui_text(g_play_symbol,LV_SYMBOL_PAUSE);
+}
+static void demo_mouse_enter(lv_obj_t *parent,unsigned variant) {
+    mouse_build(parent,true);s_mode=variant==3?HID_MEDIA:(hid_report_t)variant;build_mode();
+    lv_label_set_text(g_status,"DEMO / Bluetooth remote");
+    for(int i=0;i<s_control_count;++i)lv_obj_remove_state(g_controls[i],LV_STATE_DISABLED);
+    if(variant>=2)demo_media_artwork();
+    if(variant==3)ui_obj_set_hidden(g_volume_panel,false);
+}
+static void demo_mouse_frame(uint32_t elapsed){if(g_cover && s_cover_pixels)lv_image_set_rotation(g_cover,(int32_t)(elapsed/10)%3600);if(g_time){char text[16];snprintf(text,sizeof text,"%02u:%02u",(unsigned)(elapsed/60000),(unsigned)(elapsed/1000%60));ui_text(g_time,text);}}
+static void demo_mouse_exit(void){free_media_view();g_parent=g_body=g_status=g_pad=g_drag=g_time=NULL;s_started=s_ready=s_timer_running=false;}
+const demo_page_t demo_mouse={.count=4,.enter=demo_mouse_enter,.frame=demo_mouse_frame,.exit=demo_mouse_exit};

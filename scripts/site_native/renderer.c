@@ -93,6 +93,8 @@ static void capture(const char *directory, const char *name, lv_display_t *displ
     }
     assert(fclose(file) == 0);
 }
+// 测试可复用同一SDK夹具，不重复编译历史导出入口。/ Tests can reuse these SDK fixtures without the legacy entry.
+#ifndef SOROUND_FIXTURE_ONLY
 int main(int argc, char **argv) {
     assert(argc == 2 || (argc == 3 && strcmp(argv[2], "--english") == 0));
     if (argc == 3) preview_language = 0;
@@ -141,3 +143,5 @@ int main(int argc, char **argv) {
         printf("native %s exported\n", names[i]);
     }
 }
+
+#endif

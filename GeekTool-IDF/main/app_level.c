@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 /*
  * @Author: superRice
  * @Date: 2026-06-22 12:20:25
@@ -74,7 +75,7 @@ static void angle_layout(void) {
 
 static void level_tick(void);
 
-static void level_enter(lv_obj_t *parent) {
+static void level_build(lv_obj_t *parent) {
     g_content=tools_surface(parent,0,0,466,466);
     // Includes the outward tick caps, not only the dotted circle. Text starts below this envelope.
     g_target=tools_surface(g_content,LCX-114,TARGET_TOP,229,TARGET_BOTTOM-TARGET_TOP+1);
@@ -114,24 +115,10 @@ static void level_enter(lv_obj_t *parent) {
     ui_obj_set_hidden(g_content,true);
     ui_obj_set_hidden(g_ball,true);
     ui_obj_set_hidden(g_fault,false);
-    imu_init();
-    level_tick();
 }
+static void level_enter(lv_obj_t *parent){level_build(parent);imu_init();level_tick();}
 
-static void level_tick(void) {
-    if (!g_ball) return;
-    uint32_t now=lv_tick_get();
-    float dt=fminf((float)(now-s_last_ms),100.0f);s_last_ms=now;
-    float alpha=1.0f-powf(1.0f-SMOOTH,dt/50.0f);
-    float tx,ty,az;
-    if (!imu_read_tilt_z(&tx,&ty,&az) || !isfinite(tx) || !isfinite(ty) || !isfinite(az)) {
-        if (++s_missed>=3) {
-            ui_obj_set_hidden(g_content,true);
-            ui_obj_set_hidden(g_ball,true);
-            ui_obj_set_hidden(g_fault,false);
-        }
-        return;
-    }
+static void level_sample(float tx,float ty,float az,float alpha) {
     s_missed=0;
     ui_obj_set_hidden(g_content,false);ui_obj_set_hidden(g_ball,false);
     ui_obj_set_hidden(g_fault,true);
@@ -164,8 +151,30 @@ static void level_tick(void) {
     if (strcmp(lv_label_get_text(g_y),axis)) {ui_text(g_y,axis);tools_label_center(g_y,300,427);}
 }
 
+static void level_tick(void) {
+    if (!g_ball) return;
+    uint32_t now=lv_tick_get();
+    float dt=fminf((float)(now-s_last_ms),100.0f);s_last_ms=now;
+    float alpha=1.0f-powf(1.0f-SMOOTH,dt/50.0f);
+    float tx,ty,az;
+    if (!imu_read_tilt_z(&tx,&ty,&az) || !isfinite(tx) || !isfinite(ty) || !isfinite(az)) {
+        if (++s_missed>=3) {
+            ui_obj_set_hidden(g_content,true);
+            ui_obj_set_hidden(g_ball,true);
+            ui_obj_set_hidden(g_fault,false);
+        }
+        return;
+    }
+    level_sample(tx,ty,az,alpha);
+}
+
 static void level_exit(void) {
     g_ball=g_big=g_unit=g_status=g_x=g_y=g_content=g_target=g_fault=g_vector=g_origin=NULL;
 }
 static void level_visibility(bool visible) {(void)visible;s_last_ms=lv_tick_get();}
 const app_t app_level={"level",COL_TXT,level_enter,level_tick,level_exit,NULL,20,level_visibility};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_level_enter(lv_obj_t *parent,unsigned variant){(void)variant;level_build(parent);}
+static void demo_level_frame(uint32_t elapsed){float t=elapsed/1000.0f;float gain=elapsed>4300?0:.16f;level_sample(gain*sinf(t*1.6f),gain*cosf(t*1.6f),.97f,1);}
+const demo_page_t demo_level={.count=1,.enter=demo_level_enter,.frame=demo_level_frame,.exit=level_exit};

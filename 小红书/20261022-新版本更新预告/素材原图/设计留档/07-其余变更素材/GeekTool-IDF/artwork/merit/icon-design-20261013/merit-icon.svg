@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="148" height="148" viewBox="0 0 148 148">
+  <title>木鱼启动器图标 · 设计稿</title>
+  <g fill="none" stroke="#f5f5f2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M39 53C27 62 20 79 22 98C24 117 44 130 74 130C102 130 122 118 125 101C128 86 117 70 103 57C90 45 74 42 58 46C51 47 44 49 39 53Z"/>
+    <path d="M42 99C64 86 91 83 116 89C106 105 83 111 63 108C54 107 47 104 42 99Z"/>
+    <circle cx="88" cy="69" r="10"/>
+    <path d="M43 76C41 64 51 56 61 60C68 63 67 73 60 75"/>
+    <path d="M95 30L125 13"/>
+  </g>
+  <circle cx="88" cy="69" r="3" fill="#f5f5f2"/>
+  <rect x="73" y="28" width="24" height="17" rx="8.5" transform="rotate(-30 85 36.5)" fill="#d1283a"/>
+</svg>

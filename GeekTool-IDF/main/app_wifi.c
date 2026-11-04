@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 // SDK events only update service flags; all LVGL work stays in wifi_tick / input callbacks.
 #include "control_ui.h"
 #include "settings.h"
@@ -204,10 +205,10 @@ static void kb_event(lv_event_t *e) {
     } else if(c==LV_EVENT_READY)connect_btn_event(e);
     else if(c==LV_EVENT_CANCEL)close_dialog();
 }
-static void show_password_dialog(const char *ssid) {
-    if(dlg || !g_panel || !s_wifi_on)return;
+static void password_dialog_create(lv_obj_t *parent,const char *ssid) {
+    if(dlg || !g_panel)return;
     size_t name_len=strlen(ssid);if(name_len>32)name_len=32;memmove(sel_ssid,ssid,name_len);sel_ssid[name_len]=0;
-    dlg=control_surface(lv_layer_top(),0,0,466,466);
+    dlg=control_surface(parent,0,0,466,466);
     lv_obj_set_style_bg_color(dlg,lv_color_black(),0);lv_obj_set_style_bg_opa(dlg,LV_OPA_COVER,0);
     ui_obj_set_gesture_bubble(dlg,false);
     lv_obj_add_event_cb(dlg,password_gesture,LV_EVENT_GESTURE,NULL);
@@ -257,6 +258,7 @@ static void show_password_dialog(const char *ssid) {
     lv_obj_t *connect=control_button(dlg,151,396,164,44,connect_btn_event,NULL);
     lv_obj_set_style_bg_color(connect,lv_color_hex(COL_RED),0);control_button_text(connect,wifi_word("连接","Connect"));
 }
+static void show_password_dialog(const char *ssid){if(s_wifi_on)password_dialog_create(lv_layer_top(),ssid);}
 static void wifi_row_click(lv_event_t *e) {
     if(s_connecting || !s_wifi_on)return;
     const wifi_row_t *row=lv_event_get_user_data(e);sel_auth=row->auth;
@@ -365,8 +367,8 @@ static void wifi_sw_cb(lv_event_t *e) {
     if(on)request_scan();else set_status(wifi_word("无线网络已关闭","Wireless is off"),CONTROL_GRAY);
 }
 static void wifi_scan_cb(lv_event_t *e){(void)e;request_scan();}
-static void wifi_enter(lv_obj_t *parent) {
-    wifi_svc_init();s_have_scan=false;s_ui_connected=false;s_row_count=0;g_panel=control_surface(parent,0,0,466,466);launcher_set_title("Wi-Fi");
+static void wifi_build(lv_obj_t *parent) {
+    g_panel=control_surface(parent,0,0,466,466);launcher_set_title("Wi-Fi");
     g_sw=control_toggle(g_panel,80,102,306,wifi_word("无线网络","Wireless"),wifi_word("2.4 GHz 网络","2.4 GHz networks"),s_wifi_on,wifi_sw_cb,NULL);
     lv_obj_t *power_row=lv_obj_get_parent(g_sw);lv_obj_set_height(power_row,54);
     lv_obj_set_y(lv_obj_get_child(power_row,0),12);ui_obj_set_hidden(lv_obj_get_child(power_row,1),true);lv_obj_set_y(g_sw,11);
@@ -382,6 +384,10 @@ static void wifi_enter(lv_obj_t *parent) {
     lv_obj_set_flex_flow(g_list,LV_FLEX_FLOW_COLUMN);lv_obj_set_style_pad_row(g_list,6,0);
     lv_obj_set_scrollbar_mode(g_list,LV_SCROLLBAR_MODE_AUTO);lv_obj_set_style_width(g_list,3,LV_PART_SCROLLBAR);
     lv_obj_set_style_bg_color(g_list,lv_color_hex(CONTROL_GRAY),LV_PART_SCROLLBAR);
+}
+static void wifi_enter(lv_obj_t *parent) {
+    wifi_svc_init();s_have_scan=false;s_ui_connected=false;s_row_count=0;
+    wifi_build(parent);
     s_ui_at=0;update_connection();if(s_wifi_on)request_scan();else set_status(wifi_word("无线网络已关闭","Wireless is off"),CONTROL_GRAY);
 }
 static void resume_saved_connection(void) {
@@ -418,3 +424,17 @@ static void wifi_exit(void) {
 }
 void wifi_service_start(void){wifi_svc_init();}
 const app_t app_wifi={.name="WiFi",.color=COL_WIFI,.enter=wifi_enter,.tick=wifi_tick,.exit=wifi_exit,.back=wifi_back};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static char demo_wifi_previous_ssid[33];
+static void demo_wifi_enter(lv_obj_t *parent,unsigned variant) {
+    memcpy(demo_wifi_previous_ssid,sel_ssid,sizeof sel_ssid);
+    wifi_build(parent);lv_obj_add_state(g_sw,LV_STATE_CHECKED);lv_label_set_text(g_ssid,"soRound Studio");
+    lv_label_set_text(g_detail,"192.168.1.74   /   DEMO");
+    const char *names[]={"Studio Guest","Home 2.4G","soRound Lab"};
+    for(unsigned i=0;i<3;++i){lv_obj_t *row=control_button(g_list,0,0,324,52,NULL,NULL);control_label(row,names[i],&font_location_24,14,0,270,CONTROL_WHITE);control_label(row,"WPA2   /   -48 dBm",control_small_font(),14,28,280,CONTROL_GRAY);}
+    if(variant)password_dialog_create(parent,"Studio Guest");
+}
+static void demo_wifi_exit(void){lv_async_call_cancel(render_rows,NULL);if(dlg){lv_obj_delete(dlg);dlg=NULL;pwd_ta=kb=pwd_hint=pwd_visibility=NULL;}memcpy(sel_ssid,demo_wifi_previous_ssid,sizeof sel_ssid);g_panel=g_sw=g_current=g_ssid=g_detail=g_status=g_scan=g_list=NULL;}
+static bool demo_wifi_fullscreen(unsigned variant){return variant==1;}
+const demo_page_t demo_wifi={.count=2,.enter=demo_wifi_enter,.exit=demo_wifi_exit,.fullscreen=demo_wifi_fullscreen};

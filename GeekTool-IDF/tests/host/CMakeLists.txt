@@ -12,6 +12,7 @@ target_include_directories(performance_tests PRIVATE stubs ../../main)
 target_link_libraries(performance_tests PRIVATE lvgl m)
 target_compile_options(performance_tests PRIVATE -Wall -Wextra -Wno-missing-field-initializers)
 enable_testing()
+add_subdirectory(../stocks stocks)
 add_subdirectory(../mimi mimi)
 add_executable(render_power_tests render_power_tests.c)
 target_include_directories(render_power_tests PRIVATE stubs ../../main)
@@ -123,6 +124,7 @@ add_executable(startup_flow_tests ../startup_flow/startup_flow_tests.c ../../mai
     ../../main/app_watchfaces.c ../../main/watchface_picker.c ../../main/control_ui.c ../../main/font_control.c)
 target_include_directories(startup_flow_tests PRIVATE ../startup_flow/stubs ../startup/stubs ../../main)
 target_link_libraries(startup_flow_tests PRIVATE lvgl m)
+target_sources(startup_flow_tests PRIVATE ../../main/font_stocks.c ../../main/font_stocks_cjk.c ../../main/font_stocks_cjk_22.c)
 target_sources(startup_flow_tests PRIVATE ../../main/font_mimi.c ../../main/app_mimi.c ../../main/mimi_pet.c ../../main/mimi_motion.c)
 target_compile_options(startup_flow_tests PRIVATE -Wall -Wextra -Werror -Wno-unused-variable -Wno-unused-parameter -Wno-missing-field-initializers)
 add_test(NAME startup_complete_flow COMMAND startup_flow_tests 0 0)
@@ -211,6 +213,7 @@ add_executable(preview_launcher_icons ../../tools/preview_launcher_icons.c ../..
                ../../main/i18n.c ../../main/font_cn16.c ../../main/font_location_24.c)
 target_include_directories(preview_launcher_icons PRIVATE ../weather/stubs stubs ../../main)
 target_link_libraries(preview_launcher_icons PRIVATE lvgl m)
+target_sources(preview_launcher_icons PRIVATE ../../main/font_stocks.c ../../main/font_stocks_cjk.c ../../main/font_stocks_cjk_22.c)
 target_sources(preview_launcher_icons PRIVATE ../../main/font_mimi.c)
 target_compile_options(preview_launcher_icons PRIVATE -Wall -Wextra -Werror -Wno-missing-field-initializers)
 add_test(NAME launcher_approved_artwork
@@ -263,3 +266,18 @@ target_include_directories(companion_icons_tests PRIVATE ../../main)
 target_link_libraries(companion_icons_tests PRIVATE lvgl m)
 target_compile_options(companion_icons_tests PRIVATE -Wall -Wextra -Werror)
 add_test(NAME companion_icons_preserve_catalog COMMAND companion_icons_tests)
+
+add_executable(demo_mode_tests ../demo/demo_mode_tests.c ../../main/demo_mode.c ../../main/i18n.c ../../main/font_cn16.c ../../main/font_companion.c)
+target_include_directories(demo_mode_tests PRIVATE stubs ../ota/stubs ../../main)
+target_link_libraries(demo_mode_tests PRIVATE lvgl m)
+target_compile_options(demo_mode_tests PRIVATE -UNDEBUG -Wall -Wextra -Werror -Wno-missing-field-initializers)
+add_test(NAME filming_demo_lifecycle_and_controls COMMAND demo_mode_tests)
+add_executable(demo_native_views_tests ../demo/native_views_tests.c
+    ../../main/app_calendar.c ../../main/app_countdown.c ../../main/app_stopwatch.c
+    ../../main/app_maze.c ../../main/maze_levels.c ../../main/app_fluid.c ../../main/app_i2c.c ../../main/app_twin.c
+    ../../main/font_watchface.c ../../main/font_watchface_hands.c ../../main/glyph.c ../../main/ui_list.c
+    ../../main/i18n.c ../../main/font_cn16.c)
+target_include_directories(demo_native_views_tests PRIVATE ../../../scripts/site_native/stubs ../dice/stubs stubs ../ota/stubs ../../main)
+target_link_libraries(demo_native_views_tests PRIVATE lvgl m)
+target_compile_options(demo_native_views_tests PRIVATE -UNDEBUG -Wall -Wextra -Werror -Wno-unused-parameter -Wno-missing-field-initializers)
+add_test(NAME filming_demo_native_tool_views COMMAND demo_native_views_tests)

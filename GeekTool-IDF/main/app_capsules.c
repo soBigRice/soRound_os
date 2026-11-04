@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "tools_ui.h"
 #include "font_companion.h"
@@ -116,11 +117,11 @@ static void list_refresh(void) {
         if(!lv_color_eq(lv_obj_get_style_text_color(g_row_names[row],0),color))lv_obj_set_style_text_color(g_row_names[row],color,0);
     }
 }
-static void capsules_tick(void) {
+static void capsules_render(bool refresh_snapshot) {
     if(!g_main || !s_visible)return;
     capsule_state_t previous_state=s_view.state;capsule_result_t previous_result=s_view.result;
     bool was_recording=recording();
-    capsule_recorder_snapshot(&s_view);
+    if(refresh_snapshot)capsule_recorder_snapshot(&s_view);
     if(s_listing){list_refresh();return;}
     uint32_t seconds=s_view.samples/CAPSULE_RATE;char text[40];
     snprintf(text,sizeof text,"%02lu",(unsigned long)(seconds/60));
@@ -133,7 +134,8 @@ static void capsules_tick(void) {
     if(was_recording!=recording() || memcmp(s_wave,s_view.waveform,sizeof s_wave)){memcpy(s_wave,s_view.waveform,sizeof s_wave);lv_obj_invalidate(g_wave);}
     if(previous_state!=s_view.state || previous_result!=s_view.result)lv_obj_invalidate(g_record);
 }
-static void capsules_enter(lv_obj_t *parent) {
+static void capsules_tick(void){capsules_render(true);}
+static void capsules_build(lv_obj_t *parent) {
     launcher_set_title(tools_text("CAPSULES","声音胶囊"));
     s_visible=true;s_listing=false;s_page=0;s_delete=-1;memset(&s_view,0,sizeof s_view);memset(s_wave,0,sizeof s_wave);
     g_main=tools_surface(parent,0,88,466,378);
@@ -166,10 +168,26 @@ static void capsules_enter(lv_obj_t *parent) {
     lv_obj_t *prev=circle_button(g_list,174,323,36);tools_label(prev,"<",&font_companion_22,18,18,TOOLS_WHITE,0);lv_obj_add_event_cb(prev,page_click,LV_EVENT_CLICKED,(void *)(intptr_t)-1);
     lv_obj_t *next=circle_button(g_list,256,323,36);tools_label(next,">",&font_companion_22,18,18,TOOLS_WHITE,0);lv_obj_add_event_cb(next,page_click,LV_EVENT_CLICKED,(void *)(intptr_t)1);
     tools_label(g_list,tools_text("HOLD TO DELETE","长按删除"),&font_companion_19,233,303,TOOLS_GRAY,0);
-    ui_obj_set_hidden(g_list,true);capsule_recorder_enter();capsules_tick();
+    ui_obj_set_hidden(g_list,true);
 }
+static void capsules_enter(lv_obj_t *parent){capsules_build(parent);capsule_recorder_enter();capsules_tick();}
 static bool capsules_back(void){if(s_listing){show_list(false);return true;}return false;}
 static void capsules_visibility(bool visible){s_visible=visible;if(!visible && busy())(void)capsule_recorder_stop();}
 static void capsules_exit(void){capsule_recorder_exit();g_main=g_wave=g_time=g_seconds=g_hint=g_date=g_record=g_list=g_space=g_empty=NULL;}
 const app_t app_capsules={.name="Capsules",.color=COL_TXT,.enter=capsules_enter,.tick=capsules_tick,.exit=capsules_exit,
     .back=capsules_back,.visibility=capsules_visibility,.tick_period_ms=50};
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static unsigned demo_capsules_variant;
+static void demo_capsules_enter(lv_obj_t *parent,unsigned variant) {
+    demo_capsules_variant=variant;capsules_build(parent);s_view.state=variant==1?CAPSULE_PLAYING:CAPSULE_RECORDING;s_view.result=CAPSULE_OK;
+    if(variant==2){s_listing=true;ui_obj_set_hidden(g_main,true);ui_obj_set_hidden(g_list,false);s_view.catalog.count=3;s_view.catalog.free_bytes=5*1024*1024;
+        for(unsigned i=0;i<3;++i)s_view.catalog.entries[i]=(capsule_entry_t){.bytes=32000*(12+i*7),.created=1792634880+(time_t)i*3600,.valid=true};}
+}
+static void demo_capsules_frame(uint32_t elapsed) {
+    s_view.samples=(12+elapsed/1000)*CAPSULE_RATE;
+    for(unsigned i=0;i<32;++i)s_view.waveform[i]=(uint8_t)(30+(elapsed/17+i*29)%180);
+    capsules_render(false);lv_obj_invalidate(g_record);
+}
+static void demo_capsules_exit(void){s_visible=false;g_main=g_wave=g_time=g_seconds=g_hint=g_date=g_record=g_list=g_space=g_empty=NULL;}
+const demo_page_t demo_capsules={.count=3,.enter=demo_capsules_enter,.frame=demo_capsules_frame,.exit=demo_capsules_exit};

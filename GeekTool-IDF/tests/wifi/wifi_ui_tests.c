@@ -170,6 +170,10 @@ int main(int argc,char **argv){
     language=0;for(unsigned i=0;i<12;++i){lv_obj_t *root=page();wifi_enter(root);wifi_tick();assert(s_scanning);
         int before=disconnects;wifi_exit();lv_obj_delete(root);lv_timer_handler();assert(disconnects==before && !g_list && !dlg);}
     assert(init_count==1 && scan_clears>=12 && lv_obj_get_child_count(lv_layer_top())==3);
+    {int before_scans=scan_starts,before_writes=config_writes,before_disconnects=disconnects;
+        for(language=0;language<2;++language)for(unsigned v=0;v<demo_wifi.count;++v){lv_obj_t *p=page();char original_ssid[33];memcpy(original_ssid,sel_ssid,sizeof sel_ssid);demo_wifi.enter(p,v);assert(v?dlg && lv_obj_get_parent(dlg)==p:!dlg);capture(directory,v?"demo-wifi-password":"demo-wifi");demo_wifi.exit();assert(!memcmp(original_ssid,sel_ssid,sizeof sel_ssid));lv_obj_delete(p);lv_timer_handler();}
+        assert(scan_starts==before_scans && config_writes==before_writes && disconnects==before_disconnects);
+    }
     puts("Wi-Fi native EN/ZH layout, background scan, deduplication, masked/cancelled passwords, ASCII keyboard, saved reconnect, full SSID/PSK, immediate IP, auth/timeout feedback, enable/exit cleanup passed");
     lv_deinit();return 0;
 }

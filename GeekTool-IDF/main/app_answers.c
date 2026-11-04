@@ -1,3 +1,4 @@
+#include "demo_mode.h"
 #include "app.h"
 #include "answer_messages.h"
 #include "answers_data.h"
@@ -225,3 +226,12 @@ const app_t app_answers = {
     .tick = answers_tick, .exit = answers_exit, .tick_period_ms = 20,
     .visibility = answers_visibility,
 };
+
+// 拍摄用RAM视图；不触发真实操作。/ RAM-only filming adapter; no real actions.
+static void demo_answers_enter(lv_obj_t *parent,unsigned variant){(void)variant;answers_enter(parent);}
+static void demo_answers_frame(uint32_t elapsed) {
+    bool opened=elapsed>=1000;ui_obj_set_hidden(g_cover,opened);ui_obj_set_hidden(g_reading,!opened);
+    if(opened){unsigned item=(elapsed/2200)%ANSWER_COUNT;lv_label_set_text(g_answer,settings_lang()?ANSWERS[item].zh:ANSWERS[item].en);lv_obj_update_layout(g_answer);lv_obj_set_pos(g_answer,7,126-lv_obj_get_height(g_answer)/2);lv_label_set_text(g_page,"PAGE 01 / DEMO");lv_label_set_text(g_action_label,text("OPEN A PAGE","翻开一页"));}
+}
+static void demo_answers_exit(void){s_visible=s_turning=s_waiting=s_pending_start=false;g_cover=g_reading=g_answer=g_page=g_hint=g_action=g_action_label=NULL;}
+const demo_page_t demo_answers={.count=1,.enter=demo_answers_enter,.frame=demo_answers_frame,.exit=demo_answers_exit};

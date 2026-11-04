@@ -63,7 +63,9 @@ static void powersave_cb(lv_timer_t *t) {
 static void button_cb(lv_timer_t *t) {
     (void)t;
     button_event_t ev = buttons_poll(launcher_app_visible());
-    if (ev == BUTTON_SHORT && !identity_boot_active()) lock_set(!s_locked);
+    if (ev == BUTTON_SHORT && !identity_boot_active()) {
+        if(launcher_demo_active())go_home();else lock_set(!s_locked);
+    }
     else if (ev == BUTTON_LONG) power_off();
 }
 

@@ -154,7 +154,7 @@ static void capture(const char *state) {
     assert(fclose(file) == 0);
 }
 static void back_clicked(lv_event_t *event) { (void)event; ++back_actions; }
-static void new_page(void) {
+static void new_page_for_demo(unsigned variant) {
     page = lv_obj_create(lv_screen_active()); lv_obj_remove_style_all(page);
     lv_obj_set_size(page, W, W); ui_obj_set_scrollable(page, false);
     // Same shared header geometry and fonts used for normal launcher apps.
@@ -176,8 +176,9 @@ static void new_page(void) {
     lv_obj_t *arrow = lv_label_create(back_button); lv_label_set_text(arrow, LV_SYMBOL_LEFT);
     lv_obj_set_style_text_font(arrow, UI_FONT_SYM, 0);
     lv_obj_set_style_text_color(arrow, lv_color_hex(COL_TXT), 0); lv_obj_center(arrow);
-    app_pixels.enter(page); controller_active = true; advance(20);
+    if(variant==UINT32_MAX)app_pixels.enter(page);else demo_pixels.enter(page,variant); controller_active = true; advance(20);
 }
+static void new_page(void){new_page_for_demo(UINT32_MAX);}
 static void close_page(void) {
     controller_active = false; app_pixels.exit();
     lv_obj_delete(page); lv_obj_delete(heading); lv_obj_delete(back_button);
@@ -411,5 +412,7 @@ int main(int argc, char **argv) {
     lv_indev_set_read_cb(input, read_pointer); lv_timer_set_period(lv_indev_get_read_timer(input), 20);
     font_history_coverage(); shake_detector_boundaries();
     field_input_boundaries(); interaction_and_lifecycle();
+    fail_at=0;
+    for(language=0;language<2;++language)for(unsigned v=0;v<demo_pixels.count;++v){unsigned before=live;new_page_for_demo(v);for(unsigned frame=0;frame<60;++frame)demo_pixels.frame(frame*33);char name[48];snprintf(name,sizeof name,"demo-pixels-%u",v);capture(name);demo_pixels.visibility(false);assert(!s_pm_held);demo_pixels.visibility(true);demo_pixels.exit();controller_active=false;lv_obj_delete(page);lv_obj_delete(heading);lv_obj_delete(back_button);page=heading=back_button=NULL;assert(live==before);}
     lv_deinit(); return 0;
 }

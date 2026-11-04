@@ -171,6 +171,13 @@ int main(int argc, char **argv) {
     focus_toggle(NULL);host_time_us+=FOCUS_DURATION_US;step(100);focus_tick();assert(s_focus.phase==FOCUS_DONE && !s_completion_saved);
     assert(ui_persistence_flush(1000));focus_tick();assert(s_completion_saved && !s_preferences_dirty && !garden_shared_dirty());
     focus_exit();lv_obj_delete(p);test_persistence_defer(false);
+    for(language=0;language<2;++language){
+        uint8_t original_garden[32];memcpy(original_garden,saved_garden,32);uint32_t original_pref=saved_pref;
+        unsigned original_alarms=alarm_requests,original_stops=scene_stops;
+        for(unsigned v=0;v<demo_garden.count;++v){p=new_page();demo_garden.enter(p,v);demo_garden.frame(900);char name[48];snprintf(name,sizeof name,"demo-garden-%u",v);capture(dir,name);demo_garden.exit();lv_obj_delete(p);}
+        for(unsigned v=0;v<demo_focus.count;++v){p=new_page();demo_focus.enter(p,v);demo_focus.frame(1800);char name[48];snprintf(name,sizeof name,"demo-focus-%u",v);capture(dir,name);demo_focus.exit();lv_obj_delete(p);}
+        assert(!memcmp(original_garden,saved_garden,32) && original_pref==saved_pref && original_alarms==alarm_requests && original_stops==scene_stops);
+    }
     printf("garden/focus native LVGL: bilingual glyphs, circle bounds, watering/night, hidden animation, timer boundaries, one completion/growth, audio failure, deferred completion and exit passed (%u flushed pixels)\n", flushed);
     lv_deinit(); return 0;
 }

@@ -20,6 +20,9 @@ int main(int argc,char **argv){const char *dir=argc>1?argv[1]:NULL;char json[819
   online=false;tap(g_action);assert(!s_waiting&&!s_ready);capture(dir,"zodiac-offline");online=true;mock_state=ZODIAC_LOADING;tap(g_action);lv_tick_inc(8500);app_zodiac.tick();assert(!s_waiting);capture(dir,"zodiac-failed");
   s_day=today()-1;before=requests;mock_state=ZODIAC_LOADING;app_zodiac.tick();assert(s_waiting && requests==before+1);
   app_zodiac.tick();assert(requests==before+1);
+  {unsigned original_requests=requests,original_cancel=cancelled;app_zodiac.exit();lv_obj_delete(p);
+   for(unsigned v=0;v<demo_zodiac.count;++v){p=page(language?"星座运势":"Zodiac");demo_zodiac.enter(p,v);demo_zodiac.frame(1800);char name[48];snprintf(name,sizeof name,"demo-zodiac-%u",v);capture(dir,name);demo_zodiac.exit();lv_obj_delete(p);}
+   assert(requests==original_requests && cancelled==original_cancel+1);p=page(language?"星座运势":"Zodiac");app_zodiac.enter(p);}
   before=requests;app_zodiac.visibility(false);tap(g_action);assert(requests==before);app_zodiac.visibility(true);app_zodiac.exit();assert(!g_reading&&!g_scroll);lv_obj_delete(p);lv_deinit();
  }
  if(argc>2){lv_init();for(unsigned sign=0;sign<ZODIAC_COUNT;++sign){char path[1024];snprintf(path,sizeof path,"%s/horoscope-%s.json",argv[2],ZODIAC_KEYS[sign]);FILE *live=fopen(path,"rb");assert(live);size_t bytes=fread(json,1,sizeof json-1,live);fclose(live);json[bytes]=0;assert(zodiac_data_parse(json,bytes,sign,&fixture));assert(glyphs(fixture.comment));for(unsigned c=0;c<5;++c)assert(glyphs(fixture.body[c]));assert(glyphs(fixture.color)&&glyphs(fixture.number)&&glyphs(fixture.partner)&&glyphs(fixture.good)&&glyphs(fixture.avoid));}lv_deinit();puts("all 12 captured live API responses: real parser and 32px font coverage passed");}
