@@ -55,7 +55,9 @@ static void vis(lv_obj_t *o, bool on) {
 }
 
 static void draw_mmss(int secs) {
-    char b[6]; snprintf(b, sizeof b, "%02d:%02d", (secs / 60) % 100, secs % 60);
+    // 有符号余数可能含负号；覆盖“-99:-59”和结尾，不改变已有时间显示规则。
+    // Signed remainders may include minus signs; fit "-99:-59" and its terminator without changing display rules.
+    char b[8]; snprintf(b, sizeof b, "%02d:%02d", (secs / 60) % 100, secs % 60);
     uint32_t col = s_state == ST_DONE ? (s_blink_on ? COL_RED : COL_BG) : COL_TXT;
     glyph_digits_set(g_center, b, col, col);
 }

@@ -83,7 +83,9 @@ static void calendar_enter(lv_obj_t *parent) {
             lv_obj_remove_flag(disc, LV_OBJ_FLAG_SCROLLABLE);
             lv_obj_add_flag(disc, LV_OBJ_FLAG_EVENT_BUBBLE);
         }
-        char s[4];
+        // GCC未必跨函数推导日期上界；容量覆盖32位int，实际日期仍为1..31。
+        // GCC may not infer the helper's day bound; fit a full32-bit int while real dates remain1..31.
+        char s[12];
         snprintf(s, sizeof s, "%d", d);
         cal_label(parent, cx, cy, s, COL_TXT);
     }
