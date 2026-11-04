@@ -41,7 +41,8 @@ int main(int argc,char **argv) {
         for(unsigned frame=0;frame<60;++frame){host_time_us+=33000;lv_tick_inc(33);if(views[i]->frame)views[i]->frame(frame*33);lv_timer_handler();}
         if(views[i]->visibility){views[i]->visibility(false);lv_tick_inc(50000);host_time_us+=50000000;views[i]->visibility(true);}
         if(argc>1){char name[80];snprintf(name,sizeof name,"demo-%s-%02u-%s",names[i],variant,preview_language?"zh":"en");capture(argv[1],name,display);}
-        if(views[i]->exit)views[i]->exit();lv_obj_delete(root);lv_timer_handler();
+        if(views[i]->exit)views[i]->exit();
+        lv_obj_delete(root);lv_timer_handler();
     }
     lv_deinit();puts("demo native tools: all variants EN/ZH, real render/timers/cleanup, no worker/BLE/Wi-Fi/audio writes passed");return 0;
 }
