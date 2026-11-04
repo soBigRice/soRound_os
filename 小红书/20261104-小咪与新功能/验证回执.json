@@ -1,0 +1,164 @@
+{
+  "date": "2026-11-04",
+  "scope": "仅图文与本地排版；未重测固件，未发布或提交",
+  "head": "e24a541",
+  "title_characters": 16,
+  "text_characters": 758,
+  "browser": "Tabbit真实浏览器",
+  "browser_checks": {
+    "pages": 8,
+    "viewport": [
+      1080,
+      1440
+    ],
+    "loaded_native_images": true,
+    "horizontal_text_overflow": 0,
+    "content_outside_safe_area": 0,
+    "footer_overlap": 0,
+    "final_copy_rechecked": [
+      "05-自选行情",
+      "08-开源与进度"
+    ]
+  },
+  "visual_review": "已查看封面全图和8页总览；主观视觉与文案待用户确认",
+  "source_integrity": {
+    "preserved_assets": 16,
+    "sha256_matches": true
+  },
+  "exports": [
+    {
+      "file": "发布配图/01-封面.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "5347084ac93a41cd3ea24d9e8ee82f8e107445f56d6b55556abc9bdff940cfee"
+    },
+    {
+      "file": "发布配图/01-封面.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "f3421250c9996ac4cf0877ab4949d7900bd891b254270cad1a2c0560f19fc53b"
+    },
+    {
+      "file": "发布配图/02-离线小咪.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "57af76ae947f89a3bd140e53a2b91678f729f46a2c894fdb4adfb3c1aade0d92"
+    },
+    {
+      "file": "发布配图/02-离线小咪.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "4f4212b83095fe907a6efc848900701c1b477bdedd3e0526fbecb8cc2e7e7aad"
+    },
+    {
+      "file": "发布配图/03-身体动作.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "851245bb2405756eb66a66185dba014e2860e5af2a46f611854e1666383a4574"
+    },
+    {
+      "file": "发布配图/03-身体动作.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "87c0e03820aaa40559bb3507b0403a2522da6a8defb9523c155534c67b3bd7f4"
+    },
+    {
+      "file": "发布配图/04-触摸与犯困.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "11647b5f344f1cabce2c74502e4c0b98ff05d227ceeec19fd222d8549274d33e"
+    },
+    {
+      "file": "发布配图/04-触摸与犯困.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "8683e2974e3132cc74c9b4f84132314e94cb6970465c14d506c9243fdad4830c"
+    },
+    {
+      "file": "发布配图/05-自选行情.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "be15861842db88dc18f56b3cc929a59a8dcf3a5af94bcffcb9b4da8476aeb5ec"
+    },
+    {
+      "file": "发布配图/05-自选行情.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "fef7bdb47ee98b0216878c2c456ff04e0edc49547b69b58a4ea4c5e5e81f8eb5"
+    },
+    {
+      "file": "发布配图/06-行情状态.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "dc3cbb0a64bd676a1f30cfa769af69cd6f6ece0adf157c608bc1672bfc04a08b"
+    },
+    {
+      "file": "发布配图/06-行情状态.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "26fa34ffa3e5b5c296e8b6cef62f5806e9552c86adc4a2e03df5dd420345bc38"
+    },
+    {
+      "file": "发布配图/07-自动演示.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "8b4ef2e1151534dadb8f095479c8547a3952fa3e8a193d927b3b3e842601adff"
+    },
+    {
+      "file": "发布配图/07-自动演示.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "792bbc8216bb74562e17ad98f0989e7bf1f444c9f0fa0068fce18b3d2b1b74fe"
+    },
+    {
+      "file": "发布配图/08-开源与进度.png",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "2ff8d3876d3ed34366bc27f6c63acee1c5f5d05949beb4be11fde2efad90917c"
+    },
+    {
+      "file": "发布配图/08-开源与进度.jpg",
+      "dimensions": [
+        1080,
+        1440
+      ],
+      "sha256": "06c9e3e8576792b947aba04b983e36be54b5a952ae3dbbd5e48fd4558ea0ae26"
+    }
+  ],
+  "external_actions": {
+    "account_access": false,
+    "publication": false,
+    "paid_image_generation": false
+  },
+  "cleanup": "无测试服务器或构建进程；浏览器临时页另作关闭确认"
+}

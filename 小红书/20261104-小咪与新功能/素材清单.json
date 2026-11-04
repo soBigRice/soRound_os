@@ -1,0 +1,98 @@
+[
+  {
+    "name": "mimi-awake",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/expression-06-zh.png",
+    "copy": "素材原图/mimi-awake.png",
+    "sha256": "de2a8ab9cd7630e16fd285ad2899b768cc7841b93bb5ccaac78007fdf543f55d"
+  },
+  {
+    "name": "mimi-look",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/expression-00-zh.png",
+    "copy": "素材原图/mimi-look.png",
+    "sha256": "4ff7e0178efe3679d62b708c2ad9b99d290fdbcbe3345940af6adc079af4b731"
+  },
+  {
+    "name": "mimi-sleepy",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/expression-13-zh.png",
+    "copy": "素材原图/mimi-sleepy.png",
+    "sha256": "0a08bd64d6d97f493f029c7d6bfc58f74aa216d5489266a6e1db45270fcd1943"
+  },
+  {
+    "name": "mimi-wink",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-02-wink-zh.png",
+    "copy": "素材原图/mimi-wink.png",
+    "sha256": "80f469209a6e3452ab52d661d3a94d16baa7ee0ce0bff7a63e4304d6973085cd"
+  },
+  {
+    "name": "mimi-egg",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-08-egg-zh.png",
+    "copy": "素材原图/mimi-egg.png",
+    "sha256": "fef17bbcc702031d310ab76dd3f48f3bd69b3bad6759be025130505fa78d932f"
+  },
+  {
+    "name": "mimi-hexagon",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-09-hexagon-zh.png",
+    "copy": "素材原图/mimi-hexagon.png",
+    "sha256": "e44b0405b13687e000029dc15e63444813ad67c8c5448712e700918923312896"
+  },
+  {
+    "name": "mimi-play",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-10-play-zh.png",
+    "copy": "素材原图/mimi-play.png",
+    "sha256": "207da6b890805350d3d89706dc9413aa36bb4fb2362b88d047e6c70246c6b9ed"
+  },
+  {
+    "name": "mimi-orbit",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-11-orbit-zh.png",
+    "copy": "素材原图/mimi-orbit.png",
+    "sha256": "098c54dd3e74dd8a08698cc4377aa8cdbeeb9b5d5ffb034825d6c656d5b9aa63"
+  },
+  {
+    "name": "mimi-sleep",
+    "source": "GeekTool-IDF/artwork/mimi/fullscreen-native/motion-07-sleep-zh.png",
+    "copy": "素材原图/mimi-sleep.png",
+    "sha256": "127146f837444c946a419aebd9e35b23a24fbca716cc6ce60766915211a3f957"
+  },
+  {
+    "name": "stocks-overview",
+    "source": "GeekTool-IDF/build/flash-records/stocks-A-20261103/preview/watchlist-overview-zh.png",
+    "copy": "素材原图/stocks-overview.png",
+    "sha256": "95944c7ff1a4e949b6fd9cabca9a2c3f73065f0ad915f2cffb8f23df9e2ca7ac"
+  },
+  {
+    "name": "stocks-detail",
+    "source": "GeekTool-IDF/build/flash-records/stocks-A-20261103/preview/watchlist-detail-zh.png",
+    "copy": "素材原图/stocks-detail.png",
+    "sha256": "c59911da6d4850cacbe7f252a8687a249b380ebfcfb4d3c644c47b9c9feff122"
+  },
+  {
+    "name": "stocks-failure",
+    "source": "GeekTool-IDF/build/flash-records/stocks-A-20261103/preview/watchlist-failure-zh.png",
+    "copy": "素材原图/stocks-failure.png",
+    "sha256": "fd707833106abaf64bf5a31cbd7bb2e152bd2576b06703c024941edbbcbc24e6"
+  },
+  {
+    "name": "stocks-editor",
+    "source": "GeekTool-IDF/build/flash-records/stocks-A-20261103/preview/watchlist-editor-numeric-zh.png",
+    "copy": "素材原图/stocks-editor.png",
+    "sha256": "c67c039dd097ac72f5475ff99f4e6da063015e8e02cbd1aac5a6e442a24a0016"
+  },
+  {
+    "name": "demo-watchface",
+    "source": "site/assets/studio/active-bauhaus.png",
+    "copy": "素材原图/demo-watchface.png",
+    "sha256": "3b9db884a4460a5402d59898ad6a516d70d7f22296626ed6236d6e7bd4b77337"
+  },
+  {
+    "name": "demo-weather",
+    "source": "site/assets/apps/weather.png",
+    "copy": "素材原图/demo-weather.png",
+    "sha256": "b1d76f910381c9d25498512895c6d5a3751951cf79e36159f9e219bc726fa4ea"
+  },
+  {
+    "name": "demo-maze",
+    "source": "site/assets/apps/maze.png",
+    "copy": "素材原图/demo-maze.png",
+    "sha256": "687ebf645d8559976cb6f2ff3b7ac320cec81714df5756a86e918539ba3997ac"
+  }
+]
