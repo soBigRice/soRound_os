@@ -5,7 +5,11 @@
 #include "src/draw/sw/blend/lv_draw_sw_blend_private.h"
 #include "src/draw/sw/blend/lv_draw_sw_blend_to_rgb565.h"
 #include "src/draw/sw/blend/lv_draw_sw_blend_to_rgb565_swapped.h"
+// 9.6由lvgl.h公开换序接口并映射原函数名；9.5仍需旧头，保留严格编译检查。
+// 9.6 exposes byte swapping and the old-name mapping via lvgl.h;9.5 still needs this header, with strict warnings retained.
+#if !LV_VERSION_CHECK(9, 6, 0)
 #include "src/draw/sw/lv_draw_sw_utils.h"
+#endif
 #include <string.h>
 #define SIDE MIMI_ASSET_SIDE
 struct mimi_render {
