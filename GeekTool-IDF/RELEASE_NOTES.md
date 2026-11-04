@@ -21,6 +21,7 @@
 - [发行环境手动预检41766519046](https://github.com/soBigRice/soRound_os/actions/runs/41766519046)已通过完整主机、配套功能、媒体内存与OTA镜像检查；已修复Linux/GCC识别的日历/计时格式缓冲边界。保留此前失败标签和日志，未跳过发布门禁。
 - LVGL9.6实际完整小咪加速路径的normal与ASan/UBSan检查通过，保留全部原生帧、实时眼睛、淡入淡出、遮挡/回退及生命周期断言。
 
-标签工作流使用ESP-IDF6.0.1构建ESP32-S3，并在实际发行依赖下运行完整主机回归、生态箱/专注、媒体ASan/UBSan和OTA镜像校验；最终CI与GitHub/R2/国内正式及内测下载摘要/条件Range结果记录在[PORTING_NOTES.md](https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md)。本地源码提交前67项主机回归通过，不借此替代本次CI结果。
+- [正式发行CI41767153441](https://github.com/soBigRice/soRound_os/actions/runs/41767153441)全部通过：ESP-IDF6.0.1 / ESP32-S3，67项主机、2项生态箱/专注、媒体ASan/UBSan与14项OTA镜像检查。
+- 精确应用6,873,824字节，内嵌版本v1.9.3，SHA256 `1a9e5e7d3348fc6894db8097172865bb56013c355a1284d9413b9142c22b8488`。GitHub完整资产、声明摘要与R2/设备OTA正式及内测四个完整对象均一致；强ETag、no-store及条件Range核对通过。素材、许可与说明的资产声明摘要也逐项一致。完整回执见[PORTING_NOTES.md](https://github.com/soBigRice/soRound_os/blob/main/GeekTool-IDF/PORTING_NOTES.md)。
 
 本次发布不访问或烧录设备。精确发行包的设备网络OTA、重启/自动回滚、真实行情、长期巡演和主观体验仍需对应设备验证。小咪采用公开开源适配，GrokBot为BSD-3-Clause、bloub为MIT，保留上游原件及许可，不宣称xAI官方完整引擎。

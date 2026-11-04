@@ -2597,3 +2597,16 @@ v1.9.2的CI41764046056已构建出6,873,824字节固件，但主机编译在`app
 
 
 统一修复后的手动发行环境预检41766519046（源码4c1bf7b）全绿：实际发行依赖下完整主机、配套功能、媒体内存和OTA镜像门禁通过；该模式未发布、未写R2。最终正式版本采用v1.9.3，下一标签仍执行完整固件构建、相同测试及分发门禁，不借预检跳过标签验证。前序失败标签不移动，精确发行包和四个分发对象待本轮实际核验。
+
+
+## 2026-11-04 v1.9.3 正式发布与分发核验
+
+最终标签v1.9.3指向`78eb75f8e3cf1c9fd095e98e344bad5612d8c9f5`。[发行CI41767153441](https://github.com/soBigRice/soRound_os/actions/runs/41767153441)完整成功，实际依赖为ESP-IDF6.0.1、LVGL 9.6.0~1、esp_lvgl_port 2.9.0、CO5300 2.2.0。67项主机、2项生态箱/专注、媒体ASan/UBSan和14项OTA镜像门禁均通过；手动预检没有代替标签完整构建。前序v1.9/v1.9.1/v1.9.2均被门禁拦住，未创建公开Release或更新OTA，保留标签和失败证据。
+
+精确CI应用6,873,824B，版本v1.9.3，SHA256 `1a9e5e7d3348fc6894db8097172865bb56013c355a1284d9413b9142c22b8488`；ELF SHA256 `ab23223dc71afd94518507c8889bfc57c6c518f6781d0547ee81bf01b9870369`。应用低于0x7e0000并结束于旧引导器16MiB可映射边界前，双8MiB槽剩1,514,784B。官方ESP镜像解析器的S3/校验和/内嵌SHA及ELF摘要核对通过。精确bin/ELF/map/config/依赖锁归档于忽略目录`build/releases/v1.9.3/`。
+
+[GitHub正式版](https://github.com/soBigRice/soRound_os/releases/tag/v1.9.3)非draft、非prerelease且latest为v1.9.3。GitHub完整bin下载、资产声明摘要、R2源及设备OTA域名正式/内测四个完整包均与CI逐字节相同。四对象强ETag、no-store和If-Match / bytes=1024-2047的206响应、Content-Range、正文均通过。原始回执在`build/flash-records/v1.9-release-20261104/`：ci-summary、image-info、github-verification、distribution-verification。
+
+原始MIMI.PAK6,361,744B（SHA256 `fea8e0c7140c946b414bdf2ad59079b7de2f3deef10c5c2b8934fa7aea21d42c`）、MIMI-ASSETS.md、MIMI-LICENSES.txt与SHA256SUMS已随Release上传，五项资产声明摘要均逐项匹配本地。未上传失败canonical包或私有设备卷。素材安装独立于普通应用OTA，保留全部动作的原矢量回退；没有资源自动迁移。
+
+本次不访问或烧录设备，不迁移分区或录音卷。前序本地包约12～16fps、seq118/VALID与用户观感不继承为本次精确CI包的网络OTA/重启/回滚或帧率验收。官网中英文同步v1.9.3及26项应用事实，保留19张已标识旧版本的原生预览和62款目录；实际查看中文1280×720、英文390×900安装区，无横向溢出，素材边界提示与版本链接可见。页面发布与最终清理另以本轮后续回执收束。
